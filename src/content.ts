@@ -24,12 +24,18 @@ export const VIDEO_URLS = {
 // รูปนิ่ง placeholder — ใช้ตอน USE_STATIC_IMAGES = true
 // วางไฟล์จริงไว้ที่ public/images/<ชื่อไฟล์> แล้วแก้ path ด้านล่างนี้
 // TODO: เปลี่ยนเป็นรูปของหน่วยงานเอง
+// แนวภาพที่แนะนำต่อไฟล์ (ดูรายละเอียดเพิ่มในคำตอบแชท):
+//  hero            — ท้องฟ้าโปร่งใส/ตึกสำนักงานสีเขียว มุมกว้าง โทนสว่างมีความหวัง
+//  featured        — คนทำงานในออฟฟิศที่มีต้นไม้/แสงธรรมชาติ กำลังทำพฤติกรรมลดคาร์บอน
+//  philosophy      — แผงโซลาร์เซลล์บนหลังคา หรือมุมสูงพื้นที่สีเขียวผสมเมือง
+//  serviceEnergy   — หลอดไฟ/มิเตอร์ไฟฟ้า/คนกดปิดสวิตช์ สื่อการประหยัดพลังงาน
+//  serviceWaste    — ถังขยะแยกสีจัดเรียงเป็นระเบียบ หรือมือกำลังแยกขยะรีไซเคิล
 export const IMAGE_URLS = {
-  hero: '/images/hero.jpg',
-  featured: '/images/featured.jpg',
-  philosophy: '/images/philosophy.jpg',
-  serviceEnergy: '/images/service-energy.jpg',
-  serviceWaste: '/images/service-waste.jpg',
+  hero: '/images/hero.webp',
+  featured: '/images/featured.webp',
+  philosophy: '/images/philosophy.webp',
+  serviceEnergy: '/images/service-energy.webp',
+  serviceWaste: '/images/service-waste.webp',
 }
 
 export const NAV_LINKS = [
@@ -96,6 +102,10 @@ export const GAMES_PROMO = {
 
 // บทความ mock — รอเนื้อหาจริงจากหน่วยงาน
 // TODO: แทนที่ด้วยบทความจริง (title, date, tag, image, ลิงก์)
+// แนวภาพที่แนะนำ:
+//  news-1 — สำนักงาน/โต๊ะทำงาน มีคนกำลังปิดไฟหรือถอดปลั๊ก สื่อการประหยัดไฟ
+//  news-2 — กลุ่มคนทำกิจกรรมอาสา ปลูกต้นไม้ หรือรวมตัวถ่ายภาพหมู่กลางแจ้ง
+//  news-3 — กราฟ/ธรรมชาติเติบโต หรือทีมงานยิ้มดีใจกับผลงาน สื่อความสำเร็จ
 export const NEWS = {
   label: 'บทความและข่าวสาร',
   heading: 'อัปเดตล่าสุด',
@@ -104,19 +114,19 @@ export const NEWS = {
       tag: 'ความรู้',
       title: '(ตัวอย่าง) 5 วิธีลดใช้ไฟฟ้าในสำนักงานที่เริ่มได้วันนี้',
       date: '19 ก.ค. 2569',
-      image: '/images/news-1.jpg',
+      image: '/images/news-1.webp',
     },
     {
       tag: 'กิจกรรม',
       title: '(ตัวอย่าง) เปิดรับสมัครอาสาสมัครสำนักงานสีเขียวรุ่นที่ 1',
       date: '15 ก.ค. 2569',
-      image: '/images/news-2.jpg',
+      image: '/images/news-2.webp',
     },
     {
       tag: 'ข่าว',
       title: '(ตัวอย่าง) สรุปผลการลดคาร์บอนครึ่งปีแรก เกินเป้า 12%',
       date: '10 ก.ค. 2569',
-      image: '/images/news-3.jpg',
+      image: '/images/news-3.webp',
     },
   ],
 }
