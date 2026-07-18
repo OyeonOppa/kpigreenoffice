@@ -14,7 +14,7 @@ interface NumberFieldProps {
 function NumberField({ label, value, onChange, unit }: NumberFieldProps) {
   return (
     <label className="flex flex-col gap-2">
-      <span className="text-white/60 text-sm">{label}</span>
+      <span className="text-ink/65 text-sm">{label}</span>
       <div className="liquid-glass rounded-2xl flex items-center pr-4">
         <input
           type="number"
@@ -23,9 +23,9 @@ function NumberField({ label, value, onChange, unit }: NumberFieldProps) {
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="เติมตัวเลข"
-          className="w-full bg-transparent text-white placeholder:text-white/30 px-4 py-3 outline-none text-sm"
+          className="w-full bg-transparent text-ink placeholder:text-ink/30 px-4 py-3 outline-none text-sm"
         />
-        {unit && <span className="text-white/40 text-xs whitespace-nowrap">{unit}</span>}
+        {unit && <span className="text-ink/65 text-xs whitespace-nowrap">{unit}</span>}
       </div>
     </label>
   )
@@ -75,14 +75,15 @@ export default function CarbonCalculator() {
 
   return (
     <motion.div
+      id="calculator"
       ref={ref}
       initial={{ opacity: 0, y: 50 }}
       animate={isInView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.8 }}
-      className="liquid-glass rounded-3xl p-6 md:p-10"
+      className="liquid-glass rounded-3xl p-6 md:p-10 scroll-mt-24"
     >
-      <p className="text-white/40 text-xs tracking-widest uppercase mb-3">{CALCULATOR.label}</p>
-      <h3 className="font-display text-3xl md:text-4xl text-white tracking-tight mb-10">
+      <p className="text-ink/65 text-xs tracking-widest uppercase mb-3">{CALCULATOR.label}</p>
+      <h3 className="font-display text-3xl md:text-4xl text-ink tracking-tight mb-10">
         {CALCULATOR.heading}
       </h3>
 
@@ -90,7 +91,7 @@ export default function CarbonCalculator() {
         {/* ฟอร์มคำถาม */}
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
-            <span className="text-white/60 text-sm">1. วันนี้คุณเดินทางมาทำงานอย่างไร</span>
+            <span className="text-ink/65 text-sm">1. วันนี้คุณเดินทางมาทำงานอย่างไร</span>
             <div className="flex flex-wrap gap-2">
               {CALCULATOR.transportOptions.map((opt) => (
                 <button
@@ -99,8 +100,8 @@ export default function CarbonCalculator() {
                   onClick={() => setTransport(opt.id)}
                   className={`rounded-full px-5 py-2 text-sm transition-colors ${
                     transport === opt.id
-                      ? 'bg-white text-black font-medium'
-                      : 'liquid-glass text-white/70 hover:text-white'
+                      ? 'bg-accent text-white font-medium'
+                      : 'liquid-glass text-ink/70 hover:text-ink'
                   }`}
                 >
                   {opt.label}
@@ -117,7 +118,7 @@ export default function CarbonCalculator() {
           />
 
           <div className="flex flex-col gap-2">
-            <span className="text-white/60 text-sm">
+            <span className="text-ink/65 text-sm">
               3. ในช่วง 1 ปีที่ผ่านมา คุณเดินทางด้วยเครื่องบินบ่อยแค่ไหน
             </span>
             <div className="grid grid-cols-2 gap-3">
@@ -137,7 +138,7 @@ export default function CarbonCalculator() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <span className="text-white/60 text-sm">
+            <span className="text-ink/65 text-sm">
               4. ในแต่ละสัปดาห์ คุณทานเนื้อสัตว์บ่อยแค่ไหน
             </span>
             <div className="grid grid-cols-3 gap-3">
@@ -165,27 +166,27 @@ export default function CarbonCalculator() {
         {/* ผลลัพธ์ */}
         <div className="flex flex-col justify-center">
           <div className="liquid-glass rounded-3xl p-8 md:p-10 text-center">
-            <p className="text-white/50 text-xs tracking-widest uppercase mb-4">
+            <p className="text-ink/65 text-xs tracking-widest uppercase mb-4">
               คาร์บอนฟุตพรินต์ของคุณ
             </p>
-            <p className="font-display text-6xl md:text-7xl text-white mb-2">
+            <p className="font-display text-6xl md:text-7xl text-accent-deep mb-2">
               {hasInput ? result.totalTons.toFixed(2) : '—'}
             </p>
-            <p className="text-white/60 text-sm mb-8">ตัน CO₂e ต่อปี</p>
+            <p className="text-ink/65 text-sm mb-8">ตัน CO₂e ต่อปี</p>
 
             {hasInput && (
               <>
                 <div className="flex flex-col gap-2 text-left mb-8">
                   {result.breakdown.map((b) => (
                     <div key={b.label} className="flex justify-between text-sm">
-                      <span className="text-white/50">{b.label}</span>
-                      <span className="text-white/80">{(b.kg / 1000).toFixed(2)} ตัน</span>
+                      <span className="text-ink/65">{b.label}</span>
+                      <span className="text-ink/80">{(b.kg / 1000).toFixed(2)} ตัน</span>
                     </div>
                   ))}
                 </div>
-                <p className="text-white/60 text-sm">
+                <p className="text-ink/65 text-sm">
                   ต้องปลูกต้นไม้ประมาณ{' '}
-                  <span className="text-white font-medium">
+                  <span className="text-ink font-medium">
                     {result.trees.toLocaleString('th-TH')}
                   </span>{' '}
                   ต้น เพื่อดูดซับคาร์บอนเท่านี้ใน 1 ปี
@@ -193,7 +194,7 @@ export default function CarbonCalculator() {
               </>
             )}
           </div>
-          <p className="text-white/30 text-xs leading-relaxed mt-4 text-center">
+          <p className="text-ink/65 text-xs leading-relaxed mt-4 text-center">
             {CALCULATOR.disclaimer}
           </p>
         </div>

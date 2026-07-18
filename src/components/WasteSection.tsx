@@ -46,25 +46,25 @@ function WasteGame() {
   }
 
   return (
-    <div className="liquid-glass rounded-3xl p-6 md:p-10">
+    <div id="waste-game" className="liquid-glass rounded-3xl p-6 md:p-10 scroll-mt-24">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <p className="text-white/40 text-xs tracking-widest uppercase mb-2">เกมแยกขยะ</p>
-          <h3 className="font-display text-2xl md:text-3xl text-white tracking-tight">
+          <p className="text-ink/65 text-xs tracking-widest uppercase mb-2">เกมแยกขยะ</p>
+          <h3 className="font-display text-2xl md:text-3xl text-ink tracking-tight">
             ทิ้งให้ถูกถัง
           </h3>
         </div>
-        <p className="text-white/60 text-sm">
-          คะแนน <span className="text-white text-lg font-medium">{score}</span> / {ROUNDS}
+        <p className="text-ink/65 text-sm">
+          คะแนน <span className="text-accent-deep text-lg font-medium">{score}</span> / {ROUNDS}
         </p>
       </div>
 
       {finished ? (
         <div className="text-center py-10">
-          <p className="font-display text-5xl md:text-6xl text-white mb-3">
+          <p className="font-display text-5xl md:text-6xl text-ink mb-3">
             {score} / {ROUNDS}
           </p>
-          <p className="text-white/60 text-sm mb-8">
+          <p className="text-ink/65 text-sm mb-8">
             {score === ROUNDS
               ? 'แยกถูกทุกชิ้น เยี่ยมมาก'
               : score >= ROUNDS / 2
@@ -74,7 +74,7 @@ function WasteGame() {
           <button
             type="button"
             onClick={restart}
-            className="liquid-glass rounded-full px-8 py-3 text-white text-sm font-medium hover:bg-white/5 transition-colors inline-flex items-center gap-2"
+            className="liquid-glass rounded-full px-8 py-3 text-ink text-sm font-medium hover:bg-ink/5 transition-colors inline-flex items-center gap-2"
           >
             <RotateCcw size={16} /> เล่นอีกครั้ง
           </button>
@@ -82,11 +82,11 @@ function WasteGame() {
       ) : (
         <>
           <div className="text-center mb-8">
-            <p className="text-white/40 text-xs mb-4">
+            <p className="text-ink/65 text-xs mb-4">
               ข้อ {round + 1} / {ROUNDS} — ขยะชิ้นนี้ควรทิ้งถังไหน?
             </p>
             <div className="text-6xl mb-3">{current.emoji}</div>
-            <p className="text-white text-lg">{current.name}</p>
+            <p className="text-ink text-lg">{current.name}</p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -96,21 +96,21 @@ function WasteGame() {
                 type="button"
                 onClick={() => pick(bin.id)}
                 disabled={!!feedback}
-                className="liquid-glass rounded-2xl p-4 text-center hover:bg-white/5 transition-colors disabled:opacity-60"
+                className="liquid-glass rounded-2xl p-4 text-center hover:bg-ink/5 transition-colors disabled:opacity-60"
               >
                 <span
-                  className="block w-8 h-8 rounded-full mx-auto mb-2 border border-white/20"
+                  className="block w-8 h-8 rounded-full mx-auto mb-2 border border-ink/15"
                   style={{ backgroundColor: bin.color }}
                 />
-                <span className="block text-white text-sm font-medium">{bin.name}</span>
-                <span className="block text-white/40 text-xs mt-1">{bin.type}</span>
+                <span className="block text-ink text-sm font-medium">{bin.name}</span>
+                <span className="block text-ink/65 text-xs mt-1">{bin.type}</span>
               </button>
             ))}
           </div>
 
           <div className="h-10 mt-6 text-center">
             {feedback && (
-              <p className={`text-sm ${feedback.correct ? 'text-green-400' : 'text-red-400'}`}>
+              <p className={`text-sm ${feedback.correct ? 'text-emerald-700' : 'text-rose-700'}`}>
                 {feedback.correct ? 'ถูกต้อง!' : `ยังไม่ใช่ — ชิ้นนี้คือ${feedback.binType}`}
               </p>
             )}
@@ -126,13 +126,13 @@ export default function WasteSection() {
   const isInView = useInView(ref, { once: true, margin: '-100px' })
 
   return (
-    <section id="waste" ref={ref} className="bg-black py-28 md:py-40 px-6 overflow-hidden">
+    <section id="waste" ref={ref} className="bg-canvas py-28 md:py-40 px-6 overflow-hidden">
       <div className="max-w-6xl mx-auto">
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
-          className="text-white/40 text-sm tracking-widest uppercase mb-6"
+          className="text-ink/65 text-sm tracking-widest uppercase mb-6"
         >
           {WASTE.label}
         </motion.p>
@@ -140,7 +140,7 @@ export default function WasteSection() {
           initial={{ opacity: 0, y: 40 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, delay: 0.1 }}
-          className="font-display text-4xl md:text-6xl text-white leading-[1.2] tracking-tight mb-6"
+          className="font-display text-4xl md:text-6xl text-ink leading-[1.2] tracking-tight mb-6"
         >
           {WASTE.heading}
         </motion.h2>
@@ -148,7 +148,7 @@ export default function WasteSection() {
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="text-white/60 text-base md:text-lg leading-relaxed max-w-2xl mb-14"
+          className="text-ink/65 text-base md:text-lg leading-relaxed max-w-2xl mb-14"
         >
           {WASTE.intro}
         </motion.p>
@@ -164,12 +164,12 @@ export default function WasteSection() {
               className="liquid-glass rounded-3xl p-6"
             >
               <span
-                className="block w-10 h-10 rounded-full mb-4 border border-white/20"
+                className="block w-10 h-10 rounded-full mb-4 border border-ink/15"
                 style={{ backgroundColor: bin.color }}
               />
-              <p className="text-white font-medium mb-1">{bin.name}</p>
-              <p className="text-white/70 text-sm mb-2">{bin.type}</p>
-              <p className="text-white/40 text-xs leading-relaxed">{bin.examples}</p>
+              <p className="text-ink font-medium mb-1">{bin.name}</p>
+              <p className="text-ink/70 text-sm mb-2">{bin.type}</p>
+              <p className="text-ink/65 text-xs leading-relaxed">{bin.examples}</p>
             </motion.div>
           ))}
         </div>

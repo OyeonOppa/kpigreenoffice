@@ -21,7 +21,7 @@ const MediaBackground = forwardRef<HTMLVideoElement, MediaBackgroundProps>(
       if (imageFailed) {
         return (
           <div
-            className={`${className ?? ''} flex flex-col items-center justify-center gap-2 bg-white/5 text-white/30`}
+            className={`${className ?? ''} flex flex-col items-center justify-center gap-2 bg-accent/[0.06] text-accent-deep/75`}
             style={style}
           >
             <ImageOff size={28} />

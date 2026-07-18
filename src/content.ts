@@ -51,6 +51,88 @@ export const HERO = {
   contactLabel: 'ติดต่อเรา',
 }
 
+// พิกัดสำหรับ widget สภาพอากาศ/ฝุ่น (Open-Meteo — ฟรี ไม่ต้องใช้ API key)
+// TODO: เปลี่ยนเป็นพิกัดที่ตั้งจริงของหน่วยงาน
+export const AIR_WIDGET = {
+  latitude: 13.7563,
+  longitude: 100.5018,
+  locationLabel: 'กรุงเทพมหานคร',
+  sourceLabel: 'ข้อมูล: Open-Meteo (CAMS)',
+}
+
+// การ์ดทางลัดใต้ hero — icon กำหนดใน QuickActionsSection ตาม id
+export const QUICK_ACTIONS = [
+  { id: 'policy', label: 'นโยบายของเรา', href: '#about' },
+  { id: 'calculator', label: 'คำนวณคาร์บอน', href: '#calculator' },
+  { id: 'game', label: 'เกมแยกขยะ', href: '#waste-game' },
+  { id: 'bins', label: 'ถังขยะ 4 สี', href: '#waste' },
+  { id: 'actions', label: 'มาตรการหลัก', href: '#actions' },
+  { id: 'media', label: 'บทความความรู้', href: '#media' },
+  { id: 'partners', label: 'ความร่วมมือ', href: '#partners' },
+  { id: 'dashboard', label: 'ผลลัพธ์', href: '#dashboard' },
+] as const
+
+// การ์ดโปรโมทกิจกรรม interactive ในเว็บ
+export const GAMES_PROMO = {
+  label: 'ลองเล่นดู',
+  heading: 'เรียนรู้ผ่านการลงมือทำ',
+  items: [
+    {
+      emoji: '🗑️',
+      title: 'เกมแยกขยะ ทิ้งให้ถูกถัง',
+      description: 'ทดสอบว่าคุณแยกขยะถูกถังแค่ไหนใน 8 ข้อ',
+      href: '#waste-game',
+      cta: 'เล่นเลย',
+    },
+    {
+      emoji: '🌍',
+      title: 'เครื่องคำนวณคาร์บอนฟุตพรินต์',
+      description: 'ตอบ 6 คำถาม รู้ทันทีว่าปีนึงคุณปล่อยคาร์บอนกี่ตัน',
+      href: '#calculator',
+      cta: 'คำนวณเลย',
+    },
+  ],
+}
+
+// บทความ mock — รอเนื้อหาจริงจากหน่วยงาน
+// TODO: แทนที่ด้วยบทความจริง (title, date, tag, image, ลิงก์)
+export const NEWS = {
+  label: 'บทความและข่าวสาร',
+  heading: 'อัปเดตล่าสุด',
+  posts: [
+    {
+      tag: 'ความรู้',
+      title: '(ตัวอย่าง) 5 วิธีลดใช้ไฟฟ้าในสำนักงานที่เริ่มได้วันนี้',
+      date: '19 ก.ค. 2569',
+      image: '/images/news-1.jpg',
+    },
+    {
+      tag: 'กิจกรรม',
+      title: '(ตัวอย่าง) เปิดรับสมัครอาสาสมัครสำนักงานสีเขียวรุ่นที่ 1',
+      date: '15 ก.ค. 2569',
+      image: '/images/news-2.jpg',
+    },
+    {
+      tag: 'ข่าว',
+      title: '(ตัวอย่าง) สรุปผลการลดคาร์บอนครึ่งปีแรก เกินเป้า 12%',
+      date: '10 ก.ค. 2569',
+      image: '/images/news-3.jpg',
+    },
+  ],
+}
+
+export const FOOTER = {
+  about:
+    'เว็บไซต์นโยบายคาร์บอนต่ำของหน่วยงาน รวมความรู้ มาตรการ และเครื่องมือช่วยลดการปล่อยก๊าซเรือนกระจก',
+  // TODO: ข้อมูลจริงจากหน่วยงาน — ที่อยู่ เบอร์โทร อีเมล โซเชียลจริง
+  contact: {
+    address: 'ที่อยู่หน่วยงาน (รอข้อมูลจริง)',
+    phone: '0-0000-0000',
+    email: 'contact@example.org',
+  },
+  copyright: `© ${new Date().getFullYear()} ${'Green Office'} — สงวนลิขสิทธิ์`,
+}
+
 export const ABOUT = {
   label: 'นโยบายของเรา',
   // TODO: ข้อมูลจริงจากหน่วยงาน — กรอบเวลา/เป้าหมายที่ประกาศจริง

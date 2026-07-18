@@ -38,15 +38,15 @@ export default function DashboardSection() {
     <section
       id="dashboard"
       ref={ref}
-      className="relative bg-black py-28 md:py-40 px-6 overflow-hidden"
+      className="relative bg-canvas py-28 md:py-40 px-6 overflow-hidden"
     >
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(255,255,255,0.03)_0%,_transparent_60%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(87,145,110,0.07)_0%,_transparent_60%)]" />
       <div className="relative max-w-6xl mx-auto">
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
-          className="text-white/40 text-sm tracking-widest uppercase mb-4 text-center"
+          className="text-ink/65 text-sm tracking-widest uppercase mb-4 text-center"
         >
           {DASHBOARD.label}
         </motion.p>
@@ -54,7 +54,7 @@ export default function DashboardSection() {
           initial={{ opacity: 0, y: 40 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, delay: 0.1 }}
-          className="font-display text-4xl md:text-6xl text-white tracking-tight text-center mb-14 md:mb-20"
+          className="font-display text-4xl md:text-6xl text-ink tracking-tight text-center mb-14 md:mb-20"
         >
           {DASHBOARD.heading}
         </motion.h2>
@@ -69,11 +69,11 @@ export default function DashboardSection() {
               className="liquid-glass rounded-3xl p-8 md:p-10 text-center"
             >
               <div className="text-4xl mb-4">{stat.emoji}</div>
-              <p className="font-display text-5xl md:text-6xl text-white mb-1">
+              <p className="font-display text-5xl md:text-6xl text-accent-deep mb-1">
                 <CountUp target={stat.value} decimals={stat.decimals} start={isInView} />
               </p>
-              <p className="text-white/60 text-sm mb-4">{stat.unit}</p>
-              <p className="text-white/40 text-sm">{stat.label}</p>
+              <p className="text-ink/65 text-sm mb-4">{stat.unit}</p>
+              <p className="text-ink/65 text-sm">{stat.label}</p>
             </motion.div>
           ))}
         </div>
@@ -82,7 +82,7 @@ export default function DashboardSection() {
           initial={{ opacity: 0 }}
           animate={isInView ? { opacity: 1 } : {}}
           transition={{ duration: 0.8, delay: 0.6 }}
-          className="text-white/30 text-sm text-center"
+          className="text-ink/65 text-sm text-center"
         >
           {DASHBOARD.note}
         </motion.p>
