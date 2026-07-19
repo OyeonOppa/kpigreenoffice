@@ -1,13 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Noto+Serif+Thai:wght@400;500&family=Noto+Sans+Thai:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
 @import 'tailwindcss';
 
 @theme {
-  /* Noto Serif Thai ต้องมาก่อนเสมอ — Instrument Serif มี glyph เปล่าสำหรับ
-     สระ/วรรณยุกต์ไทยบางตัว ทำให้ browser ไม่ fallback และตัวอักษรหายไป
-     ถ้าจะใช้ลุค Instrument Serif ให้ใส่ font-family นี้ตรงๆ เฉพาะจุดที่เป็นข้อความอังกฤษล้วน */
-  --font-display: 'Noto Serif Thai', 'Instrument Serif', serif;
-  --font-display-en: 'Instrument Serif', serif;
-  --font-sans: 'Noto Sans Thai', system-ui, sans-serif;
+  /* Kanit รองรับภาษาไทยในตัว และมีตัวเอียงจริง (ต่างจาก Mitr) —
+     จุดที่ใช้ italic เน้นคำจึงได้ตัวเอียงแท้จากฟอนต์ ไม่ใช่ oblique จำลอง */
+  --font-display: 'Kanit', system-ui, sans-serif;
+  --font-sans: 'Kanit', system-ui, sans-serif;
 
   /* โทนขาว/สว่าง เอียงไปทางเขียวอ่อนมากๆ (hue ~150) ให้เข้ากับธีมคาร์บอนต่ำ
      ไม่ใช้ขาว/ดำล้วน — ทุกสีมี chroma เล็กน้อยเพื่อความรู้สึกอบอุ่นเป็นธรรมชาติ */
@@ -30,14 +28,42 @@ body {
 }
 
 @layer components {
+  /* liquid-glass: ผิวกระจกฝ้าพรีเมียม —
+     ไล่เฉดผิวบางๆ + เส้นไฮไลต์บนขอบบน (จำลองแสงตกกระทบ) + เงาลอยนุ่มๆ
+     + saturate เพิ่มความจัดจ้านของสิ่งที่อยู่ด้านหลัง ให้ความรู้สึกเป็นกระจกจริง ไม่ใช่การ์ดทึบแบน */
   .liquid-glass {
-    background: color-mix(in oklch, var(--color-surface) 72%, transparent);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: linear-gradient(
+      155deg,
+      color-mix(in oklch, var(--color-surface) 90%, transparent) 0%,
+      color-mix(in oklch, var(--color-surface) 60%, transparent) 100%
+    );
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
     border: 1px solid var(--color-line);
     box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.9),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.12),
       0 1px 2px rgba(35, 45, 35, 0.04),
-      0 12px 32px -16px rgba(35, 45, 35, 0.12);
+      0 24px 48px -24px rgba(35, 45, 35, 0.18);
     position: relative;
+    transition: box-shadow 0.3s ease;
+  }
+
+  /* liquid-glass-nav: ใช้กับองค์ประกอบที่ลอยทับภาพถ่าย hero โดยตรง (nav, ปุ่มเมนู)
+     ต่างจาก .liquid-glass ทั่วไปที่ลอยบน canvas เรียบๆ — จุดนี้ภาพพื้นหลังคาดเดาไม่ได้
+     เลยต้องให้ผิวทึบขึ้นและลด saturate ลง กันตัวหนังสืออ่านยากเวลาเจอภาพสว่าง/จัดจ้าน */
+  .liquid-glass-nav {
+    background: linear-gradient(
+      155deg,
+      color-mix(in oklch, var(--color-surface) 97%, transparent) 0%,
+      color-mix(in oklch, var(--color-surface) 91%, transparent) 100%
+    );
+    backdrop-filter: blur(24px) saturate(110%);
+    -webkit-backdrop-filter: blur(24px) saturate(110%);
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.9),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+      0 1px 2px rgba(35, 45, 35, 0.06),
+      0 24px 48px -24px rgba(35, 45, 35, 0.28);
   }
 }

@@ -35,7 +35,7 @@ export default function GamesPromoSection() {
               initial={{ opacity: 0, y: 50 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.8, delay: i * 0.15 }}
-              className="liquid-glass rounded-3xl p-6 md:p-8 flex items-center gap-6 group hover:bg-ink/5 transition-colors"
+              className="liquid-glass rounded-3xl p-6 md:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 group hover:bg-ink/5 transition-colors"
             >
               <span className="text-5xl md:text-6xl shrink-0" aria-hidden>
                 {item.emoji}
@@ -48,7 +48,7 @@ export default function GamesPromoSection() {
                   {item.description}
                 </span>
               </span>
-              <span className="bg-accent text-white rounded-full px-5 py-2.5 text-sm font-medium inline-flex items-center gap-1.5 shrink-0 transition-transform group-hover:translate-x-0.5">
+              <span className="bg-accent text-white rounded-full px-5 py-2.5 text-sm font-medium inline-flex items-center gap-1.5 shrink-0 transition-transform group-hover:translate-x-0.5 self-stretch sm:self-auto justify-center">
                 {item.cta} <ArrowRight size={15} />
               </span>
             </motion.a>
