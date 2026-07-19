@@ -3,6 +3,7 @@ import { motion, useInView } from 'framer-motion'
 import { RotateCcw } from 'lucide-react'
 import { WASTE, WASTE_GAME_ITEMS } from '../content'
 import BinImage from './BinImage'
+import GameItemImage from './GameItemImage'
 
 type BinId = (typeof WASTE.bins)[number]['id']
 
@@ -86,7 +87,7 @@ function WasteGame() {
             <p className="text-ink/65 text-xs mb-4">
               ข้อ {round + 1} / {ROUNDS} — ขยะชิ้นนี้ควรทิ้งถังไหน?
             </p>
-            <div className="text-6xl mb-3">{current.emoji}</div>
+            <GameItemImage src={current.image} emoji={current.emoji} />
             <p className="text-ink text-lg">{current.name}</p>
           </div>
 

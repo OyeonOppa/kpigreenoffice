@@ -280,21 +280,24 @@ export const WASTE = {
 }
 
 // ไอเทมในเกมแยกขยะ — bin ต้องตรงกับ id ของ WASTE.bins
+// รูปไอเท็มในเกม — วางไฟล์ที่ public/images/<ชื่อไฟล์> แล้วขึ้นแทน emoji อัตโนมัติ
+// ถ้ายังไม่มีไฟล์ (หรือโหลดไม่สำเร็จ) จะ fallback กลับไปแสดง emoji เดิมแทน
+// แนะนำใช้ไฟล์พื้นหลังโปร่งใส (แบบเดียวกับรูปถังขยะ) จะได้ผลลัพธ์ลอยสวยที่สุด
 export const WASTE_GAME_ITEMS = [
-  { emoji: '🍌', name: 'เปลือกกล้วย', bin: 'organic' },
-  { emoji: '🍚', name: 'เศษอาหาร', bin: 'organic' },
-  { emoji: '🍃', name: 'ใบไม้แห้ง', bin: 'organic' },
-  { emoji: '🥤', name: 'ขวดพลาสติก', bin: 'recycle' },
-  { emoji: '📰', name: 'กระดาษหนังสือพิมพ์', bin: 'recycle' },
-  { emoji: '🥫', name: 'กระป๋องอะลูมิเนียม', bin: 'recycle' },
-  { emoji: '🍾', name: 'ขวดแก้ว', bin: 'recycle' },
-  { emoji: '🍬', name: 'ซองขนม', bin: 'general' },
-  { emoji: '🧻', name: 'ทิชชูใช้แล้ว', bin: 'general' },
-  { emoji: '🍱', name: 'กล่องโฟม', bin: 'general' },
-  { emoji: '🔋', name: 'ถ่านไฟฉาย', bin: 'hazard' },
-  { emoji: '💡', name: 'หลอดไฟเสีย', bin: 'hazard' },
-  { emoji: '🧴', name: 'กระป๋องสเปรย์', bin: 'hazard' },
-  { emoji: '📱', name: 'มือถือเก่า', bin: 'hazard' },
+  { emoji: '🍌', image: '/images/item-banana-peel.webp', name: 'เปลือกกล้วย', bin: 'organic' },
+  { emoji: '🍚', image: '/images/item-food-scraps.webp', name: 'เศษอาหาร', bin: 'organic' },
+  { emoji: '🍃', image: '/images/item-dry-leaves.webp', name: 'ใบไม้แห้ง', bin: 'organic' },
+  { emoji: '🥤', image: '/images/item-plastic-bottle.webp', name: 'ขวดพลาสติก', bin: 'recycle' },
+  { emoji: '📰', image: '/images/item-newspaper.webp', name: 'กระดาษหนังสือพิมพ์', bin: 'recycle' },
+  { emoji: '🥫', image: '/images/item-aluminum-can.webp', name: 'กระป๋องอะลูมิเนียม', bin: 'recycle' },
+  { emoji: '🍾', image: '/images/item-glass-bottle.webp', name: 'ขวดแก้ว', bin: 'recycle' },
+  { emoji: '🍬', image: '/images/item-snack-wrapper.webp', name: 'ซองขนม', bin: 'general' },
+  { emoji: '🧻', image: '/images/item-used-tissue.webp', name: 'ทิชชูใช้แล้ว', bin: 'general' },
+  { emoji: '🍱', image: '/images/item-foam-box.webp', name: 'กล่องโฟม', bin: 'general' },
+  { emoji: '🔋', image: '/images/item-battery.webp', name: 'ถ่านไฟฉาย', bin: 'hazard' },
+  { emoji: '💡', image: '/images/item-broken-bulb.webp', name: 'หลอดไฟเสีย', bin: 'hazard' },
+  { emoji: '🧴', image: '/images/item-spray-can.webp', name: 'กระป๋องสเปรย์', bin: 'hazard' },
+  { emoji: '📱', image: '/images/item-old-phone.webp', name: 'มือถือเก่า', bin: 'hazard' },
 ] as const
 
 // ---------- Media Center ----------
