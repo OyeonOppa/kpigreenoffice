@@ -235,6 +235,10 @@ export const EMISSION_FACTORS = {
 
 // ---------- การจัดการขยะ ----------
 
+// รูปถังขยะจริง — วางไฟล์ที่ public/images/<ชื่อไฟล์> แล้วขึ้นลอยเหนือการ์ดอัตโนมัติ (ไม่มีกรอบ/พื้นหลัง)
+// ต้องเป็นไฟล์ "พื้นหลังโปร่งใส" (ตัดขอบถังออกจากพื้นหลัง) ไม่งั้นจะเห็นเป็นสี่เหลี่ยม/วงกลมทึบแทนที่จะลอย
+// ถ้ายังไม่มีไฟล์ จะ fallback กลับไปแสดงวงกลมสี (bin.color) แทนโดยอัตโนมัติ
+// TODO: ถ่ายรูปถังขยะจริงของหน่วยงาน (ตัดพื้นหลังออก) หรือใช้ภาพประกอบตัดขอบที่ตรงกับสีจริงที่ใช้
 export const WASTE = {
   label: 'Waste Management',
   heading: 'การจัดการขยะ',
@@ -243,6 +247,7 @@ export const WASTE = {
     {
       id: 'organic',
       color: '#22c55e',
+      image: '/images/bin-organic.webp',
       name: 'ถังสีเขียว',
       type: 'ขยะอินทรีย์',
       examples: 'เศษอาหาร เปลือกผลไม้ ใบไม้',
@@ -250,6 +255,7 @@ export const WASTE = {
     {
       id: 'recycle',
       color: '#eab308',
+      image: '/images/bin-recycle.webp',
       name: 'ถังสีเหลือง',
       type: 'ขยะรีไซเคิล',
       examples: 'ขวดพลาสติก กระดาษ กระป๋อง แก้ว',
@@ -257,6 +263,7 @@ export const WASTE = {
     {
       id: 'general',
       color: '#3b82f6',
+      image: '/images/bin-general.webp',
       name: 'ถังสีน้ำเงิน',
       type: 'ขยะทั่วไป',
       examples: 'ซองขนม โฟม ทิชชูใช้แล้ว',
@@ -264,6 +271,7 @@ export const WASTE = {
     {
       id: 'hazard',
       color: '#ef4444',
+      image: '/images/bin-hazard.webp',
       name: 'ถังสีแดง',
       type: 'ขยะอันตราย',
       examples: 'ถ่านไฟฉาย หลอดไฟ กระป๋องสเปรย์',

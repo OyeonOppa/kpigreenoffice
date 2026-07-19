@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { motion, useInView } from 'framer-motion'
 import { RotateCcw } from 'lucide-react'
 import { WASTE, WASTE_GAME_ITEMS } from '../content'
+import BinImage from './BinImage'
 
 type BinId = (typeof WASTE.bins)[number]['id']
 
@@ -89,21 +90,22 @@ function WasteGame() {
             <p className="text-ink text-lg">{current.name}</p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-6">
             {WASTE.bins.map((bin) => (
               <button
                 key={bin.id}
                 type="button"
                 onClick={() => pick(bin.id)}
                 disabled={!!feedback}
-                className="liquid-glass rounded-2xl p-4 text-center hover:bg-ink/5 transition-colors disabled:opacity-60"
+                className="bg-canvas flex flex-col items-center gap-2 py-2 rounded-2xl transition-transform duration-300 hover:-translate-y-1.5 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
               >
-                <span
-                  className="block w-8 h-8 rounded-full mx-auto mb-2 border border-ink/15"
-                  style={{ backgroundColor: bin.color }}
+                <BinImage
+                  src={bin.image}
+                  color={bin.color}
+                  className="w-20 sm:w-28 md:w-32 lg:w-44"
                 />
                 <span className="block text-ink text-sm font-medium">{bin.name}</span>
-                <span className="block text-ink/65 text-xs mt-1">{bin.type}</span>
+                <span className="block text-ink/65 text-xs">{bin.type}</span>
               </button>
             ))}
           </div>
@@ -153,23 +155,25 @@ export default function WasteSection() {
           {WASTE.intro}
         </motion.p>
 
-        {/* ประเภทถังขยะ */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-14">
+        {/* ประเภทถังขยะ — ถังลอยตัวเปล่าๆ ไม่มีกรอบ/การ์ด แค่ภาพใหญ่ + ตัวหนังสือใต้ภาพ
+            คงเป็น 2 คอลัมน์เสมอ (ไม่ขึ้น 4 คอลัมน์ตอนจอกว้าง) เพื่อให้มีที่ว่างพอสำหรับภาพขนาดใหญ่ */}
+        <div className="grid grid-cols-2 gap-x-6 md:gap-x-10 gap-y-14 md:gap-y-16 mb-14 max-w-4xl mx-auto">
           {WASTE.bins.map((bin, i) => (
             <motion.div
               key={bin.id}
               initial={{ opacity: 0, y: 40 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.7, delay: 0.2 + i * 0.1 }}
-              className="liquid-glass rounded-3xl p-6"
+              className="bg-canvas flex flex-col items-center text-center group transition-transform duration-300 hover:-translate-y-1.5"
             >
-              <span
-                className="block w-10 h-10 rounded-full mb-4 border border-ink/15"
-                style={{ backgroundColor: bin.color }}
+              <BinImage
+                src={bin.image}
+                color={bin.color}
+                className="w-28 sm:w-36 md:w-48 lg:w-64 xl:w-80"
               />
-              <p className="text-ink font-medium mb-1">{bin.name}</p>
-              <p className="text-ink/70 text-sm mb-2">{bin.type}</p>
-              <p className="text-ink/65 text-xs leading-relaxed">{bin.examples}</p>
+              <p className="text-ink font-medium mt-3 mb-1">{bin.name}</p>
+              <p className="text-ink/70 text-sm mb-1">{bin.type}</p>
+              <p className="text-ink/65 text-xs leading-relaxed max-w-[16ch]">{bin.examples}</p>
             </motion.div>
           ))}
         </div>

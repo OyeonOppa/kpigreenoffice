@@ -120,7 +120,7 @@ export default function HeroSection() {
           {HERO.manifestoLabel}
         </a>
 
-        <div className="w-full max-w-2xl">
+        <div className="w-full max-w-3xl">
           <LiveEnvWidget />
         </div>
       </div>
