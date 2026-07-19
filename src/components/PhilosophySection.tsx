@@ -11,7 +11,7 @@ export default function PhilosophySection() {
     <section
       id="goals"
       ref={ref}
-      className="bg-canvas py-28 md:py-40 px-6 overflow-hidden"
+      className="bg-canvas py-28 md:py-40 px-6 overflow-hidden scroll-mt-24"
     >
       <div className="max-w-6xl mx-auto">
         <motion.h2

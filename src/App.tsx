@@ -1,3 +1,4 @@
+import Navbar from './components/Navbar'
 import HeroSection from './components/HeroSection'
 import QuickActionsSection from './components/QuickActionsSection'
 import AboutSection from './components/AboutSection'
@@ -11,10 +12,12 @@ import NewsSection from './components/NewsSection'
 import PartnersSection from './components/PartnersSection'
 import DashboardSection from './components/DashboardSection'
 import Footer from './components/Footer'
+import BackToTop from './components/BackToTop'
 
 export default function App() {
   return (
     <main className="bg-canvas min-h-screen">
+      <Navbar />
       <HeroSection />
       <QuickActionsSection />
       <AboutSection />
@@ -28,6 +31,7 @@ export default function App() {
       <PartnersSection />
       <DashboardSection />
       <Footer />
+      <BackToTop />
     </main>
   )
 }

@@ -10,7 +10,7 @@ export default function AboutSection() {
     <section
       id="about"
       ref={ref}
-      className="relative bg-canvas pt-32 md:pt-44 pb-10 md:pb-14 px-6 overflow-hidden"
+      className="relative bg-canvas pt-32 md:pt-44 pb-10 md:pb-14 px-6 overflow-hidden scroll-mt-24"
     >
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(87,145,110,0.06)_0%,_transparent_70%)]" />
       <div className="relative max-w-6xl mx-auto">

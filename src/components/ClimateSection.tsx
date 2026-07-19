@@ -17,7 +17,7 @@ export default function ClimateSection() {
     <section
       id="climate"
       ref={ref}
-      className="relative bg-canvas py-28 md:py-40 px-6 overflow-hidden"
+      className="relative bg-canvas py-28 md:py-40 px-6 overflow-hidden scroll-mt-24"
     >
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(87,145,110,0.06)_0%,_transparent_70%)]" />
       <div className="relative max-w-6xl mx-auto">
