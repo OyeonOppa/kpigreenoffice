@@ -83,32 +83,40 @@ function WasteGame() {
         </div>
       ) : (
         <>
-          <div className="text-center mb-8">
-            <p className="text-ink/65 text-xs mb-4">
-              ข้อ {round + 1} / {ROUNDS} — ขยะชิ้นนี้ควรทิ้งถังไหน?
-            </p>
-            <GameItemImage src={current.image} emoji={current.emoji} />
-            <p className="text-ink text-lg">{current.name}</p>
-          </div>
+          {/* จอกว้าง: 2 คอลัมน์ — ซ้าย 50% โจทย์ภาพใหญ่, ขวาแบ่ง 2x2 เป็นถังคำตอบ
+              จอเล็ก: สลับเป็นเรียงต่อกันแนวตั้ง แต่ภาพโจทย์ยังคงใหญ่เด่นเหมือนเดิม */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 items-center">
+            <div className="text-center">
+              <p className="text-ink/65 text-xs mb-4">
+                ข้อ {round + 1} / {ROUNDS} — ขยะชิ้นนี้ควรทิ้งถังไหน?
+              </p>
+              <GameItemImage
+                src={current.image}
+                emoji={current.emoji}
+                className="w-48 sm:w-56 md:w-64 lg:w-72"
+              />
+              <p className="text-ink text-lg mt-2">{current.name}</p>
+            </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-6">
-            {WASTE.bins.map((bin) => (
-              <button
-                key={bin.id}
-                type="button"
-                onClick={() => pick(bin.id)}
-                disabled={!!feedback}
-                className="bg-canvas flex flex-col items-center gap-2 py-2 rounded-2xl transition-transform duration-300 hover:-translate-y-1.5 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
-              >
-                <BinImage
-                  src={bin.image}
-                  color={bin.color}
-                  className="w-20 sm:w-28 md:w-32 lg:w-44"
-                />
-                <span className="block text-ink text-sm font-medium">{bin.name}</span>
-                <span className="block text-ink/65 text-xs">{bin.type}</span>
-              </button>
-            ))}
+            <div className="grid grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-6">
+              {WASTE.bins.map((bin) => (
+                <button
+                  key={bin.id}
+                  type="button"
+                  onClick={() => pick(bin.id)}
+                  disabled={!!feedback}
+                  className="bg-canvas flex flex-col items-center gap-2 py-2 rounded-2xl transition-transform duration-300 hover:-translate-y-1.5 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                >
+                  <BinImage
+                    src={bin.image}
+                    color={bin.color}
+                    className="w-20 sm:w-24 md:w-28 lg:w-32"
+                  />
+                  <span className="block text-ink text-sm font-medium">{bin.name}</span>
+                  <span className="block text-ink/65 text-xs">{bin.type}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="h-10 mt-6 text-center">
