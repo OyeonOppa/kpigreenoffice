@@ -67,3 +67,52 @@ body {
       0 24px 48px -24px rgba(35, 45, 35, 0.28);
   }
 }
+
+@layer components {
+  /* ---------- ธีมหน้าเกมแข่งสด ---------- */
+
+  /* พื้นหลังนุ่มๆ โทนพาสเทล ใช้เฉพาะหน้าเกม ไม่ไปยุ่งกับหน้าแรกที่เป็นโทนมินิมอล */
+  .game-bg {
+    background:
+      radial-gradient(60% 45% at 12% 8%, oklch(93% 0.07 152 / 0.9), transparent 70%),
+      radial-gradient(55% 40% at 88% 4%, oklch(94% 0.06 95 / 0.85), transparent 70%),
+      radial-gradient(70% 50% at 50% 105%, oklch(93% 0.05 230 / 0.8), transparent 70%),
+      var(--color-canvas);
+  }
+
+  /* การ์ดทรงป่องๆ ขอบมน เงาหนา ให้ความรู้สึกเป็นของเล่นมากกว่าเอกสาร */
+  .pop-card {
+    background: var(--color-surface);
+    border: 2px solid oklch(90% 0.02 152);
+    border-radius: 2rem;
+    box-shadow:
+      0 2px 0 0 oklch(88% 0.02 152),
+      0 18px 40px -20px rgba(35, 45, 35, 0.35);
+  }
+
+  /* ปุ่มกดที่มีขอบล่างหนา กดแล้วยุบลง — จังหวะแบบเกม */
+  .pop-btn {
+    border-radius: 999px;
+    box-shadow: 0 4px 0 0 var(--pop-shadow, oklch(45% 0.12 152));
+    transition:
+      transform 0.12s ease,
+      box-shadow 0.12s ease;
+  }
+  .pop-btn:active:not(:disabled) {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 0 var(--pop-shadow, oklch(45% 0.12 152));
+  }
+
+  /* ตัวเลขคะแนน/PIN ให้อ่านง่ายจากหลังห้อง */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-bg *,
+  .pop-card * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

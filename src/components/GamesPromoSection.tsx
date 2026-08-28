@@ -35,13 +35,20 @@ export default function GamesPromoSection() {
               initial={{ opacity: 0, y: 50 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.8, delay: i * 0.15 }}
-              className="liquid-glass rounded-3xl p-6 md:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 group hover:bg-ink/5 transition-colors"
+              className={`liquid-glass rounded-3xl p-6 md:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 group hover:bg-ink/5 transition-colors ${
+                'featured' in item && item.featured ? 'md:col-span-2 ring-2 ring-accent/40' : ''
+              }`}
             >
               <span className="text-5xl md:text-6xl shrink-0" aria-hidden>
                 {item.emoji}
               </span>
               <span className="flex-1 min-w-0">
                 <span className="block text-ink text-lg md:text-xl font-medium tracking-tight mb-1">
+                  {'featured' in item && item.featured && (
+                    <span className="align-middle bg-accent text-white text-[11px] rounded-full px-2 py-0.5 mr-2">
+                      ใหม่
+                    </span>
+                  )}
                   {item.title}
                 </span>
                 <span className="block text-ink/65 text-sm leading-relaxed">

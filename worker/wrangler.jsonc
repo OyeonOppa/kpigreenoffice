@@ -1,0 +1,44 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kpigreenoffice-live",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-11-01",
+
+  "observability": {
+    "enabled": true
+  },
+
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "GAME_ROOM",
+        "class_name": "GameRoom"
+      }
+    ]
+  },
+
+  // ต้องเป็น SQLite backend — แผนฟรีของ Cloudflare รองรับเฉพาะแบบนี้
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["GameRoom"]
+    }
+  ],
+
+  "vars": {
+    // TODO: ใส่ OAuth Client ID ของหน่วยงาน (สร้างที่ Google Cloud Console)
+    // ค่านี้เปิดเผยได้ ไม่ใช่ความลับ — ตัวที่ห้ามเปิดเผยคือ client secret ซึ่งเราไม่ใช้
+    "GOOGLE_CLIENT_ID": "",
+
+    // โดเมนอีเมลที่อนุญาตให้เข้าเล่น
+    "ALLOWED_DOMAIN": "kpi.ac.th",
+
+    // เว็บที่เรียก API นี้ได้ (คั่นด้วย ,) — กันเว็บอื่นเปิด WebSocket มาที่ห้องเรา
+    // TODO: เปลี่ยนเป็นโดเมนจริงของเว็บก่อนขึ้นใช้งาน
+    "ALLOWED_ORIGINS": "http://localhost:5173,http://127.0.0.1:5173",
+
+    // "true" = ข้ามการตรวจ Google ให้ล็อกอินด้วยชื่ออย่างเดียว ใช้ตอนพัฒนาเท่านั้น
+    // ห้ามเป็น true บนเครื่องจริงเด็ดขาด ไม่งั้นใครก็เข้าเล่นได้
+    "DEV_ALLOW_FAKE_AUTH": "true"
+  }
+}

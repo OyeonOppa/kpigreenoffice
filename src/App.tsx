@@ -1,37 +1,20 @@
-import Navbar from './components/Navbar'
-import HeroSection from './components/HeroSection'
-import QuickActionsSection from './components/QuickActionsSection'
-import AboutSection from './components/AboutSection'
-import FeaturedVideoSection from './components/FeaturedVideoSection'
-import ClimateSection from './components/ClimateSection'
-import WasteSection from './components/WasteSection'
-import GamesPromoSection from './components/GamesPromoSection'
-import PhilosophySection from './components/PhilosophySection'
-import ServicesSection from './components/ServicesSection'
-import NewsSection from './components/NewsSection'
-import PartnersSection from './components/PartnersSection'
-import DashboardSection from './components/DashboardSection'
-import Footer from './components/Footer'
-import BackToTop from './components/BackToTop'
+import { useEffect } from 'react'
+import { useHashRoute } from './game/hooks'
+import HomePage from './pages/HomePage'
+import LiveHostPage from './pages/LiveHostPage'
+import LivePlayerPage from './pages/LivePlayerPage'
 
+// เส้นทางแบบ hash — โฮสต์แบบ static ไฟล์เดียวใช้ได้เลย ไม่ต้องตั้ง rewrite ที่เซิร์ฟเวอร์
+// `#/live` = หน้าเกม ส่วน `#waste` `#calculator` เดิมยังเป็น anchor ในหน้าแรกเหมือนเดิม
 export default function App() {
-  return (
-    <main className="bg-canvas min-h-screen">
-      <Navbar />
-      <HeroSection />
-      <QuickActionsSection />
-      <AboutSection />
-      <FeaturedVideoSection />
-      <ClimateSection />
-      <WasteSection />
-      <GamesPromoSection />
-      <PhilosophySection />
-      <ServicesSection />
-      <NewsSection />
-      <PartnersSection />
-      <DashboardSection />
-      <Footer />
-      <BackToTop />
-    </main>
-  )
+  const route = useHashRoute()
+
+  useEffect(() => {
+    // เข้าหน้าเกมแล้วให้เริ่มที่บนสุดเสมอ ไม่ค้างตำแหน่งเดิมจากหน้าแรก
+    if (route !== '/') window.scrollTo(0, 0)
+  }, [route])
+
+  if (route === '/live') return <LivePlayerPage />
+  if (route === '/live/host') return <LiveHostPage />
+  return <HomePage />
 }
