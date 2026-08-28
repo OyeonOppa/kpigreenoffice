@@ -39,15 +39,21 @@ export function useRoom(pin: string | null) {
 /**
  * เวลาปัจจุบันแบบลื่น — ใช้กับตัวนับถอยหลังและวงแหวนเวลา
  * หยุดเองเมื่อ active = false เพื่อไม่ให้กิน CPU ตอนไม่ได้นับเวลา
+ *
+ * ใช้ backend.now() ไม่ใช่ Date.now() ตรงๆ — สำคัญมากตอนต่อ Cloudflare จริง
+ * เพราะ backend.now() ปรับด้วย clockSkew (ส่วนต่างเวลาเครื่องผู้เล่นกับเซิร์ฟเวอร์) ให้แล้ว
+ * ถ้าใช้ Date.now() ตรงๆ นาฬิกาเครื่องผู้เล่นเพี้ยนแค่ไม่กี่วินาทีก็ทำให้วงแหวนนับถอยหลัง
+ * ไม่ตรงกับเวลาจริงของเซิร์ฟเวอร์ทันที (เคยเกิดจริง กว่าจะเห็นก็ตอน deploy ขึ้นจริงแล้ว
+ * เพราะโหมดจำลองนาฬิกาเครื่องเดียวกันจึงไม่มีวันเห็นบั๊กนี้)
  */
 export function useNow(active = true) {
-  const [now, setNow] = useState(() => Date.now())
+  const [now, setNow] = useState(() => backend.now())
   const raf = useRef(0)
 
   useEffect(() => {
     if (!active) return
     const tick = () => {
-      setNow(Date.now())
+      setNow(backend.now())
       raf.current = requestAnimationFrame(tick)
     }
     raf.current = requestAnimationFrame(tick)

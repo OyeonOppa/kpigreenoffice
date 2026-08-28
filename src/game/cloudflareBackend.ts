@@ -167,8 +167,14 @@ function handleMessage(conn: Connection, msg: ServerMessage) {
 function authenticate() {
   const token = readToken()
   const user = readAuth()
-  if (token) send({ t: 'auth', token })
-  else if (user) send({ t: 'auth', devName: user.name })
+  if (token) {
+    send({ t: 'auth', token })
+  } else if (user) {
+    // ส่ง uid เดิมกลับไปด้วยถ้ามี (ได้มาจากการล็อกอินครั้งก่อน) เพื่อให้ตัวตนคงที่ตอน
+    // reconnect — ไม่งั้นเน็ตสะดุดแล้วต่อใหม่ทีเดียว เซิร์ฟเวอร์จะสุ่ม uid ใหม่ให้
+    // ทำให้เสียสิทธิ์สตาฟ/กลายเป็นผู้เล่นคนละคนแบบเงียบๆ
+    send({ t: 'auth', devName: user.name, devUid: user.uid || undefined })
+  }
 }
 
 function connect(pin: string): Connection {

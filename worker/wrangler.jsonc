@@ -34,7 +34,7 @@
     "ALLOWED_DOMAIN": "kpi.ac.th",
 
     // เว็บที่เรียก API นี้ได้ (คั่นด้วย ,) — กันเว็บอื่นเปิด WebSocket มาที่ห้องเรา
-    "ALLOWED_ORIGINS": "https://kpigreenoffice.pages.dev,http://localhost:5173,http://127.0.0.1:5173",
+    "ALLOWED_ORIGINS": "https://kpigreenoffice.pages.dev,http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173",
 
     // "true" = ข้ามการตรวจ Google ให้ล็อกอินด้วยชื่ออย่างเดียว ใช้ตอนพัฒนาเท่านั้น
     // ห้ามเป็น true บนเครื่องจริงเด็ดขาด ไม่งั้นใครก็เข้าเล่นได้

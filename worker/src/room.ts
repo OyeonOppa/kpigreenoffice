@@ -228,7 +228,7 @@ export class GameRoom extends DurableObject<Env> {
     }
   }
 
-  private async handleAuth(ws: WebSocket, msg: { token?: string; devName?: string }) {
+  private async handleAuth(ws: WebSocket, msg: { token?: string; devName?: string; devUid?: string }) {
     let user: { uid: string; email: string; name: string }
 
     if (this.env.DEV_ALLOW_FAKE_AUTH === 'true' && msg.devName) {
@@ -236,11 +236,16 @@ export class GameRoom extends DurableObject<Env> {
       const slug =
         msg.devName.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.|\.$/g, '') ||
         `dev${Math.random().toString(36).slice(2, 7)}`
-      user = {
-        uid: `dev-${slug}-${Math.random().toString(36).slice(2, 8)}`,
-        email: `${slug}@${this.env.ALLOWED_DOMAIN}`,
-        name: msg.devName,
-      }
+      // ถ้าเบราว์เซอร์เคยล็อกอินแล้วส่ง uid เดิมกลับมา (ตอน reconnect) ให้ใช้ตัวเดิม
+      // ไม่งั้นทุกครั้งที่ WebSocket หลุดแล้วต่อใหม่ (เน็ตสะดุด, สลับแท็บ) จะได้ uid สุ่มใหม่
+      // ทำให้เสียสิทธิ์สตาฟ/กลายเป็นผู้เล่นคนละคนโดยไม่รู้ตัว — ปุ่มควบคุมกดแล้วไม่มีอะไรเกิดขึ้น
+      // เพราะเซิร์ฟเวอร์เงียบๆ ปฏิเสธคำสั่งจากคนที่ไม่ใช่สตาฟตัวจริง
+      // ปลอดภัยเพราะโหมดนี้ใช้ตอนพัฒนา/ซ้อมเท่านั้น (DEV_ALLOW_FAKE_AUTH ต้องเป็น false ตอนใช้งานจริง)
+      const uid =
+        msg.devUid && msg.devUid.startsWith('dev-')
+          ? msg.devUid
+          : `dev-${slug}-${Math.random().toString(36).slice(2, 8)}`
+      user = { uid, email: `${slug}@${this.env.ALLOWED_DOMAIN}`, name: msg.devName }
     } else if (msg.token) {
       try {
         user = await verifyGoogleToken(msg.token, {

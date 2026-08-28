@@ -109,7 +109,9 @@ export interface PublicRoom {
 // ---------- เบราว์เซอร์ → เซิร์ฟเวอร์ ----------
 
 export type ClientMessage =
-  | { t: 'auth'; token?: string; devName?: string }
+  // devUid: uid ที่เคยได้รับจากเซิร์ฟเวอร์ตอนล็อกอินครั้งก่อน — ส่งกลับตอน reconnect
+  // เพื่อให้ตัวตนคงที่ (โหมด dev เท่านั้น; โทเคน Google จริงมี sub เป็นตัวตนคงที่ในตัวอยู่แล้ว)
+  | { t: 'auth'; token?: string; devName?: string; devUid?: string }
   | { t: 'join'; name: string; look: AvatarLook; team: string }
   | { t: 'answer'; round: number; bin: BinId }
   | { t: 'start' }
