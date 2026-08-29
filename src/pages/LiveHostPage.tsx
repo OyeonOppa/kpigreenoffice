@@ -106,6 +106,11 @@ export default function LiveHostPage() {
 
   return (
     <LiveShell fill topRight={<HostControls room={room} pin={pin} onReset={() => setHostPin(null)} />}>
+      {!room.isHost && (
+        <p className="text-center text-amber-800 bg-amber-50 border border-amber-200 rounded-full px-4 py-1.5 text-xs max-w-fit mx-auto mb-3">
+          คุณไม่ใช่สตาฟของห้องนี้ — ดูได้อย่างเดียว ปุ่มควบคุมกดไม่ได้
+        </p>
+      )}
       <HostStage room={room} pin={pin} />
     </LiveShell>
   )
@@ -113,6 +118,9 @@ export default function LiveHostPage() {
 
 // ---------- แถบควบคุมของสตาฟ ----------
 
+// คนแรกที่เข้าห้อง #/live/host = สตาฟตัวจริง คนอื่นที่เปิดลิงก์เดียวกันมา (แชร์ลิงก์ผิด,
+// เปิดซ้ำอีกแท็บ) จะเห็นจอเหมือนกันแต่กดปุ่มควบคุมไม่ได้จริง — ซ่อนปุ่มไปเลยดีกว่าโชว์ปุ่ม
+// ที่กดแล้วเซิร์ฟเวอร์เงียบๆ ไม่ทำตาม ซึ่งทำให้ดูเหมือนเว็บค้าง
 function HostControls({
   room,
   pin,
@@ -122,6 +130,8 @@ function HostControls({
   pin: string
   onReset: () => void
 }) {
+  if (!room.isHost) return null
+
   const downloadCsv = () => {
     const csv = backend.exportCsv(pin)
     // นำหน้าด้วย BOM ไม่งั้น Excel บนวินโดวส์เปิดแล้วภาษาไทยเป็นตัวต่างดาว
@@ -254,25 +264,29 @@ function HostLobby({ room, pin }: { room: RoomSnapshot; pin: string }) {
           ))}
         </div>
 
-        <div className="flex flex-wrap justify-center gap-2">
-          <button
-            type="button"
-            disabled={room.playerCount === 0}
-            onClick={() => void backend.startGame(pin)}
-            className="pop-btn bg-accent text-white px-8 py-3 font-medium disabled:opacity-50"
-          >
-            เริ่มเกม
-          </button>
-          {IS_REHEARSAL && (
+        {room.isHost ? (
+          <div className="flex flex-wrap justify-center gap-2">
             <button
               type="button"
-              onClick={() => void backend.addBots(pin, 8)}
-              className="rounded-full bg-ink/5 hover:bg-ink/10 px-4 py-3 text-ink/70 text-sm inline-flex items-center gap-1.5"
+              disabled={room.playerCount === 0}
+              onClick={() => void backend.startGame(pin)}
+              className="pop-btn bg-accent text-white px-8 py-3 font-medium disabled:opacity-50"
             >
-              <Plus size={15} /> เพิ่มผู้เล่นซ้อม 8 คน
+              เริ่มเกม
             </button>
-          )}
-        </div>
+            {IS_REHEARSAL && (
+              <button
+                type="button"
+                onClick={() => void backend.addBots(pin, 8)}
+                className="rounded-full bg-ink/5 hover:bg-ink/10 px-4 py-3 text-ink/70 text-sm inline-flex items-center gap-1.5"
+              >
+                <Plus size={15} /> เพิ่มผู้เล่นซ้อม 8 คน
+              </button>
+            )}
+          </div>
+        ) : (
+          <p className="text-ink/50 text-sm">รอสตาฟตัวจริงกดเริ่มเกม</p>
+        )}
       </div>
 
       <div className="pop-card p-6 h-full max-h-[70vh] overflow-y-auto">

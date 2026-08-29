@@ -407,6 +407,7 @@ function buildSnapshot(pin: string): RoomSnapshot | null {
     players: isHost ? players : [],
     playerCount: players.length,
     me: viewer ? (doc.players[viewer.uid] ?? null) : null,
+    isHost,
     answeredCount: doc.answeredCount,
     history: doc.phase === 'ended' ? buildHistory(doc) : [],
     serverNow: Date.now(),

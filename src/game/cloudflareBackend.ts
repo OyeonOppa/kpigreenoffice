@@ -33,6 +33,8 @@ interface Connection {
   me: Omit<PlayerState, 'results'> | null
   results: Record<number, RoundResult>
   roster: PlayerState[]
+  /** เซิร์ฟเวอร์เป็นคนบอกว่าคนที่ถือ socket นี้เป็นสตาฟของห้องนี้จริงไหม (มาจาก 'authed') */
+  isHost: boolean
   /** คำตอบที่ส่งไปแล้วและเซิร์ฟเวอร์รับ — ใช้ล็อกปุ่มหลังตอบ */
   answers: Map<number, BinId>
   closed: boolean
@@ -116,6 +118,7 @@ function snapshotOf(conn: Connection): RoomSnapshot | null {
     players: conn.roster,
     playerCount: r.playerCount,
     me: conn.me ? { ...conn.me, results: conn.results } : null,
+    isHost: conn.isHost,
     answeredCount: r.answeredCount,
     history: r.history,
     serverNow: r.serverNow,
@@ -131,6 +134,8 @@ function handleMessage(conn: Connection, msg: ServerMessage) {
   switch (msg.t) {
     case 'authed':
       writeAuth({ uid: msg.uid, email: msg.email, name: msg.name })
+      conn.isHost = msg.isHost
+      emit(conn)
       break
     case 'room':
       // เทียบนาฬิกาเครื่องเรากับเซิร์ฟเวอร์ทุกครั้งที่มีข้อมูลเข้ามา
@@ -196,6 +201,7 @@ function connect(pin: string): Connection {
     me: connection?.pin === pin ? (connection.me ?? null) : null,
     results: connection?.pin === pin ? connection.results : {},
     roster: connection?.pin === pin ? connection.roster : [],
+    isHost: connection?.pin === pin ? connection.isHost : false,
     answers: connection?.pin === pin ? connection.answers : new Map(),
     closed: false,
     retryAt: 0,
