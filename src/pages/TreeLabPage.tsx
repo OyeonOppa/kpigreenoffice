@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import ForestScene from '../components/forest/ForestScene'
 import Tree3D from '../components/forest/Tree3D'
 import { buildTree } from '../components/forest/treeGeometry'
+import { STAGES } from '../forest/config'
 
 // หน้าทดลองสำหรับปรับหน้าตาต้นไม้ — ไม่ได้ลิงก์จากที่ไหน เข้าที่ #/tree-lab
 //
@@ -11,16 +12,6 @@ import { buildTree } from '../components/forest/treeGeometry'
 // 2. ห้าม unmount Canvas ตอนสลับมุมมอง ให้สลับเฉพาะเนื้อหาข้างใน
 //    (unmount แล้ว mount ใหม่ทำให้ context เดิมหลุด จอขาวเหมือนกัน)
 
-const STAGES = [
-  { g: 0.0, label: 'เมล็ด' },
-  { g: 0.15, label: 'ต้นกล้า' },
-  { g: 0.3, label: 'ต้นอ่อน' },
-  { g: 0.5, label: 'ต้นโต' },
-  { g: 0.7, label: 'ออกดอก' },
-  { g: 0.85, label: 'ออกผล' },
-  { g: 1.0, label: 'ต้นใหญ่' },
-]
-
 const SPACING = 3.2
 const GARDEN_COUNT = 48
 
@@ -29,7 +20,7 @@ export default function TreeLabPage() {
   const [mode, setMode] = useState<'stages' | 'garden'>('stages')
 
   const stageTrees = useMemo(
-    () => STAGES.map((st) => ({ ...st, shape: buildTree(seed, st.g, 'high') })),
+    () => STAGES.map((st) => ({ ...st, shape: buildTree(seed, st.growth, 'high') })),
     [seed],
   )
 
@@ -111,7 +102,7 @@ export default function TreeLabPage() {
               <p key={s.label} className="text-center text-ink text-xs">
                 {s.label}
                 <span className="block text-ink/40">
-                  {Math.round(s.g * 100)}% · {s.shape.height.toFixed(1)}m
+                  {Math.round(s.growth * 100)}% · {s.shape.height.toFixed(1)}m
                 </span>
               </p>
             ))}
