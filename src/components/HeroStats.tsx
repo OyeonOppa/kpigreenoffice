@@ -14,13 +14,15 @@ const nf = new Intl.NumberFormat('th-TH')
 export default function HeroStats() {
   return (
     <div className="w-full">
-      <p className="text-accent-deep text-xs font-medium tracking-widest uppercase mb-3">
+      <p className="text-accent-deep text-xs sm:text-sm font-medium tracking-widest uppercase mb-3">
         {ORG_IMPACT.label}
       </p>
-      <h2 className="font-display text-2xl sm:text-3xl text-ink leading-snug tracking-tight mb-3">
+      <h2 className="font-display text-3xl sm:text-4xl md:text-[2.75rem] text-ink leading-[1.15] tracking-tight mb-4">
         {ORG_IMPACT.heading}
       </h2>
-      <p className="text-ink/65 text-sm leading-relaxed mb-6 max-w-md">{ORG_IMPACT.intro}</p>
+      <p className="text-ink/65 text-sm sm:text-base leading-relaxed mb-7 max-w-md">
+        {ORG_IMPACT.intro}
+      </p>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
         {ORG_IMPACT.stats.map((s) => {
