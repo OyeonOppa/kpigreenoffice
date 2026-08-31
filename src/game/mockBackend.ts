@@ -242,8 +242,8 @@ function syncPlayersFromDocs(doc: RoomDoc): boolean {
       existing.team !== pd.team ||
       existing.look.base !== pd.look.base ||
       existing.look.color !== pd.look.color ||
-      existing.look.hat !== pd.look.hat ||
-      existing.look.gear !== pd.look.gear
+      existing.look.ring !== pd.look.ring ||
+      existing.look.badge !== pd.look.badge
     ) {
       existing.name = pd.name
       existing.look = pd.look
@@ -571,7 +571,12 @@ export const mockBackend: GameBackend = {
     if (!doc) return
     const now = Date.now()
     if (doc.paused && doc.pausedAt !== null) {
-      if (Number.isFinite(doc.phaseEndsAt)) doc.phaseEndsAt += now - doc.pausedAt
+      const pausedMs = now - doc.pausedAt
+      if (Number.isFinite(doc.phaseEndsAt)) doc.phaseEndsAt += pausedMs
+      // พักตอนกำลังตอบ → เลื่อน startedAt ด้วย ไม่งั้นคำตอบหลังเล่นต่อจะถูกนับว่าช้าเกินเวลา
+      if (doc.phase === 'answering' && doc.rounds[doc.roundIndex]) {
+        doc.rounds[doc.roundIndex].startedAt += pausedMs
+      }
       doc.paused = false
       doc.pausedAt = null
     } else {
@@ -597,7 +602,6 @@ export const mockBackend: GameBackend = {
       'พี่ก้อย', 'น้องปอนด์', 'พี่เอ', 'ครูหนึ่ง', 'พี่ตั้ม', 'น้องมิ้นท์',
       'พี่หน่อย', 'พี่โบว์', 'น้องเจ', 'พี่นัท', 'พี่แดง', 'น้องแพร',
     ]
-    const teams = [...new Set(Object.values(doc.players).map((p) => p.team))]
     const existing = Object.values(doc.players).filter((p) => p.bot).length
     for (let i = 0; i < count; i++) {
       const n = existing + i
@@ -606,7 +610,7 @@ export const mockBackend: GameBackend = {
         uid,
         name: `${names[n % names.length]} (ซ้อม)`,
         look: randomLook(),
-        team: teams[n % Math.max(teams.length, 1)] ?? 'ทีมซ้อม',
+        team: '',
         joinedAt: Date.now(),
         bot: true,
       } satisfies PlayerDoc)

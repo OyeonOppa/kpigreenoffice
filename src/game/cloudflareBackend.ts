@@ -21,7 +21,15 @@ import type {
 
 const API_BASE = (import.meta.env.VITE_LIVE_API as string | undefined)?.replace(/\/$/, '') ?? ''
 const AUTH_KEY = 'kpi-live:auth'
-const TOKEN_KEY = 'kpi-live:token'
+
+/** สร้าง id ประจำเครื่องแบบสุ่ม — ไม่ใช่ข้อมูลลับ ใช้แค่ผูก "คนเดิม" ตอน reconnect */
+function newGuestUid(): string {
+  const rnd =
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID().replace(/-/g, '')
+      : Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)
+  return `g-${rnd.slice(0, 20)}`
+}
 
 type RoomListener = (snapshot: RoomSnapshot | null) => void
 
@@ -59,27 +67,14 @@ function readAuth(): AuthUser | null {
   }
 }
 
-function writeAuth(user: AuthUser | null, token?: string) {
+function writeAuth(user: AuthUser | null) {
   try {
-    if (user) {
-      sessionStorage.setItem(AUTH_KEY, JSON.stringify(user))
-      if (token) sessionStorage.setItem(TOKEN_KEY, token)
-    } else {
-      sessionStorage.removeItem(AUTH_KEY)
-      sessionStorage.removeItem(TOKEN_KEY)
-    }
+    if (user) sessionStorage.setItem(AUTH_KEY, JSON.stringify(user))
+    else sessionStorage.removeItem(AUTH_KEY)
   } catch {
     // โหมดส่วนตัวเขียนไม่ได้ ไม่เป็นไร
   }
   for (const cb of authListeners) cb(user)
-}
-
-function readToken(): string | null {
-  try {
-    return sessionStorage.getItem(TOKEN_KEY)
-  } catch {
-    return null
-  }
 }
 
 // ---------- การเชื่อมต่อ ----------
@@ -133,7 +128,7 @@ function emit(conn: Connection) {
 function handleMessage(conn: Connection, msg: ServerMessage) {
   switch (msg.t) {
     case 'authed':
-      writeAuth({ uid: msg.uid, email: msg.email, name: msg.name })
+      writeAuth({ uid: msg.uid, name: msg.name })
       conn.isHost = msg.isHost
       emit(conn)
       break
@@ -170,16 +165,11 @@ function handleMessage(conn: Connection, msg: ServerMessage) {
 }
 
 function authenticate() {
-  const token = readToken()
-  const user = readAuth()
-  if (token) {
-    send({ t: 'auth', token })
-  } else if (user) {
-    // ส่ง uid เดิมกลับไปด้วยถ้ามี (ได้มาจากการล็อกอินครั้งก่อน) เพื่อให้ตัวตนคงที่ตอน
-    // reconnect — ไม่งั้นเน็ตสะดุดแล้วต่อใหม่ทีเดียว เซิร์ฟเวอร์จะสุ่ม uid ใหม่ให้
-    // ทำให้เสียสิทธิ์สตาฟ/กลายเป็นผู้เล่นคนละคนแบบเงียบๆ
-    send({ t: 'auth', devName: user.name, devUid: user.uid || undefined })
-  }
+  // ส่ง uid เดิมกลับไปทุกครั้งที่ต่อ เพื่อให้เป็นคนเดิมตอน reconnect (เน็ตสะดุด/รีเฟรช)
+  // ไม่งั้นเซิร์ฟเวอร์จะออก uid ใหม่ให้ = เสียคะแนน/เสียสิทธิ์สตาฟแบบเงียบๆ
+  const user = readAuth() ?? { uid: newGuestUid(), name: 'ผู้เล่น' }
+  writeAuth(user)
+  send({ t: 'auth', uid: user.uid, name: user.name })
 }
 
 function connect(pin: string): Connection {
@@ -247,13 +237,16 @@ export const cloudflareBackend: GameBackend = {
   currentUser: readAuth,
 
   async signIn(hint) {
-    // โหมดพัฒนา: ล็อกอินด้วยชื่ออย่างเดียว (Worker ต้องเปิด DEV_ALLOW_FAKE_AUTH)
-    // ของจริงหน้าเว็บจะเรียก signInWithGoogleToken แทน
-    const name = hint?.name?.trim() || 'ผู้เล่นทดสอบ'
-    const user: AuthUser = { uid: '', email: '', name }
+    // ไม่มีล็อกอิน — แค่สร้างตัวตนแบบไม่ระบุชื่อ (uid สุ่ม เก็บในเครื่อง)
+    // ชื่อจริงมากรอกอีกทีตอนกด "เข้าห้อง" (ส่งผ่านข้อความ join)
+    const existing = readAuth()
+    const user: AuthUser = {
+      uid: existing?.uid || newGuestUid(),
+      name: hint?.name?.trim() || existing?.name || 'ผู้เล่น',
+    }
     writeAuth(user)
     if (connection && connection.socket.readyState === WebSocket.OPEN) {
-      send({ t: 'auth', devName: name })
+      send({ t: 'auth', uid: user.uid, name: user.name })
     }
     return user
   },
@@ -380,18 +373,6 @@ export const cloudflareBackend: GameBackend = {
 
 /** ชื่อกลางที่ vite alias 'virtual:live-backend' หยิบไปใช้ */
 export const backend = cloudflareBackend
-
-/** ล็อกอินด้วย ID token จริงจาก Google */
-export function signInWithGoogleToken(token: string) {
-  try {
-    sessionStorage.setItem(TOKEN_KEY, token)
-  } catch {
-    // ไม่เป็นไร
-  }
-  if (connection && connection.socket.readyState === WebSocket.OPEN) {
-    send({ t: 'auth', token })
-  }
-}
 
 function waitOpen(conn: Connection): Promise<void> {
   if (conn.socket.readyState === WebSocket.OPEN) return Promise.resolve()

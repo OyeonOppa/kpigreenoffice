@@ -7,7 +7,6 @@ declare module 'virtual:live-backend' {
 
 interface ImportMetaEnv {
   readonly VITE_LIVE_API?: string
-  readonly VITE_GOOGLE_CLIENT_ID?: string
 }
 
 interface ImportMeta {

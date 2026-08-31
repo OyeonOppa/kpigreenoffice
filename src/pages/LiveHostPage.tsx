@@ -9,7 +9,6 @@ import AnswerBars from '../components/live/AnswerBars'
 import Confetti from '../components/live/Confetti'
 import GameItemImage from '../components/GameItemImage'
 import Leaderboard from '../components/live/Leaderboard'
-import GoogleSignIn from '../components/live/GoogleSignIn'
 import JoinQr from '../components/live/JoinQr'
 import LiveShell from '../components/live/LiveShell'
 import MascotBin from '../components/live/MascotBin'
@@ -30,7 +29,14 @@ const joinUrl = () =>
 const joinUrlWithPin = (pin: string) => `${joinUrl()}?pin=${pin}`
 
 export default function LiveHostPage() {
-  const { user, busy, signIn } = useAuth()
+  const { user, signIn } = useAuth()
+
+  // ไม่มีหน้าล็อกอินแล้ว — เครื่องที่เปิด #/live/host ขึ้นมาคือสตาฟ
+  // สร้างตัวตนให้อัตโนมัติเพื่อใช้เป็นเจ้าของห้อง (คนแรกที่สร้างห้อง = คุมเกมได้)
+  useEffect(() => {
+    if (!user) void signIn('เจ้าหน้าที่ผู้ดูแลเกม')
+  }, [user, signIn])
+
   const [pin, setPin] = useState<string | null>(() => {
     try {
       return sessionStorage.getItem(HOST_PIN_KEY)
@@ -56,26 +62,7 @@ export default function LiveHostPage() {
     }
   }
 
-  if (!user) {
-    return (
-      <LiveShell>
-        <div className="max-w-md mx-auto pt-10 pop-card p-7 text-center">
-          <h1 className="font-display text-2xl text-ink mb-2">จอกลาง — {LIVE_GAME.heading}</h1>
-          <p className="text-ink/60 text-sm mb-6">
-            หน้านี้สำหรับเครื่องที่ต่อโปรเจกเตอร์ เป็นตัวคุมจังหวะเกมทั้งหมด
-          </p>
-          <fieldset disabled={busy} className="disabled:opacity-60">
-            <GoogleSignIn
-              onDevSignIn={(name) => void signIn(name || 'เจ้าหน้าที่ผู้ดูแลเกม')}
-              devDefaultName="เจ้าหน้าที่ผู้ดูแลเกม"
-            />
-          </fieldset>
-        </div>
-      </LiveShell>
-    )
-  }
-
-  if (!pin || !room) {
+  if (!user || !pin || !room) {
     return (
       <LiveShell>
         <div className="max-w-md mx-auto pt-10 pop-card p-7 text-center">
@@ -213,24 +200,21 @@ function HostStage({ room, pin }: { room: RoomSnapshot; pin: string }) {
       )}
 
       <div className="flex-1 min-h-0">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`${room.phase}-${room.roundIndex}`}
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.02 }}
-            transition={{ duration: 0.25 }}
-            className="h-full"
-          >
-            {room.phase === 'lobby' && <HostLobby room={room} pin={pin} />}
-            {room.phase === 'countdown' && <HostCountdown room={room} />}
-            {room.phase === 'answering' && <HostAnswering room={room} />}
-            {room.phase === 'reveal' && <HostReveal room={room} />}
-            {room.phase === 'explain' && <HostExplain room={room} />}
-            {room.phase === 'board' && <HostBoard room={room} />}
-            {(room.phase === 'finale' || room.phase === 'ended') && <HostFinale room={room} />}
-          </motion.div>
-        </AnimatePresence>
+        <motion.div
+          key={`${room.phase}-${room.roundIndex}`}
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.25 }}
+          className="h-full"
+        >
+          {room.phase === 'lobby' && <HostLobby room={room} pin={pin} />}
+          {room.phase === 'countdown' && <HostCountdown room={room} />}
+          {room.phase === 'answering' && <HostAnswering room={room} />}
+          {room.phase === 'reveal' && <HostReveal room={room} />}
+          {room.phase === 'explain' && <HostExplain room={room} />}
+          {room.phase === 'board' && <HostBoard room={room} />}
+          {(room.phase === 'finale' || room.phase === 'ended') && <HostFinale room={room} />}
+        </motion.div>
       </div>
     </div>
   )
@@ -450,29 +434,10 @@ function HostExplain({ room }: { room: RoomSnapshot }) {
 
 function HostBoard({ room }: { room: RoomSnapshot }) {
   return (
-    <div className="h-full grid lg:grid-cols-[1.4fr_1fr] gap-6">
-      <div className="pop-card p-6 overflow-y-auto">
+    <div className="h-full max-w-3xl w-full mx-auto">
+      <div className="pop-card p-6 h-full overflow-y-auto">
         <p className="font-display text-2xl text-ink mb-4">อันดับตอนนี้</p>
         <Leaderboard entries={room.board} size="lg" />
-      </div>
-      <div className="pop-card p-6 overflow-y-auto">
-        <p className="font-display text-2xl text-ink mb-1">คะแนนเฉลี่ยรายทีม</p>
-        <p className="text-ink/50 text-xs mb-4">ใช้ค่าเฉลี่ยต่อคน ทีมคนน้อยจึงไม่เสียเปรียบ</p>
-        <ol className="space-y-2">
-          {room.teamBoard.map((t, i) => (
-            <li
-              key={t.team}
-              className="flex items-center gap-3 rounded-2xl bg-ink/[0.04] px-4 py-2.5"
-            >
-              <span className="tabular w-6 text-ink/60">{i + 1}</span>
-              <span className="flex-1 min-w-0 truncate text-ink">{t.team}</span>
-              <span className="text-ink/45 text-xs shrink-0">{t.members} คน</span>
-              <span className="tabular text-ink font-semibold shrink-0">
-                {t.avgScore.toLocaleString('th-TH')}
-              </span>
-            </li>
-          ))}
-        </ol>
       </div>
     </div>
   )
@@ -524,7 +489,6 @@ function HostFinale({ room }: { room: RoomSnapshot }) {
                   <PlayerAvatar look={entry.look} size={44} />
                   <span className="flex-1 min-w-0">
                     <span className="block truncate text-ink text-xl font-medium">{entry.name}</span>
-                    <span className="block truncate text-ink/50 text-sm">{entry.team}</span>
                   </span>
                   <span className="tabular text-ink text-2xl font-semibold">
                     {entry.score.toLocaleString('th-TH')}

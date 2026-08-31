@@ -13,15 +13,16 @@ import type { GameBackend } from './backend'
  */
 export const backend: GameBackend = liveBackend
 
-/** OAuth Client ID ของ Google — ว่าง = ยังไม่ได้ตั้งค่า ให้ใช้ล็อกอินแบบทดสอบแทน */
-export const GOOGLE_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined) ?? ''
-
 /**
- * ยังอยู่ช่วงซ้อม (โหมดจำลอง หรือยังไม่ได้ผูก Google)
- * ใช้ตัดสินใจว่าจะโชว์เครื่องมือซ้อม เช่น ปุ่มเพิ่มผู้เล่นจำลอง
- * พอตั้ง VITE_GOOGLE_CLIENT_ID แล้ว เครื่องมือพวกนี้จะหายไปเองไม่ต้องมาตามลบ
+ * โหมดซ้อม — โชว์เครื่องมือทดสอบ เช่น ปุ่ม "เพิ่มผู้เล่นซ้อม"
+ * - โหมดจำลองในเครื่อง = ซ้อมเสมอ
+ * - หลังบ้านจริง = ซ้อมเฉพาะเมื่อเปิดหน้าด้วย ?rehearsal (เช่น #/live/host?rehearsal=1)
+ *   งานจริงเปิดลิงก์ปกติ ปุ่มพวกนี้จะไม่โผล่มากวน
  */
-export const IS_REHEARSAL = backend.isMock || !GOOGLE_CLIENT_ID
+export const IS_REHEARSAL =
+  backend.isMock ||
+  (typeof window !== 'undefined' &&
+    (window.location.search.includes('rehearsal') || window.location.hash.includes('rehearsal')))
 
 export * from './types'
 export * from './config'

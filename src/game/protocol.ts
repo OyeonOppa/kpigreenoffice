@@ -25,9 +25,9 @@ export interface PublicRoom {
 }
 
 export type ClientMessage =
-  // devUid: uid ที่เคยได้รับจากเซิร์ฟเวอร์ตอนล็อกอินครั้งก่อน — ส่งกลับตอน reconnect
-  // เพื่อให้ตัวตนคงที่ (โหมด dev เท่านั้น; โทเคน Google จริงมี sub เป็นตัวตนคงที่ในตัวอยู่แล้ว)
-  | { t: 'auth'; token?: string; devName?: string; devUid?: string }
+  // ไม่มีล็อกอิน — uid สุ่มที่เบราว์เซอร์สร้างเองและเก็บไว้ในเครื่อง ส่งกลับทุกครั้งที่ต่อ
+  // เพื่อให้เป็นคนเดิมตอน reconnect (เน็ตสะดุด/รีเฟรช)
+  | { t: 'auth'; uid: string; name: string }
   | { t: 'join'; name: string; look: AvatarLook; team: string }
   | { t: 'answer'; round: number; bin: BinId }
   | { t: 'start' }
@@ -38,7 +38,7 @@ export type ClientMessage =
   | { t: 'ping' }
 
 export type ServerMessage =
-  | { t: 'authed'; uid: string; email: string; name: string; isHost: boolean }
+  | { t: 'authed'; uid: string; name: string; isHost: boolean }
   | { t: 'room'; room: PublicRoom }
   // เซิร์ฟเวอร์ส่ง results มาแยกจาก me — adapter เป็นคนรวมให้เป็น PlayerState เต็มรูป
   | { t: 'me'; me: Omit<PlayerState, 'results'> | null; results: Record<number, RoundResult> }
