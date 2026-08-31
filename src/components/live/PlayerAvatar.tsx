@@ -1,5 +1,5 @@
 import type { AvatarLook } from '../../game'
-import { safeLook } from '../../game/avatar'
+import { ringStyle, safeLook } from '../../game/avatar'
 
 interface PlayerAvatarProps {
   look: AvatarLook | undefined | null
@@ -8,15 +8,16 @@ interface PlayerAvatarProps {
   className?: string
 }
 
-// ตัวละครประจำตัวผู้เล่น: หน้าสัตว์ + พื้นหลังสี + หมวก + ของประดับหน้า
-// ซ้อนเป็นชั้นๆ ด้วยตำแหน่งเป็นเปอร์เซ็นต์ จึงย่อขยายได้ตั้งแต่ในตารางคะแนนจนถึงจอโปรเจกเตอร์
+// ตัวละครประจำตัวผู้เล่น: หน้าสัตว์ + พื้นหลังสี + กรอบวงแหวน + เหรียญมุมล่าง
+// ไม่แปะอะไรทับหน้า (emoji หันคนละทาง ตำแหน่งตาไม่ตรง) — กรอบกับเหรียญอยู่ "รอบตัว" จึงไม่มีทางเบี้ยว
+// ตำแหน่งเป็นเปอร์เซ็นต์ทั้งหมด ย่อขยายได้ตั้งแต่ในตารางคะแนนจนถึงจอโปรเจกเตอร์
 export default function PlayerAvatar({ look, size = 32, className = '' }: PlayerAvatarProps) {
-  const { base, color, hat, gear } = safeLook(look)
+  const { base, color, ring, badge } = safeLook(look)
 
   return (
     <span
       className={`relative inline-block shrink-0 rounded-full ${className}`}
-      style={{ width: size, height: size, backgroundColor: color }}
+      style={{ width: size, height: size, backgroundColor: color, ...ringStyle(ring) }}
       aria-hidden
     >
       <span
@@ -26,29 +27,19 @@ export default function PlayerAvatar({ look, size = 32, className = '' }: Player
         {base}
       </span>
 
-      {gear && (
+      {badge && (
         <span
-          className="absolute left-1/2 leading-none"
+          className="absolute flex items-center justify-center rounded-full bg-white leading-none"
           style={{
-            top: '46%',
-            fontSize: size * 0.36,
-            transform: 'translate(-50%, -50%)',
+            right: '-6%',
+            bottom: '-6%',
+            width: '46%',
+            height: '46%',
+            fontSize: size * 0.26,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.28)',
           }}
         >
-          {gear}
-        </span>
-      )}
-
-      {hat && (
-        <span
-          className="absolute left-1/2 leading-none"
-          style={{
-            top: '2%',
-            fontSize: size * 0.4,
-            transform: 'translate(-50%, -50%) rotate(-12deg)',
-          }}
-        >
-          {hat}
+          {badge}
         </span>
       )}
     </span>

@@ -18,8 +18,10 @@ export type Phase =
 export interface AvatarLook {
   base: string
   color: string
-  hat: string
-  gear: string
+  /** '' = ไม่มีกรอบ; ไม่งั้นเป็นชื่อสไตล์กรอบ (solid/double/dashed/dotted/glow) */
+  ring: string
+  /** '' = ไม่มีเหรียญ; ไม่งั้นเป็น emoji เหรียญที่มุมขวาล่าง */
+  badge: string
 }
 
 export interface PlayerState {
@@ -109,9 +111,9 @@ export interface PublicRoom {
 // ---------- เบราว์เซอร์ → เซิร์ฟเวอร์ ----------
 
 export type ClientMessage =
-  // devUid: uid ที่เคยได้รับจากเซิร์ฟเวอร์ตอนล็อกอินครั้งก่อน — ส่งกลับตอน reconnect
-  // เพื่อให้ตัวตนคงที่ (โหมด dev เท่านั้น; โทเคน Google จริงมี sub เป็นตัวตนคงที่ในตัวอยู่แล้ว)
-  | { t: 'auth'; token?: string; devName?: string; devUid?: string }
+  // ไม่มีล็อกอิน — ผู้เล่นสร้าง uid สุ่มของตัวเองแล้วเก็บไว้ในเครื่อง ส่งกลับมาทุกครั้งที่ต่อ
+  // เพื่อให้เป็นคนเดิมตอน reconnect (เน็ตสะดุด/รีเฟรช) ไม่งั้นจะเสียคะแนน/เสียสิทธิ์สตาฟ
+  | { t: 'auth'; uid: string; name: string }
   | { t: 'join'; name: string; look: AvatarLook; team: string }
   | { t: 'answer'; round: number; bin: BinId }
   | { t: 'start' }
@@ -124,7 +126,7 @@ export type ClientMessage =
 // ---------- เซิร์ฟเวอร์ → เบราว์เซอร์ ----------
 
 export type ServerMessage
-  = { t: 'authed'; uid: string; email: string; name: string; isHost: boolean }
+  = { t: 'authed'; uid: string; name: string; isHost: boolean }
   | { t: 'room'; room: PublicRoom }
   /** สถานะของผู้เล่นคนที่ถือ socket นี้ */
   | { t: 'me'; me: PlayerState | null; results: Record<number, RoundResult> }

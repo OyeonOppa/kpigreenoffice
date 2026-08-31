@@ -22,16 +22,17 @@ export type Phase =
 export interface AvatarLook {
   base: string
   color: string
-  /** '' = ไม่ใส่หมวก */
-  hat: string
-  /** '' = ไม่ใส่ของประดับหน้า */
-  gear: string
+  /** '' = ไม่มีกรอบ; ไม่งั้นเป็นชื่อสไตล์กรอบ (solid/double/dashed/dotted/glow) */
+  ring: string
+  /** '' = ไม่มีเหรียญ; ไม่งั้นเป็น emoji เหรียญที่มุมขวาล่าง */
+  badge: string
 }
 
 export interface AuthUser {
   uid: string
-  email: string
   name: string
+  /** เกมนี้ไม่มีล็อกอิน — ไม่มีอีเมล ฟิลด์นี้เหลือไว้เผื่อโหมดจำลองเก่าเท่านั้น */
+  email?: string
 }
 
 export interface PlayerState {

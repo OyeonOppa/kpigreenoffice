@@ -1,16 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { AlertCircle, Check, Shuffle, X } from 'lucide-react'
-import { AVATAR_COMBOS, AVATAR_PARTS, LIVE_GAME, WASTE } from '../content'
+import { AVATAR_PARTS, WASTE } from '../content'
 import { LIVE_CONFIG, backend, type AvatarLook, type BinId, type RoomSnapshot } from '../game'
-import { lookFromSeed, randomLook } from '../game/avatar'
+import { lookFromSeed, randomLook, ringStyle } from '../game/avatar'
 import { useAuth, useHashQueryParam, useNow, useRoom } from '../game/hooks'
 import { sfx } from '../game/sfx'
 import AnswerBars from '../components/live/AnswerBars'
 import Confetti from '../components/live/Confetti'
 import DragArena from '../components/live/DragArena'
 import Leaderboard from '../components/live/Leaderboard'
-import GoogleSignIn from '../components/live/GoogleSignIn'
 import LiveShell from '../components/live/LiveShell'
 import PlayerAvatar from '../components/live/PlayerAvatar'
 import MascotBin from '../components/live/MascotBin'
@@ -20,7 +19,14 @@ const PIN_KEY = 'kpi-live:my-pin'
 const binById = (id: BinId) => WASTE.bins.find((b) => b.id === id)!
 
 export default function LivePlayerPage() {
-  const { user, busy, signIn } = useAuth()
+  const { user, signIn } = useAuth()
+
+  // ไม่มีหน้าล็อกอินแล้ว — ใครสแกน QR หรือกรอก PIN ก็เข้าเล่นได้เลย
+  // สร้างตัวตนแบบไม่ระบุชื่อให้อัตโนมัติ (ชื่อจริงมากรอกตอนเข้าห้อง)
+  useEffect(() => {
+    if (!user) void signIn()
+  }, [user, signIn])
+
   const [pin, setPin] = useState<string | null>(() => {
     try {
       return sessionStorage.getItem(PIN_KEY)
@@ -41,21 +47,13 @@ export default function LivePlayerPage() {
     }
   }
 
-  if (!user) {
-    return (
-      <LiveShell>
-        <SignInCard busy={busy} onSignIn={signIn} />
-      </LiveShell>
-    )
-  }
-
-  if (!pin || !room || !me) {
+  if (!user || !pin || !room || !me) {
     return (
       <LiveShell>
         <JoinCard
-          defaultName={user.name}
-          seed={user.uid}
-          pending={!!pin && !me}
+          key={user?.uid ?? 'anon'}
+          seed={user?.uid ?? ''}
+          pending={!!pin && !!user && !me}
           onJoined={enterRoom}
           onCancel={() => enterRoom(null)}
         />
@@ -76,49 +74,14 @@ export default function LivePlayerPage() {
   )
 }
 
-// ---------- เข้าสู่ระบบ ----------
-
-function SignInCard({
-  busy,
-  onSignIn,
-}: {
-  busy: boolean
-  onSignIn: (name?: string) => Promise<unknown>
-}) {
-  return (
-    <div className="max-w-md mx-auto pt-6">
-      <div className="pop-card p-7 text-center">
-        <div className="flex justify-center gap-1 mb-4">
-          {WASTE.bins.map((bin) => (
-            <MascotBin key={bin.id} color={bin.color} className="w-12" />
-          ))}
-        </div>
-        <h1 className="font-display text-2xl text-ink mb-1">{LIVE_GAME.heading}</h1>
-        <p className="text-ink/60 text-sm mb-6">{LIVE_GAME.intro}</p>
-
-        <p className="text-ink/70 text-sm mb-4">
-          เข้าเล่นได้เฉพาะบัญชี{' '}
-          <span className="text-ink font-medium">@{LIVE_GAME.allowedDomain}</span>
-        </p>
-
-        <fieldset disabled={busy} className="disabled:opacity-60">
-          <GoogleSignIn onDevSignIn={(name) => void onSignIn(name)} />
-        </fieldset>
-      </div>
-    </div>
-  )
-}
-
 // ---------- เข้าห้อง ----------
 
 function JoinCard({
-  defaultName,
   seed,
   pending,
   onJoined,
   onCancel,
 }: {
-  defaultName: string
   /** ใช้สุ่มลุคเริ่มต้นให้ต่างกันตั้งแต่แรก คนที่ไม่แต่งตัวต่อจะได้ไม่ซ้ำกันทั้งห้อง */
   seed: string
   pending: boolean
@@ -128,11 +91,10 @@ function JoinCard({
   // สแกน QR มาแล้วมี ?pin=123456 ต่อท้าย hash — กรอก PIN ให้อัตโนมัติ ยังแก้เองได้ตามปกติ
   const pinFromQr = useHashQueryParam('pin')
   const [pin, setPin] = useState(() => (pinFromQr ?? '').replace(/\D/g, '').slice(0, 6))
-  const [name, setName] = useState(defaultName)
+  const [name, setName] = useState('')
   // ถ้า uid ยังมาไม่ถึง (เซิร์ฟเวอร์ตอบ authed ช้ากว่าการวาดหน้าจอ) ให้สุ่มไปเลย
   // ไม่งั้นทุกคนจะได้ลุคจาก seed ว่างเปล่าเหมือนกันหมดทั้งห้อง
   const [look, setLook] = useState<AvatarLook>(() => (seed ? lookFromSeed(seed) : randomLook()))
-  const [team, setTeam] = useState(LIVE_GAME.teams[0] as string)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -140,9 +102,9 @@ function JoinCard({
     setError(null)
     setBusy(true)
     const result = await backend.joinRoom(pin.trim(), {
-      name: name.trim() || defaultName,
+      name: name.trim(),
       look,
-      team,
+      team: '',
     })
     setBusy(false)
     if (!result.ok) {
@@ -182,21 +144,9 @@ function JoinCard({
         <input
           value={name}
           onChange={(e) => setName(e.target.value.slice(0, 24))}
+          placeholder="ชื่อเล่นก็ได้"
           className="w-full rounded-2xl border-2 border-line bg-white px-4 py-2.5 text-ink focus:outline-none focus:ring-2 focus:ring-accent mb-4"
         />
-
-        <label className="block text-ink/70 text-sm mb-1.5">สำนัก/กอง</label>
-        <select
-          value={team}
-          onChange={(e) => setTeam(e.target.value)}
-          className="w-full rounded-2xl border-2 border-line bg-white px-4 py-2.5 text-ink focus:outline-none focus:ring-2 focus:ring-accent mb-4"
-        >
-          {LIVE_GAME.teams.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
 
         <AvatarStudio look={look} onChange={setLook} />
 
@@ -208,7 +158,7 @@ function JoinCard({
 
         <button
           type="button"
-          disabled={pin.length !== 6 || busy}
+          disabled={pin.length !== 6 || !name.trim() || busy}
           onClick={submit}
           className="pop-btn bg-accent text-white w-full py-3 font-medium disabled:opacity-50"
         >
@@ -221,6 +171,15 @@ function JoinCard({
 
 // ---------- แต่งตัวละคร ----------
 
+const RING_LABEL: Record<string, string> = {
+  '': 'ไม่มีกรอบ',
+  solid: 'เส้นทึบ',
+  double: 'เส้นคู่',
+  dashed: 'เส้นประ',
+  dotted: 'จุด',
+  glow: 'เรืองแสง',
+}
+
 function AvatarStudio({
   look,
   onChange,
@@ -230,24 +189,18 @@ function AvatarStudio({
 }) {
   const rows = [
     { key: 'base' as const, label: 'สัตว์', options: AVATAR_PARTS.bases, cols: 'grid-cols-7' },
-    { key: 'hat' as const, label: 'หมวก', options: AVATAR_PARTS.hats, cols: 'grid-cols-6' },
-    { key: 'gear' as const, label: 'แว่น/หน้ากาก', options: AVATAR_PARTS.gears, cols: 'grid-cols-6' },
+    { key: 'badge' as const, label: 'เหรียญ', options: AVATAR_PARTS.badges, cols: 'grid-cols-6' },
   ]
 
   return (
     <div className="mb-5">
-      <div className="flex items-center gap-4 mb-3">
-        <PlayerAvatar look={look} size={72} />
-        <div className="flex-1 min-w-0">
-          <p className="text-ink text-sm font-medium">แต่งตัวละครของคุณ</p>
-          <p className="text-ink/50 text-xs">
-            มีให้ผสมกว่า {AVATAR_COMBOS.toLocaleString('th-TH')} ลุค
-          </p>
-        </div>
+      <div className="flex items-center gap-3 mb-3">
+        <PlayerAvatar look={look} size={60} />
+        <p className="flex-1 min-w-0 text-ink text-sm font-medium">แต่งตัวละคร</p>
         <button
           type="button"
           onClick={() => onChange(randomLook())}
-          className="rounded-full bg-ink/5 hover:bg-ink/10 px-3 py-2 text-ink/70 text-xs inline-flex items-center gap-1.5"
+          className="shrink-0 rounded-full bg-ink/5 hover:bg-ink/10 px-3 py-2 text-ink/70 text-xs inline-flex items-center gap-1.5"
         >
           <Shuffle size={14} /> สุ่มลุค
         </button>
@@ -269,6 +222,26 @@ function AvatarStudio({
         ))}
       </div>
 
+      <p className="text-ink/60 text-xs mb-1.5">กรอบ</p>
+      <div className="grid grid-cols-6 gap-1.5 mb-3">
+        {AVATAR_PARTS.rings.map((r) => (
+          <button
+            key={r || 'none'}
+            type="button"
+            onClick={() => onChange({ ...look, ring: r })}
+            aria-label={`เลือกกรอบ ${RING_LABEL[r] ?? r}`}
+            className={`flex aspect-square items-center justify-center rounded-xl transition-transform hover:-translate-y-0.5 ${
+              look.ring === r ? 'bg-accent/20 ring-2 ring-accent' : 'bg-ink/5'
+            }`}
+          >
+            <span
+              className="block h-5 w-5 rounded-full bg-white"
+              style={ringStyle(r)}
+            />
+          </button>
+        ))}
+      </div>
+
       {rows.map((row) => (
         <div key={row.key}>
           <p className="text-ink/60 text-xs mb-1.5">{row.label}</p>
@@ -283,7 +256,7 @@ function AvatarStudio({
                   look[row.key] === option ? 'bg-accent/20 ring-2 ring-accent' : 'bg-ink/5'
                 }`}
               >
-                {option || <span className="text-ink/35 text-xs">ไม่ใส่</span>}
+                {option || <span className="text-ink/35 text-xs">ไม่มี</span>}
               </button>
             ))}
           </div>
@@ -333,14 +306,12 @@ function PlayerGame({
       <PhaseSounds room={room} lastCorrect={me.lastCorrect} />
       <PlayerHeader room={room} score={me.score} rank={me.rank} />
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={`${room.phase}-${room.roundIndex}`}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -12 }}
-          transition={{ duration: 0.25 }}
-        >
+      <motion.div
+        key={`${room.phase}-${room.roundIndex}`}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+      >
           {room.phase === 'lobby' && <PlayerLobby room={room} onLeave={onLeave} />}
           {room.phase === 'countdown' && <PhaseCountdown room={room} />}
           {room.phase === 'answering' && room.round && (
@@ -351,8 +322,7 @@ function PlayerGame({
           {room.phase === 'board' && <BoardView room={room} uid={uid} rank={me.rank} />}
           {room.phase === 'finale' && <PlayerFinale room={room} uid={uid} />}
           {room.phase === 'ended' && <PlayerSummary room={room} uid={uid} />}
-        </motion.div>
-      </AnimatePresence>
+      </motion.div>
     </div>
   )
 }
@@ -372,7 +342,7 @@ function PlayerHeader({ room, score, rank }: { room: RoomSnapshot; score: number
         <span className="tabular text-accent-deep text-lg font-semibold">
           {score.toLocaleString('th-TH')}
         </span>{' '}
-        คะแนน{rank > 0 && ` · อันดับ ${rank}`}
+        คะแนน{(playing || room.status === 'finished') && rank > 0 && ` · อันดับ ${rank}`}
       </p>
     </div>
   )
@@ -389,8 +359,7 @@ function PlayerLobby({ room, onLeave }: { room: RoomSnapshot; onLeave: () => voi
       >
         <PlayerAvatar look={me.look} size={88} />
       </motion.div>
-      <p className="text-ink text-lg font-medium">{me.name}</p>
-      <p className="text-ink/55 text-sm mb-6">{me.team}</p>
+      <p className="text-ink text-lg font-medium mb-6">{me.name}</p>
 
       <p className="text-ink/70 text-sm mb-2">เข้าห้องแล้ว รอสตาฟเริ่มเกม</p>
       <p className="text-ink/55 text-sm mb-6">

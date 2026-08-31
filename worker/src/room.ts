@@ -1,7 +1,6 @@
 import { DurableObject } from 'cloudflare:workers'
 import { LIVE_CONFIG, PHASE_DURATION, roundScore } from './config'
 import { getQuestion, pickQuestions } from './questions'
-import { verifyGoogleToken } from './auth'
 import {
   BIN_IDS,
   type AvatarLook,
@@ -21,10 +20,8 @@ import {
 
 export interface Env {
   GAME_ROOM: DurableObjectNamespace<GameRoom>
-  GOOGLE_CLIENT_ID: string
-  ALLOWED_DOMAIN: string
+  /** เว็บที่เปิด WebSocket มาที่ห้องนี้ได้ (คั่นด้วย ,) — กันเว็บอื่นแอบต่อเข้ามา */
   ALLOWED_ORIGINS: string
-  DEV_ALLOW_FAKE_AUTH: string
 }
 
 /** สถานะห้องส่วนที่เล็กพอจะเก็บเป็นก้อนเดียว */
@@ -46,7 +43,6 @@ interface RoomMeta {
 /** ข้อมูลที่ผูกกับ WebSocket แต่ละเส้น — อยู่รอดข้าม hibernation */
 interface SocketInfo {
   uid: string
-  email: string
   name: string
   isHost: boolean
 }
@@ -58,6 +54,9 @@ export class GameRoom extends DurableObject<Env> {
   private meta: RoomMeta
   /** เวลาที่กระจายจำนวนคนตอบครั้งล่าสุด ใช้หน่วงไม่ให้ยิงถี่เกินไปตอนคน 250 คนตอบพร้อมกัน */
   private lastCountBroadcast = 0
+  /** หน่วง broadcast เต็มห้องตอนล็อบบี้ กันสตอร์มตอนคนสแกน QR เข้ามาพร้อมกัน */
+  private lastLobbyBroadcast = 0
+  private lobbyBroadcastPending = false
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env)
@@ -228,52 +227,28 @@ export class GameRoom extends DurableObject<Env> {
     }
   }
 
-  private async handleAuth(ws: WebSocket, msg: { token?: string; devName?: string; devUid?: string }) {
-    let user: { uid: string; email: string; name: string }
-
-    if (this.env.DEV_ALLOW_FAKE_AUTH === 'true' && msg.devName) {
-      // ชื่อไทยจะเหลือ slug ว่าง ต้องมีตัวสำรองไม่งั้นอีเมลซ้ำกันทุกคนตอนซ้อม
-      const slug =
-        msg.devName.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.|\.$/g, '') ||
-        `dev${Math.random().toString(36).slice(2, 7)}`
-      // ถ้าเบราว์เซอร์เคยล็อกอินแล้วส่ง uid เดิมกลับมา (ตอน reconnect) ให้ใช้ตัวเดิม
-      // ไม่งั้นทุกครั้งที่ WebSocket หลุดแล้วต่อใหม่ (เน็ตสะดุด, สลับแท็บ) จะได้ uid สุ่มใหม่
-      // ทำให้เสียสิทธิ์สตาฟ/กลายเป็นผู้เล่นคนละคนโดยไม่รู้ตัว — ปุ่มควบคุมกดแล้วไม่มีอะไรเกิดขึ้น
-      // เพราะเซิร์ฟเวอร์เงียบๆ ปฏิเสธคำสั่งจากคนที่ไม่ใช่สตาฟตัวจริง
-      // ปลอดภัยเพราะโหมดนี้ใช้ตอนพัฒนา/ซ้อมเท่านั้น (DEV_ALLOW_FAKE_AUTH ต้องเป็น false ตอนใช้งานจริง)
-      const uid =
-        msg.devUid && msg.devUid.startsWith('dev-')
-          ? msg.devUid
-          : `dev-${slug}-${Math.random().toString(36).slice(2, 8)}`
-      user = { uid, email: `${slug}@${this.env.ALLOWED_DOMAIN}`, name: msg.devName }
-    } else if (msg.token) {
-      try {
-        user = await verifyGoogleToken(msg.token, {
-          clientId: this.env.GOOGLE_CLIENT_ID,
-          allowedDomain: this.env.ALLOWED_DOMAIN,
-        })
-      } catch (err) {
-        this.send(ws, { t: 'error', reason: (err as Error).message })
-        ws.close(4001, 'auth failed')
-        return
-      }
-    } else {
-      this.send(ws, { t: 'error', reason: 'ไม่มีข้อมูลสำหรับเข้าสู่ระบบ' })
-      return
-    }
+  private async handleAuth(ws: WebSocket, msg: { uid?: string; name?: string }) {
+    // ไม่มีล็อกอิน — เชื่อ uid ที่เบราว์เซอร์สร้างเองและเก็บไว้ในเครื่อง
+    // uid ใช้แค่ผูก "คนเดิม" ตอน reconnect กับตัดสินว่าใครเป็นสตาฟ ไม่ใช่ข้อมูลลับ
+    // รูปแบบบังคับเป็น g-<โทเคนสุ่ม> ถ้าส่งอะไรแปลกมาก็ออกให้ใหม่ กันคนยัด uid ซ้ำของคนอื่น
+    const rawUid = (msg.uid ?? '').trim()
+    const uid = /^g-[a-z0-9]{8,40}$/i.test(rawUid)
+      ? rawUid
+      : `g-${crypto.randomUUID().replace(/-/g, '').slice(0, 20)}`
+    const name = (msg.name ?? '').trim().slice(0, 24) || 'ผู้เล่น'
 
     // คนแรกที่เปิดห้อง = สตาฟ ห้องหนึ่งมีสตาฟได้คนเดียว
     if (!this.meta.hostUid) {
-      this.meta.hostUid = user.uid
+      this.meta.hostUid = uid
       await this.saveMeta()
     }
 
-    const info: SocketInfo = { ...user, isHost: user.uid === this.meta.hostUid }
+    const info: SocketInfo = { uid, name, isHost: uid === this.meta.hostUid }
     ws.serializeAttachment(info)
 
-    this.send(ws, { t: 'authed', ...user, isHost: info.isHost })
+    this.send(ws, { t: 'authed', uid, name, isHost: info.isHost })
     this.sendRoom(ws)
-    this.sendMe(ws, info.uid)
+    this.sendMe(ws, uid)
     if (info.isHost) this.sendRoster(ws)
   }
 
@@ -320,8 +295,30 @@ export class GameRoom extends DurableObject<Env> {
 
     this.send(ws, { t: 'joined', ok: true })
     this.sendMe(ws, info.uid)
-    this.broadcastRoom()
-    this.broadcastRoster()
+    // ตอนคน 250 คนสแกน QR เข้ามาไล่ๆ กัน ถ้ายิง broadcast เต็มห้องต่อ 1 คนที่เข้า
+    // จะกลายเป็น O(N²) ส่ง — รวบให้เหลือ ~วินาทีละ 2 ครั้งพอ ตัวเลขในล็อบบี้ไม่ต้องเป๊ะวินาที
+    this.queueRoomBroadcast()
+  }
+
+  /** รวบ broadcast เต็มห้อง (room + roster) ให้ถี่สุดราว 2.5 ครั้ง/วินาที กันสตอร์มตอนคนเข้าพร้อมกัน */
+  private queueRoomBroadcast() {
+    const now = Date.now()
+    if (now - this.lastLobbyBroadcast >= 400) {
+      this.lastLobbyBroadcast = now
+      this.broadcastRoom()
+      this.broadcastRoster()
+      return
+    }
+    if (this.lobbyBroadcastPending) return
+    this.lobbyBroadcastPending = true
+    this.ctx.waitUntil(
+      new Promise<void>((resolve) => setTimeout(resolve, 400)).then(() => {
+        this.lobbyBroadcastPending = false
+        this.lastLobbyBroadcast = Date.now()
+        this.broadcastRoom()
+        this.broadcastRoster()
+      }),
+    )
   }
 
   private async handleAnswer(ws: WebSocket, info: SocketInfo, round: number, bin: BinId) {
@@ -385,7 +382,21 @@ export class GameRoom extends DurableObject<Env> {
   private async togglePause() {
     const now = Date.now()
     if (this.meta.paused && this.meta.pausedAt !== null) {
-      this.meta.phaseEndsAt += now - this.meta.pausedAt
+      const pausedMs = now - this.meta.pausedAt
+      this.meta.phaseEndsAt += pausedMs
+      // ถ้าพักตอนกำลังตอบ ต้องเลื่อน startedAt ของข้อด้วย ไม่งั้นคำตอบหลังเล่นต่อ
+      // จะถูกนับว่า "ช้าเกิน 10 วิ" ทั้งที่วงแหวนยังมีเวลาเหลือ — กดถังแล้วเงียบ
+      if (this.meta.phase === 'answering') {
+        const rd = this.getRound(this.meta.roundIndex)
+        if (rd) {
+          rd.startedAt += pausedMs
+          this.ctx.storage.sql.exec(
+            'INSERT OR REPLACE INTO rounds (round, payload) VALUES (?, ?)',
+            this.meta.roundIndex,
+            JSON.stringify(rd),
+          )
+        }
+      }
       this.meta.paused = false
       this.meta.pausedAt = null
       await this.ctx.storage.setAlarm(this.meta.phaseEndsAt)
@@ -395,7 +406,7 @@ export class GameRoom extends DurableObject<Env> {
       await this.ctx.storage.deleteAlarm()
     }
     await this.saveMeta()
-    this.broadcastRoom()
+    this.broadcastAll()
   }
 
   private async addBots(count: number) {
@@ -406,17 +417,12 @@ export class GameRoom extends DurableObject<Env> {
     ]
     const bases = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮']
     const colors = ['#ffd6a5', '#caffbf', '#9bf6ff', '#bdb2ff', '#ffc6ff', '#fdffb6']
-    const hats = ['', '🎩', '👑', '🧢', '🎓', '🎀', '⭐']
-    const gears = ['', '👓', '🕶️', '😷']
+    const rings = ['', 'solid', 'double', 'dashed', 'dotted', 'glow']
+    const badges = ['', '🌱', '♻️', '🍃', '💧', '☀️', '⚡', '🌍', '🌳', '🚲']
 
     const existing = this.ctx.storage.sql
       .exec<{ n: number }>('SELECT COUNT(*) AS n FROM players WHERE bot = 1')
       .one().n
-
-    const teams = this.ctx.storage.sql
-      .exec<{ team: string }>('SELECT DISTINCT team FROM players WHERE bot = 0')
-      .toArray()
-      .map((r) => r.team)
 
     const pick = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)]
 
@@ -425,15 +431,15 @@ export class GameRoom extends DurableObject<Env> {
       const look: AvatarLook = {
         base: pick(bases),
         color: pick(colors),
-        hat: pick(hats),
-        gear: pick(gears),
+        ring: pick(rings),
+        badge: pick(badges),
       }
       this.ctx.storage.sql.exec(
         'INSERT OR IGNORE INTO players (uid, name, look, team, bot, joinedAt) VALUES (?, ?, ?, ?, 1, ?)',
         `bot-${n}`,
         `${names[n % names.length]} (ซ้อม)`,
         JSON.stringify(look),
-        teams[n % Math.max(teams.length, 1)] ?? 'ทีมซ้อม',
+        '',
         Date.now(),
       )
     }
@@ -670,7 +676,7 @@ export class GameRoom extends DurableObject<Env> {
     try {
       look = JSON.parse(String(row.look)) as AvatarLook
     } catch {
-      look = { base: '🐨', color: '#ffd6a5', hat: '', gear: '' }
+      look = { base: '🐨', color: '#ffd6a5', ring: '', badge: '' }
     }
     return {
       uid: String(row.uid),
@@ -766,8 +772,15 @@ export class GameRoom extends DurableObject<Env> {
       paused: this.meta.paused,
       roundIndex: this.meta.roundIndex,
       totalRounds: this.meta.questionIds.length,
-      // โจทย์ส่งออกไปเฉพาะตอนข้อเริ่มแล้ว — ตอนนับถอยหลังยังไม่มีอะไรให้แอบดู
-      round: this.meta.phase === 'answering' ? this.getRound(this.meta.roundIndex) : null,
+      // โจทย์ (ชื่อ/รูป ไม่มีคำเฉลย) ส่งได้ตั้งแต่ข้อเริ่มจนจบข้อ — หน้าเฉลย/อธิบายยังต้องใช้ชื่อไอเท็ม
+      // กันเฉพาะช่วง countdown ที่ยังไม่ควรให้เห็นข้อถัดไปล่วงหน้า
+      round:
+        this.meta.phase === 'answering' ||
+        this.meta.phase === 'reveal' ||
+        this.meta.phase === 'explain' ||
+        this.meta.phase === 'board'
+          ? this.getRound(this.meta.roundIndex)
+          : null,
       // เฉลยส่งออกไปหลังหมดเวลาแล้วเท่านั้น
       reveal: showReveal ? this.getReveal(this.meta.roundIndex) : null,
       board: this.meta.status === 'lobby' ? [] : this.buildBoard(),
@@ -848,9 +861,34 @@ export class GameRoom extends DurableObject<Env> {
   private broadcastAll() {
     this.broadcastRoom()
     this.broadcastRoster()
+
+    // จัดอันดับครั้งเดียวแล้วแจกให้ทุก socket — แทนการ query rank ทีละคน 250 รอบต่อการเปลี่ยนเฟส
+    const byUid = new Map(this.listPlayers().map((p) => [p.uid, p]))
+    const resultsByUid = this.allResults()
     for (const ws of this.ctx.getWebSockets()) {
       const info = ws.deserializeAttachment() as SocketInfo | null
-      if (info) this.sendMe(ws, info.uid)
+      if (!info) continue
+      this.send(ws, {
+        t: 'me',
+        me: byUid.get(info.uid) ?? null,
+        results: resultsByUid.get(info.uid) ?? {},
+      })
     }
+  }
+
+  /** ผลรายข้อของทุกคนในครั้งเดียว — uid → { รอบ: ผล } */
+  private allResults(): Map<string, Record<number, RoundResult>> {
+    const out = new Map<string, Record<number, RoundResult>>()
+    const rows = this.ctx.storage.sql
+      .exec<{ uid: string; round: number; bin: string | null; correct: number }>(
+        'SELECT uid, round, bin, correct FROM results',
+      )
+      .toArray()
+    for (const r of rows) {
+      const rec = out.get(r.uid) ?? {}
+      rec[r.round] = { bin: (r.bin as BinId | null) ?? null, correct: r.correct === 1 }
+      out.set(r.uid, rec)
+    }
+    return out
   }
 }
