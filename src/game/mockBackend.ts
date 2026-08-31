@@ -299,6 +299,7 @@ function closeRound(doc: RoomDoc) {
     index: doc.roundIndex,
     correctBin: question.bin,
     explanation: question.explanation,
+    source: question.source,
     checkLocal: question.checkLocal === true,
     distribution,
     answeredCount,

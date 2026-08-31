@@ -3,7 +3,7 @@
 // ถ้าแก้ที่นี่ ต้องแก้ src/game/config.ts ให้ตรงกันด้วย ไม่งั้นวงแหวนจะเดินไม่ตรงกับเวลาจริง
 
 export const LIVE_CONFIG = {
-  totalRounds: 15,
+  totalRounds: 10,
 
   countdownMs: 3000,
   answerMs: 10_000,

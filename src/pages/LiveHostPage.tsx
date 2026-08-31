@@ -427,6 +427,11 @@ function HostExplain({ room }: { room: RoomSnapshot }) {
             ข้อนี้ขึ้นกับว่าหน่วยงานมีจุดรับเฉพาะหรือไม่ — ถ้ายังไม่มี ให้ถือเป็นขยะทั่วไป
           </p>
         )}
+        {reveal.source && (
+          <p className="text-ink/45 text-base sm:text-lg mt-6">
+            อ้างอิง: {reveal.source.label} — {reveal.source.url}
+          </p>
+        )}
       </div>
     </div>
   )

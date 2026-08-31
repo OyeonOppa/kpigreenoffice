@@ -53,6 +53,8 @@ export interface RevealInfo {
   index: number
   correctBin: BinId
   explanation: string
+  /** แหล่งอ้างอิงคำเฉลย — ผู้เล่นกดเปิดตรวจสอบได้จากหน้าเฉลย */
+  source: { label: string; url: string }
   checkLocal: boolean
   distribution: Record<BinId, number>
   answeredCount: number

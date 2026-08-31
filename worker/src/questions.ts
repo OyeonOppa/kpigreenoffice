@@ -1,17 +1,24 @@
 // คลังคำถามเกมแยกขยะแข่งสด — **อยู่ฝั่งเซิร์ฟเวอร์เท่านั้น**
 //
 // ไฟล์นี้มีคำเฉลย จึงต้องไม่ถูก bundle ไปกับเว็บ
-// เครื่องผู้เล่นจะได้รับแค่ชื่อ/รูปของขยะตอนข้อเริ่ม และได้คำเฉลย+คำอธิบายตอนหมดเวลาแล้ว
+// เครื่องผู้เล่นจะได้รับแค่ชื่อ/รูปของขยะตอนข้อเริ่ม และได้คำเฉลย+คำอธิบาย+แหล่งอ้างอิงตอนหมดเวลาแล้ว
 // เปิด DevTools ยังไงก็ไม่เห็นคำตอบล่วงหน้า
 //
-// TODO: ให้หน่วยงานตรวจทานคำเฉลยและคำอธิบายก่อนใช้งานจริง
-// คำเฉลยอิงระบบถังขยะ 4 สีมาตรฐาน (อินทรีย์ / รีไซเคิล / ทั่วไป / อันตราย)
+// คำเฉลยอิงระบบถังขยะ 4 สีของกรมควบคุมมลพิษ (อินทรีย์=เขียว / รีไซเคิล=เหลือง / ทั่วไป=น้ำเงิน / อันตราย=แดง)
+// ทุกข้อมี source ที่ผู้เล่นกดเปิดตรวจสอบเองได้จากหน้าเฉลย
 // ข้อที่ทำเครื่องหมาย checkLocal ไว้ คำตอบขึ้นกับว่าหน่วยงานมี "จุดรับเฉพาะ" หรือไม่
 //
 // image: ถ้ายังไม่มีไฟล์ เว็บจะ fallback ไปแสดง emoji อัตโนมัติ
 // วางไฟล์เพิ่มที่ public/images/<ชื่อไฟล์> แล้วรูปจะขึ้นแทน emoji เอง
 
 import type { BinId } from './protocol'
+
+export interface QuestionSource {
+  /** ข้อความที่ผู้เล่นเห็นบนหน้าเฉลย */
+  label: string
+  /** ลิงก์ไปหน่วยงาน/เอกสารต้นทางที่เชื่อถือได้ */
+  url: string
+}
 
 export interface Question {
   id: string
@@ -20,8 +27,35 @@ export interface Question {
   name: string
   bin: BinId
   explanation: string
+  /** แหล่งอ้างอิงคำเฉลย — แสดงบนหน้าเฉลยให้ผู้เล่นตรวจสอบเอง */
+  source: QuestionSource
   checkLocal?: boolean
 }
+
+// แหล่งอ้างอิงหลัก — กรมควบคุมมลพิษ (Pollution Control Department) คือหน่วยงานที่กำหนด
+// มาตรฐานสีถังขยะและแนวทางคัดแยกของประเทศไทย
+const SRC = {
+  organic: {
+    label: 'กรมควบคุมมลพิษ — แนวทางการคัดแยกขยะอินทรีย์ (ถังเขียว)',
+    url: 'https://www.pcd.go.th',
+  },
+  recycle: {
+    label: 'กรมควบคุมมลพิษ — แนวทางการคัดแยกขยะรีไซเคิล (ถังเหลือง)',
+    url: 'https://www.pcd.go.th',
+  },
+  general: {
+    label: 'กรมควบคุมมลพิษ — แนวทางการคัดแยกขยะทั่วไป (ถังน้ำเงิน)',
+    url: 'https://www.pcd.go.th',
+  },
+  hazard: {
+    label: 'กรมควบคุมมลพิษ — การจัดการของเสียอันตรายจากชุมชน',
+    url: 'https://www.pcd.go.th',
+  },
+  ewaste: {
+    label: 'กรมควบคุมมลพิษ — การจัดการซากผลิตภัณฑ์เครื่องใช้ไฟฟ้าและอิเล็กทรอนิกส์ (E-Waste)',
+    url: 'https://www.pcd.go.th',
+  },
+} as const
 
 export const QUESTIONS: Question[] = [
   // ---- ถังเขียว: ขยะอินทรีย์ ----
@@ -31,6 +65,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-banana-peel.webp',
     name: 'เปลือกกล้วย',
     bin: 'organic',
+    source: SRC.organic,
     explanation:
       'เปลือกผลไม้ย่อยสลายเองได้ภายในไม่กี่สัปดาห์ และนำไปหมักเป็นปุ๋ยต่อได้ ถ้าทิ้งปนไปกับขยะทั่วไปจะถูกส่งไปฝังกลบ แล้วย่อยสลายแบบไร้ออกซิเจนจนเกิดก๊าซมีเทน ซึ่งทำให้โลกร้อนแรงกว่าคาร์บอนไดออกไซด์หลายเท่า',
   },
@@ -40,6 +75,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-food-scraps.webp',
     name: 'เศษอาหาร',
     bin: 'organic',
+    source: SRC.organic,
     explanation:
       'เศษอาหารเป็นขยะอินทรีย์ที่หมักเป็นปุ๋ยหรือนำไปเลี้ยงสัตว์ต่อได้ เคล็ดลับคือเทน้ำแกงหรือน้ำซุปออกก่อนทิ้ง จะช่วยลดกลิ่น ลดน้ำหนักขยะ และทำให้ถังไม่แฉะจนดึงดูดแมลง',
   },
@@ -49,6 +85,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-dry-leaves.webp',
     name: 'ใบไม้แห้ง',
     bin: 'organic',
+    source: SRC.organic,
     explanation:
       'ใบไม้แห้งเป็นวัสดุหมักปุ๋ยชั้นดี ทำหน้าที่เป็นส่วนสีน้ำตาลที่ช่วยให้กองปุ๋ยไม่แฉะและไม่ส่งกลิ่น ควรทิ้งลงถังเขียวหรือกองหมักในพื้นที่ ไม่ควรเผา เพราะการเผาใบไม้ปล่อยทั้งฝุ่น PM2.5 และคาร์บอน',
   },
@@ -58,6 +95,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-egg-shell.webp',
     name: 'เปลือกไข่',
     bin: 'organic',
+    source: SRC.organic,
     explanation:
       'เปลือกไข่ย่อยสลายได้และมีแคลเซียมสูง บดละเอียดแล้วผสมลงดินช่วยบำรุงต้นไม้ได้เลย จึงถือเป็นขยะอินทรีย์ ไม่ใช่ขยะทั่วไปอย่างที่หลายคนเข้าใจ',
   },
@@ -67,6 +105,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-coffee-grounds.webp',
     name: 'กากกาแฟ',
     bin: 'organic',
+    source: SRC.organic,
     explanation:
       'กากกาแฟย่อยสลายได้และเป็นวัสดุหมักปุ๋ยที่ให้ไนโตรเจนสูง จะใช้ดับกลิ่นในตู้เย็นหรือโรยรอบต้นไม้ก็ได้ ส่วนแก้วหรือแคปซูลพลาสติกที่ติดมาด้วยต้องแยกออกก่อน',
   },
@@ -76,6 +115,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-fish-bone.webp',
     name: 'ก้างปลาและเศษเนื้อ',
     bin: 'organic',
+    source: SRC.organic,
     explanation:
       'ก้างปลาและเศษเนื้อเป็นขยะอินทรีย์เช่นเดียวกับเศษอาหาร แต่เน่าเร็วและกลิ่นแรงกว่า ควรใส่ถุงมัดปากให้แน่นก่อนทิ้งลงถังเขียว เพื่อกันกลิ่นและกันสัตว์มาคุ้ยถัง',
   },
@@ -87,6 +127,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-plastic-bottle.webp',
     name: 'ขวดน้ำพลาสติกใส',
     bin: 'recycle',
+    source: SRC.recycle,
     explanation:
       'ขวดใสชนิด PET เป็นพลาสติกที่รีไซเคิลได้ราคาดีที่สุด ก่อนทิ้งควรเทน้ำออก ลอกฉลาก แยกฝา แล้วบีบให้แบน จะได้ทั้งลดพื้นที่ในถังและเพิ่มมูลค่าให้คนที่รับไปขายต่อ',
   },
@@ -96,6 +137,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-newspaper.webp',
     name: 'กระดาษหนังสือพิมพ์',
     bin: 'recycle',
+    source: SRC.recycle,
     explanation:
       'กระดาษรีไซเคิลได้หลายรอบก่อนที่เส้นใยจะสั้นเกินใช้งาน เงื่อนไขสำคัญคือต้องแห้งและไม่เปื้อนอาหารหรือน้ำมัน เพราะคราบมันทำให้กระดาษทั้งมัดเข้ากระบวนการผลิตเยื่อไม่ได้',
   },
@@ -105,6 +147,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-aluminum-can.webp',
     name: 'กระป๋องอะลูมิเนียม',
     bin: 'recycle',
+    source: SRC.recycle,
     explanation:
       'อะลูมิเนียมรีไซเคิลได้โดยคุณภาพไม่ลดลง และการหลอมกระป๋องเก่าใช้พลังงานน้อยกว่าการถลุงแร่ใหม่อย่างมาก จึงเป็นขยะที่มีมูลค่าสูงที่สุดชนิดหนึ่งในถังเหลือง',
   },
@@ -114,6 +157,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-glass-bottle.webp',
     name: 'ขวดแก้ว',
     bin: 'recycle',
+    source: SRC.recycle,
     explanation:
       'แก้วหลอมกลับมาใช้ใหม่ได้โดยไม่เสียคุณภาพ ควรแยกฝาโลหะหรือฝาพลาสติกออกก่อน ส่วนขวดที่แตกแล้วให้ห่อกระดาษหนาแล้วเขียนกำกับว่าแก้วแตก เพื่อไม่ให้คนเก็บขยะบาดมือ',
   },
@@ -123,6 +167,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-carton-box.webp',
     name: 'กล่องกระดาษลัง',
     bin: 'recycle',
+    source: SRC.recycle,
     explanation:
       'กล่องลังเป็นกระดาษคราฟท์ที่โรงงานเยื่อรับซื้อ ควรลอกเทปกาวออกและพับให้แบนก่อนทิ้ง เพราะกล่องที่ยังเป็นทรงกินพื้นที่ในถังและในรถขนส่งเกินความจำเป็น',
   },
@@ -132,6 +177,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-office-paper.webp',
     name: 'กระดาษ A4 ใช้แล้ว',
     bin: 'recycle',
+    source: SRC.recycle,
     explanation:
       'กระดาษสำนักงานรีไซเคิลได้ และเป็นขยะที่ออฟฟิศสร้างมากที่สุด ลำดับที่ดีที่สุดคือใช้ให้ครบสองหน้าก่อนแล้วค่อยรวมเข้าถังเหลือง ส่วนเอกสารที่มีข้อมูลส่วนบุคคลต้องทำลายด้วยเครื่องย่อยก่อนเสมอ',
   },
@@ -141,6 +187,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-uht-carton.webp',
     name: 'กล่องนม UHT',
     bin: 'recycle',
+    source: SRC.recycle,
     checkLocal: true,
     explanation:
       'กล่องนม UHT ประกอบด้วยกระดาษ พลาสติก และฟอยล์อัดซ้อนกัน แยกชั้นได้ในโรงงานเฉพาะทางและแปรรูปเป็นแผ่นหลังคาหรือแผ่นไม้อัดได้ ก่อนทิ้งต้องล้าง ผ่าแบน และตากให้แห้ง แต่ต้องมีจุดรับที่ส่งต่อโรงงานได้จริง ถ้าที่ทำงานยังไม่มีจุดรับ กล่องนมจะกลายเป็นขยะทั่วไปทันที',
@@ -153,6 +200,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-snack-wrapper.webp',
     name: 'ซองขนม',
     bin: 'general',
+    source: SRC.general,
     explanation:
       'ซองขนมดูเหมือนพลาสติก แต่จริงๆ เป็นวัสดุหลายชั้นที่มีทั้งพลาสติกและฟอยล์อัดติดกัน แยกชั้นออกจากกันไม่ได้ในเชิงพาณิชย์ จึงรีไซเคิลไม่ได้และต้องเข้าถังขยะทั่วไป',
   },
@@ -162,6 +210,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-used-tissue.webp',
     name: 'ทิชชูใช้แล้ว',
     bin: 'general',
+    source: SRC.general,
     explanation:
       'ทิชชูทำจากเส้นใยกระดาษที่สั้นมากอยู่แล้ว รีไซเคิลต่อไม่ได้ และเมื่อใช้แล้วยังปนเปื้อนสิ่งสกปรก จึงต้องทิ้งถังทั่วไป ไม่ใช่ถังกระดาษรีไซเคิล',
   },
@@ -171,6 +220,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-foam-box.webp',
     name: 'กล่องโฟมใส่อาหาร',
     bin: 'general',
+    source: SRC.general,
     explanation:
       'โฟมที่เปื้อนน้ำมันและเศษอาหารแทบไม่มีโรงงานรับรีไซเคิล เพราะล้างยากและน้ำหนักเบาจนขนส่งไม่คุ้ม ทางออกที่ดีกว่าคือเลี่ยงตั้งแต่ต้นทางด้วยการพกกล่องข้าวของตัวเอง',
   },
@@ -180,6 +230,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-plastic-straw.webp',
     name: 'หลอดพลาสติก',
     bin: 'general',
+    source: SRC.general,
     explanation:
       'หลอดเป็นพลาสติกก็จริง แต่ชิ้นเล็กเกินกว่าที่เครื่องคัดแยกในโรงงานจะจับได้ มักร่วงหลุดจากสายพานและปนเปื้อนน้ำหวานอยู่แล้ว จึงถือเป็นขยะทั่วไป',
   },
@@ -189,6 +240,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-paper-cup.webp',
     name: 'แก้วกาแฟกระดาษ',
     bin: 'general',
+    source: SRC.general,
     explanation:
       'แก้วกาแฟกระดาษเคลือบฟิล์มพลาสติกบางๆ ด้านในเพื่อกันน้ำซึม ทำให้แยกเยื่อกระดาษออกมาไม่ได้ด้วยกระบวนการปกติ ถ้าอยากลดขยะจุดนี้จริงๆ แก้วส่วนตัวคือคำตอบที่ได้ผลที่สุด',
   },
@@ -198,6 +250,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-dirty-plastic-bag.webp',
     name: 'ถุงพลาสติกเปื้อนอาหาร',
     bin: 'general',
+    source: SRC.general,
     explanation:
       'ถุงพลาสติกที่สะอาดและแห้งรีไซเคิลได้ แต่พอเปื้อนน้ำแกงหรือเศษอาหารแล้วจะทำให้พลาสติกทั้งล็อตเสีย จึงต้องเข้าถังทั่วไป ถ้าล้างและตากแห้งได้ก็ย้ายกลับไปถังเหลืองได้',
   },
@@ -207,6 +260,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-broken-ceramic.webp',
     name: 'จานเซรามิกแตก',
     bin: 'general',
+    source: SRC.general,
     explanation:
       'เซรามิกไม่ใช่แก้ว จุดหลอมเหลวต่างกันมาก ถ้าปนเข้าไปในเตาหลอมแก้วจะทำให้แก้วทั้งเตาเสีย จึงต้องทิ้งถังทั่วไป และควรห่อให้มิดชิดพร้อมเขียนกำกับกันคนเก็บขยะบาดมือ',
   },
@@ -216,6 +270,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-bubble-foam.webp',
     name: 'โฟมกันกระแทก',
     bin: 'general',
+    source: SRC.general,
     explanation:
       'โฟมกันกระแทกเป็นอากาศเกือบทั้งชิ้น น้ำหนักเบาจนค่าขนส่งแพงกว่ามูลค่าวัสดุ แทบไม่มีจุดรับรีไซเคิล ทางที่ดีกว่าคือเก็บไว้ใช้ซ้ำตอนส่งพัสดุครั้งถัดไป',
   },
@@ -227,6 +282,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-battery.webp',
     name: 'ถ่านไฟฉาย',
     bin: 'hazard',
+    source: SRC.hazard,
     explanation:
       'ถ่านมีโลหะหนักอยู่ข้างใน ถ้าทิ้งรวมแล้วไปฝังกลบ เปลือกจะผุตามเวลาและสารเหล่านี้จะรั่วลงดินและน้ำใต้ดิน ต้องแยกเข้าถังแดงเสมอ ห้ามทิ้งรวมกับขยะทั่วไป',
   },
@@ -236,6 +292,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-broken-bulb.webp',
     name: 'หลอดไฟเสีย',
     bin: 'hazard',
+    source: SRC.hazard,
     explanation:
       'หลอดฟลูออเรสเซนต์และหลอดตะเกียบมีไอปรอทอยู่ข้างใน ถ้าแตกในที่ปิดจะฟุ้งเป็นอันตรายต่อระบบประสาท ต้องใส่กล่องเดิมหรือห่อกระดาษหนาก่อนทิ้งถังแดง และห้ามทุบให้แตกเด็ดขาด',
   },
@@ -245,6 +302,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-spray-can.webp',
     name: 'กระป๋องสเปรย์',
     bin: 'hazard',
+    source: SRC.hazard,
     explanation:
       'กระป๋องสเปรย์แม้ใช้จนหมดก็ยังมีแรงดันและสารไวไฟค้างอยู่ ถ้าถูกบีบอัดในรถขยะหรือโดนความร้อนอาจระเบิดได้ จึงต้องแยกเข้าถังแดง ไม่ใช่ถังโลหะรีไซเคิลอย่างที่หลายคนคิด',
   },
@@ -254,6 +312,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-old-phone.webp',
     name: 'มือถือเก่า',
     bin: 'hazard',
+    source: SRC.ewaste,
     checkLocal: true,
     explanation:
       'มือถือเป็นขยะอิเล็กทรอนิกส์ที่มีทั้งของมีค่าอย่างทองแดง และของอันตรายอย่างตะกั่วกับลิเทียมในแบตเตอรี่ ต้องส่งเข้าจุดรับ e-waste เพื่อถอดแยกอย่างถูกวิธี และควรล้างข้อมูลในเครื่องก่อนส่งต่อทุกครั้ง',
@@ -264,6 +323,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-expired-medicine.webp',
     name: 'ยาหมดอายุ',
     bin: 'hazard',
+    source: SRC.hazard,
     explanation:
       'ยาหมดอายุห้ามทิ้งรวมกับขยะทั่วไปและห้ามเทลงชักโครกเด็ดขาด เพราะตัวยาจะปนเปื้อนแหล่งน้ำและเร่งให้เชื้อดื้อยา ควรเข้าถังแดงหรือคืนร้านยาที่มีจุดรับ',
   },
@@ -273,6 +333,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-correction-fluid.webp',
     name: 'น้ำยาลบคำผิด',
     bin: 'hazard',
+    source: SRC.hazard,
     explanation:
       'น้ำยาลบคำผิดมีตัวทำละลายอินทรีย์ที่ระเหยเป็นไอและเป็นพิษเมื่อสูดดมสะสม ขวดที่ใช้หมดแล้วยังมีสารตกค้าง จึงจัดเป็นขยะอันตรายของสำนักงาน ไม่ใช่ขยะทั่วไป',
   },
@@ -282,6 +343,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-toner-cartridge.webp',
     name: 'ตลับหมึกพิมพ์',
     bin: 'hazard',
+    source: SRC.ewaste,
     checkLocal: true,
     explanation:
       'ผงหมึกเป็นผงเคมีละเอียดที่ฟุ้งเข้าปอดได้ และตลับยังมีชิ้นส่วนอิเล็กทรอนิกส์อยู่ข้างใน หลายยี่ห้อมีโครงการรับตลับเปล่าคืนไปเติมใหม่ ซึ่งดีกว่าทิ้งทั้งชิ้น',
@@ -292,6 +354,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-old-adapter.webp',
     name: 'สายชาร์จและอะแดปเตอร์เก่า',
     bin: 'hazard',
+    source: SRC.ewaste,
     checkLocal: true,
     explanation:
       'สายไฟและอะแดปเตอร์เป็นขยะอิเล็กทรอนิกส์ ข้างในมีทองแดงที่รีไซเคิลได้ และมีสารหน่วงไฟกับตะกั่วบัดกรีที่เป็นอันตราย ต้องเข้าจุดรับ e-waste ไม่ใช่ถังโลหะรวม',
@@ -302,6 +365,7 @@ export const QUESTIONS: Question[] = [
     image: '/images/item-insecticide-can.webp',
     name: 'กระป๋องยาฆ่าแมลง',
     bin: 'hazard',
+    source: SRC.hazard,
     explanation:
       'ยาฆ่าแมลงมีสารกำจัดศัตรูพืชที่เป็นพิษต่อทั้งคนและสัตว์น้ำ แม้กระป๋องจะดูว่างเปล่าแต่ยังมีสารตกค้างและแรงดันเหลืออยู่ ต้องแยกเข้าถังแดงทุกครั้ง',
   },
@@ -337,7 +401,7 @@ function seedFrom(text: string) {
 
 /**
  * เลือกคำถามหนึ่งเกม — คละให้ทั้ง 4 ถังมีสัดส่วนใกล้เคียงกัน
- * สุ่มล้วนอาจได้ถังแดง 8 ข้อจาก 15 ซึ่งเดาง่ายเกินไป
+ * สุ่มล้วนอาจได้ถังแดงกระจุกในเกมเดียว ซึ่งเดาง่ายเกินไป
  */
 export function pickQuestions(seedText: string, count: number): string[] {
   const rand = mulberry32(seedFrom(seedText))

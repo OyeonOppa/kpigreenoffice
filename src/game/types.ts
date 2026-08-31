@@ -73,6 +73,8 @@ export interface RevealInfo {
   index: number
   correctBin: BinId
   explanation: string
+  /** แหล่งอ้างอิงคำเฉลย — ผู้เล่นกดเปิดตรวจสอบได้จากหน้าเฉลย */
+  source: { label: string; url: string }
   /** ข้อที่คำตอบขึ้นกับว่าหน่วยงานมีจุดรับเฉพาะหรือไม่ */
   checkLocal: boolean
   distribution: Record<BinId, number>
