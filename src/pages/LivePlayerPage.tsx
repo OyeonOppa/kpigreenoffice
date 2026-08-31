@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { AlertCircle, Check, Shuffle, X } from 'lucide-react'
+import { AlertCircle, Check, ExternalLink, Shuffle, X } from 'lucide-react'
 import { AVATAR_PARTS, WASTE } from '../content'
 import { LIVE_CONFIG, backend, type AvatarLook, type BinId, type RoomSnapshot } from '../game'
 import { lookFromSeed, randomLook, ringStyle } from '../game/avatar'
@@ -499,6 +499,17 @@ function ExplainView({ room }: { room: RoomSnapshot }) {
           ข้อนี้ขึ้นกับว่าที่ทำงานมีจุดรับเฉพาะหรือไม่ ลองเช็คจุดรับของหน่วยงานอีกที
         </p>
       )}
+      {reveal.source && (
+        <a
+          href={reveal.source.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 flex items-start gap-1.5 text-accent-deep text-xs leading-snug underline decoration-accent-deep/40 underline-offset-2"
+        >
+          <ExternalLink size={13} className="shrink-0 mt-0.5" />
+          <span>ที่มา: {reveal.source.label}</span>
+        </a>
+      )}
     </div>
   )
 }
@@ -582,6 +593,17 @@ function PlayerSummary({ room, uid }: { room: RoomSnapshot; uid: string }) {
                     <span className="text-emerald-700 font-medium">{correctBin.type}</span>
                   </p>
                   <p className="text-ink/75 text-xs leading-relaxed">{r.reveal.explanation}</p>
+                  {r.reveal.source && (
+                    <a
+                      href={r.reveal.source.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1.5 inline-flex items-start gap-1 text-accent-deep text-[11px] leading-snug underline decoration-accent-deep/40 underline-offset-2"
+                    >
+                      <ExternalLink size={11} className="shrink-0 mt-0.5" />
+                      <span>{r.reveal.source.label}</span>
+                    </a>
+                  )}
                 </li>
               )
             })}

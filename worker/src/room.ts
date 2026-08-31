@@ -624,6 +624,7 @@ export class GameRoom extends DurableObject<Env> {
       index: round,
       correctBin: question.bin,
       explanation: question.explanation,
+      source: question.source,
       checkLocal: question.checkLocal === true,
       distribution,
       answeredCount,
