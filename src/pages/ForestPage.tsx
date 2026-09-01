@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Check, Home, QrCode, Shuffle, Sprout, Trees, Users } from 'lucide-react'
-import { FOREST, LIVE_GAME } from '../content'
+import { FOREST, LIVE_GAME, ORG_UNITS } from '../content'
 import { lookFromSeed, randomLook } from '../game/avatar'
 import SignInDialog from '../components/SignInDialog'
 import { sfx } from '../game/sfx'
@@ -137,7 +137,7 @@ function SignInPrompt({ onSignIn }: { onSignIn: () => void }) {
 function PlantCard({ user }: { user: ForestUser }) {
   const [name, setName] = useState(user.name)
   const [look, setLook] = useState<AvatarLook>(() => lookFromSeed(user.uid))
-  const [team, setTeam] = useState(LIVE_GAME.teams[0] as string)
+  const [team, setTeam] = useState(ORG_UNITS[0] as string)
   const [saving, setSaving] = useState(false)
 
   const submit = async () => {
@@ -191,7 +191,7 @@ function PlantCard({ user }: { user: ForestUser }) {
           onChange={(e) => setTeam(e.target.value)}
           className="w-full rounded-2xl border-2 border-line bg-surface px-4 py-2.5 mb-5 outline-none focus:border-accent"
         >
-          {LIVE_GAME.teams.map((t) => (
+          {ORG_UNITS.map((t) => (
             <option key={t} value={t}>
               {t}
             </option>

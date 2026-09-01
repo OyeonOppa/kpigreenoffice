@@ -55,7 +55,7 @@ game/hooks.ts     useHashQueryParam อ่าน ?pin=... ที่ต่อท�
 components/live/  MascotBin, DragArena, CountdownRing, AnswerBars, Leaderboard,
                   Confetti, PlayerAvatar, JoinQr, LiveShell
 pages/            LivePlayerPage, LiveHostPage
-content.ts        LIVE_GAME (ตั้งค่า/ทีม) + AVATAR_PARTS (ชิ้นส่วนตัวละคร) + LIVE_QUESTIONS (คำถาม + คำอธิบาย)
+content.ts        LIVE_GAME (ตั้งค่า) + AVATAR_PARTS (ชิ้นส่วนตัวละคร) · คำถามอยู่ที่ worker/src/questions.ts
 ```
 
 ## หลังบ้าน: Cloudflare Worker + Durable Object
@@ -179,18 +179,25 @@ Durable Objects ใช้ได้บนแผนฟรี (เฉพาะแ�
 ## เช็กลิสต์ก่อนวันงาน
 
 - [ ] `npm --prefix worker run deploy` (ALLOWED_ORIGINS มี `lowcarbon.kpi.ac.th` แล้ว)
-- [ ] ตั้ง `VITE_LIVE_API` ที่ Cloudflare Pages ให้ตรงกับ URL Worker ที่เพิ่ง deploy → **trigger build ใหม่**
-- [ ] เปิด `https://lowcarbon.kpi.ac.th/#/live` จากมือถือ **นอกวง WiFi ออฟฟิศ** เช็กว่าเข้าห้องได้ ไม่มีป้าย "โหมดจำลอง"
-- [ ] `node scripts/loadtest.mjs <URL Worker จริง> <PIN> 250` แล้วดูจอ Host เดินลื่น
-- [ ] ตัดสินใจเรื่องโควตา: อัปเกรด Workers Paid สำหรับเดือนงาน หรือรับความเสี่ยงหน้าผาฟรี
-- [ ] แก้ `LIVE_GAME.teams` ใน `content.ts` เป็นชื่อสำนัก/กองจริง (ตอนนี้ยังเป็น "(ตัวอย่าง)")
-- [ ] ยืนยัน "จุดรับกล่องเครื่องดื่ม" ของงาน — ถ้าไม่มี เปลี่ยน `bin` ของ `uht-carton` เป็น `'general'`
+- [ ] เช็กว่า Cloudflare Pages ของ `lowcarbon.kpi.ac.th` มี env var `VITE_LIVE_API` = `https://kpigreenoffice-live.webmaster-af3.workers.dev` → ถ้ายังไม่มีให้เพิ่ม แล้ว **trigger build ใหม่** (merge เข้า main = build เอง ถ้าผูก repo ไว้)
+- [ ] เปิด `https://lowcarbon.kpi.ac.th/#/live` จากมือถือ **นอกวง WiFi ออฟฟิศ** เช็กว่าเข้าห้องได้ ไม่มีป้าย "โหมดจำลอง" สีเหลือง
+- [ ] `node scripts/loadtest.mjs https://kpigreenoffice-live.webmaster-af3.workers.dev <PIN> 250` แล้วดูจอ Host เดินลื่น
+- [ ] ตัดสินใจเรื่องโควตา: อัปเกรด Workers Paid สำหรับเดือนงาน หรือรับความเสี่ยงหน้าผาฟรี (~20 รอบ/วัน)
 - [ ] (ถ้ามีเวลา) เพิ่มรูปไอเท็ม `.webp` ที่ยังขาด — ไม่มีก็ fallback เป็น emoji เล่นได้ปกติ
 
-## คำเฉลย
+## คำเฉลย — ตรวจแล้ว 29 ข้อ ถูกต้องตามมาตรฐานถัง 4 สี กรมควบคุมมลพิษ
 
-ตรวจทานครบทั้ง 30 ข้อแล้ว ถูกต้องตามมาตรฐานถัง 4 สีของกรมควบคุมมลพิษทุกข้อ
-เหลือ `checkLocal` ข้อเดียวคือกล่องนม UHT — ดูคอมเมนต์ใน `worker/src/questions.ts`
+ทุกข้อทิ้งได้ด้วยถัง 4 สีที่หน่วยงานมีอยู่ ไม่มีข้อไหนพึ่ง "จุดรับเฉพาะ"
+
+- **ถอดออกชั่วคราว: กล่องนม UHT** — คำตอบพลิกได้ตามว่ามีจุดรับกล่องเครื่องดื่มไหม ยังไม่มี
+  ใส่กลับ (`bin: 'recycle'`) เมื่อหน่วยงานตั้งจุดรับ — ดูคอมเมนต์ใน `worker/src/questions.ts`
+- **มือถือ / ตลับหมึก / อะแดปเตอร์ / หลอดไฟ** — คำตอบคือถังแดง (ขยะอันตราย) ไม่ต้องมีจุด e-waste
+- field `checkLocal` ยังอยู่ในโครงสร้างแต่ไม่มีข้อไหนใช้แล้ว
+
+## เกมเล่นเป็นรายคน ไม่มีทีม
+
+ผู้เล่นกรอกแค่ชื่อ + แต่งตัวละคร ไม่มีเลือกสำนัก/กอง — แข่งด้วยคะแนนตัวเองล้วน
+กระดานท้ายเกมเป็นรายบุคคล 10 อันดับ (`LIVE_CONFIG.boardSize`)
 
 ## หมายเหตุตอนใช้งานจริง
 
