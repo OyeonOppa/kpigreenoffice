@@ -18,7 +18,7 @@ export default function Footer() {
             <p className="text-ink font-medium text-sm mb-4">เมนู</p>
             <ul className="flex flex-col gap-2.5">
               {NAV_LINKS.map((link) => (
-                <li key={link.href}>
+                <li key={link.label}>
                   <a
                     href={link.href}
                     className="text-ink/65 hover:text-ink text-sm transition-colors"

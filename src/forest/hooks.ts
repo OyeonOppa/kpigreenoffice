@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { forestBackend } from './index'
-import type { ForestSnapshot, ForestUser } from './types'
+import type { ForestSnapshot, ForestUser, OrgSnapshot } from './types'
 
 /** ตัวตนของคนที่กำลังใช้หน้าป่า — แยกจากการล็อกอินของเกมแข่งสด (ดูเหตุผลใน forest/backend.ts) */
 export function useForestAuth() {
@@ -9,10 +9,10 @@ export function useForestAuth() {
 
   useEffect(() => forestBackend.onAuthChanged(setUser), [])
 
-  const signIn = useCallback(async (name: string) => {
+  const signIn = useCallback(async (emailOrToken: string) => {
     setBusy(true)
     try {
-      return await forestBackend.signIn(name)
+      return await forestBackend.signIn(emailOrToken)
     } finally {
       setBusy(false)
     }
@@ -37,4 +37,14 @@ export function useForest(uid: string | null): ForestSnapshot | null {
   }, [uid])
 
   return snapshot
+}
+
+/**
+ * ยอดรวมทั้งหน่วยงานสำหรับต้นไม้องค์กรในหน้าแรก — ใช้ได้โดยไม่ต้องล็อกอิน
+ * null = ยังไม่ได้ค่าแรก หน้าจอควรวาดต้นเล็กสุดไว้ก่อน ไม่ใช่ปล่อยว่าง
+ */
+export function useOrgForest(): OrgSnapshot | null {
+  const [org, setOrg] = useState<OrgSnapshot | null>(null)
+  useEffect(() => forestBackend.subscribeOrg(setOrg), [])
+  return org
 }

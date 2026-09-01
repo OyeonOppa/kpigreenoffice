@@ -38,10 +38,47 @@ export const IMAGE_URLS = {
   serviceWaste: '/images/service-waste.webp',
 }
 
-export const NAV_LINKS = [
+export type NavChild = {
+  label: string
+  href: string
+  children?: { label: string; href: string }[]
+}
+
+export type NavLink = {
+  label: string
+  href: string
+  children?: NavChild[]
+}
+
+export const NAV_LINKS: NavLink[] = [
   { label: 'นโยบาย', href: '#about' },
-  { label: 'Climate Change', href: '#climate' },
-  { label: 'จัดการขยะ', href: '#waste' },
+  {
+    label: 'Knowledge',
+    href: '#climate',
+    children: [
+      {
+        label: 'Climate Change',
+        href: '#climate',
+        children: [{ label: 'Carbon Footprint Calculator', href: '#calculator' }],
+      },
+      { label: '3R', href: '#waste' },
+      { label: 'จัดการขยะ', href: '#waste' },
+      {
+        label: 'ผลงานของสำนัก / วิทยาลัย',
+        href: '#media',
+        children: [
+          { label: 'ข่าวสาร', href: '#media' },
+          { label: 'วิดีโอ', href: '#media' },
+          { label: 'อินโฟกราฟิก', href: '#media' },
+        ],
+      },
+    ],
+  },
+  {
+    label: 'Game',
+    href: '#waste-game',
+    children: [{ label: 'เกมแยกขยะลงถัง', href: '#waste-game' }],
+  },
   { label: 'ความร่วมมือ', href: '#partners' },
   { label: 'ผลลัพธ์', href: '#dashboard' },
 ]
@@ -518,21 +555,52 @@ export const FOREST = {
 
   // แต้มต่อครั้ง — ข้อที่ทำยากกว่า/ต้องตั้งใจกว่า ให้แต้มสูงกว่า
   // บันทึกได้ข้อละ 1 ครั้งต่อวัน (กันกดรัวข้อเดียว) และมีเพดานรวมต่อวันที่ forest/config.ts
+  //
+  // verify = จะรู้ได้ยังไงว่าทำจริง
+  //   'qr'   ข้อที่ผูกกับจุดจริงในอาคาร ต้องสแกน QR ที่ติดไว้ตรงจุดนั้นถึงได้แต้ม
+  //   'self' ข้อที่ยืนยันไม่ได้ เชื่อคนกด — เก็บไว้เพราะเป็นพฤติกรรมที่อยากส่งเสริมจริง
+  //
+  // ตอนนี้ยังเป็นโหมดจำลอง กดได้ทุกข้อ ป้าย "สแกนที่จุด" เป็นตัวบอกว่าของจริงข้อไหนต้องเดินไป
   activities: [
-    { id: 'own-bottle', kind: 'reduce', emoji: '🥤', label: 'พกแก้ว/ขวดน้ำส่วนตัว', points: 10 },
-    { id: 'no-plastic', kind: 'reduce', emoji: '🛍️', label: 'ปฏิเสธถุง/ช้อนส้อมพลาสติก', points: 10 },
-    { id: 'print-less', kind: 'reduce', emoji: '🖨️', label: 'พิมพ์สองหน้า หรือไม่พิมพ์เลย', points: 8 },
-    { id: 'power-off', kind: 'reduce', emoji: '💡', label: 'ปิดไฟ/แอร์ ตอนพักหรือเลิกใช้ห้อง', points: 8 },
-    { id: 'stairs', kind: 'reduce', emoji: '🪜', label: 'ใช้บันไดแทนลิฟต์', points: 6 },
+    { id: 'own-bottle', kind: 'reduce', emoji: '🥤', label: 'พกแก้ว/ขวดน้ำส่วนตัว', points: 10, verify: 'self' },
+    { id: 'no-plastic', kind: 'reduce', emoji: '🛍️', label: 'ปฏิเสธถุง/ช้อนส้อมพลาสติก', points: 10, verify: 'self' },
+    { id: 'print-less', kind: 'reduce', emoji: '🖨️', label: 'พิมพ์สองหน้า หรือไม่พิมพ์เลย', points: 8, verify: 'self' },
+    { id: 'power-off', kind: 'reduce', emoji: '💡', label: 'ปิดไฟ/แอร์ ตอนพักหรือเลิกใช้ห้อง', points: 8, verify: 'self' },
+    { id: 'stairs', kind: 'reduce', emoji: '🪜', label: 'ใช้บันไดแทนลิฟต์', points: 6, verify: 'qr' },
 
-    { id: 'paper-reuse', kind: 'reuse', emoji: '📄', label: 'ใช้กระดาษหน้าหลัง', points: 8 },
-    { id: 'bag-reuse', kind: 'reuse', emoji: '👜', label: 'ใช้ถุงผ้า/กล่องอาหารซ้ำ', points: 10 },
-    { id: 'refill', kind: 'reuse', emoji: '🧴', label: 'เติมน้ำยา/หมึก แทนซื้อใหม่', points: 12 },
-    { id: 'pass-on', kind: 'reuse', emoji: '🤝', label: 'ส่งต่อของที่ยังใช้ได้ให้คนอื่น', points: 12 },
+    { id: 'paper-reuse', kind: 'reuse', emoji: '📄', label: 'ใช้กระดาษหน้าหลัง', points: 8, verify: 'self' },
+    { id: 'bag-reuse', kind: 'reuse', emoji: '👜', label: 'ใช้ถุงผ้า/กล่องอาหารซ้ำ', points: 10, verify: 'self' },
+    { id: 'refill', kind: 'reuse', emoji: '🧴', label: 'เติมน้ำยา/หมึก แทนซื้อใหม่', points: 12, verify: 'qr' },
+    { id: 'pass-on', kind: 'reuse', emoji: '🤝', label: 'ส่งต่อของที่ยังใช้ได้ให้คนอื่น', points: 12, verify: 'self' },
 
-    { id: 'sort-bin', kind: 'recycle', emoji: '🗑️', label: 'แยกขยะลงถังให้ถูกสี', points: 10 },
-    { id: 'drop-recycle', kind: 'recycle', emoji: '🥫', label: 'ส่งขวด/กระป๋องที่จุดรับรีไซเคิล', points: 12 },
-    { id: 'drop-hazard', kind: 'recycle', emoji: '🔋', label: 'ทิ้งถ่าน/หลอดไฟ ที่จุดรับขยะอันตราย', points: 15 },
-    { id: 'compost', kind: 'recycle', emoji: '🍂', label: 'แยกเศษอาหารไปทำปุ๋ย/อาหารสัตว์', points: 12 },
+    { id: 'sort-bin', kind: 'recycle', emoji: '🗑️', label: 'แยกขยะลงถังให้ถูกสี', points: 10, verify: 'qr' },
+    { id: 'drop-recycle', kind: 'recycle', emoji: '🥫', label: 'ส่งขวด/กระป๋องที่จุดรับรีไซเคิล', points: 12, verify: 'qr' },
+    { id: 'drop-hazard', kind: 'recycle', emoji: '🔋', label: 'ทิ้งถ่าน/หลอดไฟ ที่จุดรับขยะอันตราย', points: 15, verify: 'qr' },
+    { id: 'compost', kind: 'recycle', emoji: '🍂', label: 'แยกเศษอาหารไปทำปุ๋ย/อาหารสัตว์', points: 12, verify: 'qr' },
   ] as const,
+
+  /** ข้อความหน้าล็อกอิน — ของจริงเป็น Google Workspace ของหน่วยงาน */
+  auth: {
+    title: 'เข้าสู่ระบบด้วยอีเมลองค์กร',
+    intro: 'เข้าแล้วจะเห็นต้นไม้ของตัวเอง และบันทึกกิจกรรมเก็บแต้มได้',
+    button: 'เข้าสู่ระบบด้วย Google',
+    /** เห็นเฉพาะตอนยังเป็นโหมดจำลอง */
+    mockHint: 'โหมดจำลอง — พิมพ์อีเมลองค์กรแล้วเข้าได้เลย ยังไม่ได้ต่อ Google จริง',
+    signedOut: 'ออกจากระบบแล้ว',
+  },
+}
+
+/**
+ * ต้นไม้ขององค์กรใน hero — โตตามแต้มรวมของทุกคนในแคมเปญป่า 3R
+ *
+ * แยกเป้าหมายออกจาก ORG_IMPACT.carbonGoalKg เพราะคนละหน่วยคนละเรื่อง:
+ * carbonGoalKg คือคาร์บอนที่วัดได้จริงจากคณะทำงาน ส่วนอันนี้คือแต้มกิจกรรมที่คนกดสะสม
+ */
+export const ORG_TREE = {
+  /** แต้มรวมทั้งหน่วยงานที่ทำให้ต้นองค์กรโตเต็ม — 250 คน × 600 แต้ม คือเต็มเพดานจริง จึงตั้งเป้าที่ทำได้ */
+  goalPoints: 60000,
+  label: 'ป่า 3R ของทั้งองค์กร',
+  /** ยังไม่มีใครปลูก — สถานะวันเปิดตัว ไม่ควรแสร้งว่ามีข้อมูลแล้ว */
+  emptyTitle: 'ยังไม่มีใครปลูกต้นแรก',
+  emptyHint: 'เข้าสู่ระบบด้วยอีเมลองค์กรแล้วเริ่มต้นเป็นคนแรก',
 }

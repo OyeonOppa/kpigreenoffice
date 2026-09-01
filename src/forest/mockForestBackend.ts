@@ -1,8 +1,15 @@
-import { FOREST } from '../content'
+import { FOREST, LIVE_GAME } from '../content'
 import { lookFromSeed } from '../game/avatar'
 import type { AvatarLook } from '../game/types'
 import type { ForestBackend, ForestProfile } from './backend'
-import { DAILY_CAP, GARDEN_MAX, dayKey, growthFromPoints } from './config'
+import {
+  DAILY_CAP,
+  GARDEN_MAX,
+  dayKey,
+  growthFromPoints,
+  orgGrowthFromPoints,
+  treeSeed,
+} from './config'
 import type {
   ActivityId,
   ForestMember,
@@ -10,6 +17,7 @@ import type {
   ForestUser,
   LogEntry,
   LogResult,
+  OrgSnapshot,
 } from './types'
 
 /**
@@ -109,6 +117,17 @@ function readAuth(): ForestUser | null {
   return user?.uid ? user : null
 }
 
+/**
+ * uid ที่คงที่ต่ออีเมล — เข้าใหม่ด้วยอีเมลเดิมต้องเจอต้นเดิม ไม่ใช่ปลูกใหม่ทุกครั้ง
+ *
+ * ของจริงเซิร์ฟเวอร์เป็นคนแจก uid จาก token ที่ตรวจแล้ว ไม่ได้คิดจากอีเมลแบบนี้
+ */
+function uidFromEmail(email: string): string {
+  let hash = 0
+  for (let i = 0; i < email.length; i++) hash = (hash * 31 + email.charCodeAt(i)) | 0
+  return `u-${Math.abs(hash).toString(36)}`
+}
+
 function writeAuth(user: ForestUser | null) {
   try {
     if (user) localStorage.setItem(AUTH_KEY, JSON.stringify(user))
@@ -122,6 +141,8 @@ function writeAuth(user: ForestUser | null) {
 // ---------- realtime (จำลองด้วย BroadcastChannel) ----------
 
 const listeners = new Map<string, Set<(s: ForestSnapshot) => void>>()
+/** คนที่ดูหน้าแรกอยู่ — ยังไม่ล็อกอินก็อยู่ในนี้ได้ ต้นองค์กรต้องโตให้เห็นสดๆ เหมือนกัน */
+const orgListeners = new Set<(o: OrgSnapshot) => void>()
 let channel: BroadcastChannel | null = null
 let storageBound = false
 
@@ -149,6 +170,10 @@ function emitAll() {
   for (const [uid, set] of listeners) {
     const snap = buildSnapshot(uid)
     for (const cb of set) cb(snap)
+  }
+  if (orgListeners.size) {
+    const org = buildOrgSnapshot()
+    for (const cb of orgListeners) cb(org)
   }
 }
 
@@ -184,6 +209,21 @@ function buildSnapshot(uid: string): ForestSnapshot {
   }
 }
 
+/** ยอดรวมทั้งหน่วยงาน — ไม่มีรายชื่อ เพราะคนที่ยังไม่ล็อกอินก็เห็นก้อนนี้ */
+function buildOrgSnapshot(): OrgSnapshot {
+  const docs = allMemberDocs()
+  const totalPoints = docs.reduce((sum, d) => sum + d.points, 0)
+  return {
+    memberCount: docs.length,
+    totalPoints,
+    growth: orgGrowthFromPoints(totalPoints),
+    trees: docs.slice(0, GARDEN_MAX).map((d) => ({
+      seed: treeSeed(d.uid),
+      growth: growthFromPoints(d.points),
+    })),
+  }
+}
+
 const entryId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 
 // ---------- adapter ----------
@@ -196,15 +236,23 @@ export const mockForestBackend: ForestBackend = {
 
   currentUser: readAuth,
 
-  async signIn(name) {
-    const existing = readAuth()
-    // ล็อกอินซ้ำด้วยชื่อใหม่ = คนเดิมเปลี่ยนชื่อ ไม่ใช่คนใหม่ ต้นเดิมจึงยังเป็นของเขา
-    const user: ForestUser = {
-      uid: existing?.uid ?? `local-${Math.random().toString(36).slice(2, 10)}`,
-      name: name.trim() || 'ผู้ใช้ทดสอบ',
+  async signIn(emailOrToken) {
+    const email = emailOrToken.trim().toLowerCase()
+    const domain = email.split('@')[1]
+
+    // โหมดจำลองตรวจโดเมนในเครื่อง — พอให้เห็นว่าหน้าจอตอบสนองยังไงตอนโดเมนผิด
+    // ของจริงด่านนี้ต้องอยู่ฝั่งเซิร์ฟเวอร์เท่านั้น ตรวจในเบราว์เซอร์ข้ามได้ด้วย devtools
+    if (!domain) return { ok: false, reason: 'กรอกอีเมลให้ครบ เช่น somchai@' + LIVE_GAME.allowedDomain }
+    if (domain !== LIVE_GAME.allowedDomain) {
+      return { ok: false, reason: `ใช้ได้เฉพาะอีเมล @${LIVE_GAME.allowedDomain} เท่านั้น` }
     }
+
+    const uid = uidFromEmail(email)
+    // ชื่อตั้งต้นจากหน้าอีเมล แก้ทีหลังได้ตอนปลูก — ของจริงจะได้ชื่อจริงมาจาก Google
+    const existingName = readJson<MemberDoc>(memberKey(uid))?.name
+    const user: ForestUser = { uid, email, name: existingName ?? email.split('@')[0] }
     writeAuth(user)
-    return user
+    return { ok: true, user }
   },
 
   signOut() {
@@ -278,6 +326,15 @@ export const mockForestBackend: ForestBackend = {
     writeJson(memberKey(uid), { ...doc, points: doc.points + gained, updatedAt: now })
     notify()
     return { ok: true, gained }
+  },
+
+  subscribeOrg(cb) {
+    ensureChannel()
+    orgListeners.add(cb)
+    cb(buildOrgSnapshot())
+    return () => {
+      orgListeners.delete(cb)
+    }
   },
 
   subscribeForest(uid, cb) {

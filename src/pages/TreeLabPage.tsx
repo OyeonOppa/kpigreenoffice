@@ -1,113 +1,144 @@
 import { useMemo, useState } from 'react'
-import ForestScene from '../components/forest/ForestScene'
-import Tree3D from '../components/forest/Tree3D'
-import { buildTree } from '../components/forest/treeGeometry'
-import { STAGES } from '../forest/config'
+import TreeSvg from '../components/tree/TreeSvg'
+import ForestSvg from '../components/tree/ForestSvg'
+import { TREE_STAGES } from '../components/tree/stages'
+import { buildTreeArt } from '../components/tree/treeArt'
+import { TreeDefs, TreeGroup } from '../components/tree/TreeSvg'
 
 // หน้าทดลองสำหรับปรับหน้าตาต้นไม้ — ไม่ได้ลิงก์จากที่ไหน เข้าที่ #/tree-lab
 //
-// กฎ 2 ข้อที่ได้จากการทดลองจริง แอปจริงต้องทำตามนี้ด้วย:
-// 1. Canvas เดียวต่อหน้า วางต้นไม้หลายต้นในฉากเดียว — ไม่ใช่ Canvas ต่อต้น
-//    (เบราว์เซอร์จำกัดจำนวน WebGL context ต่อหน้า พอเกินจะ "Context Lost" จอขาวหมด)
-// 2. ห้าม unmount Canvas ตอนสลับมุมมอง ให้สลับเฉพาะเนื้อหาข้างใน
-//    (unmount แล้ว mount ใหม่ทำให้ context เดิมหลุด จอขาวเหมือนกัน)
+// ใช้ดูสามอย่าง: ระยะทั้ง 10 เรียงกัน, ต้นเดี่ยวขนาดใหญ่ที่เลื่อน growth ได้อิสระ,
+// และป่าจำลองไว้เช็กว่าจำนวนต้นเยอะๆ แล้วยังอ่านออกไหม
+//
+// เลื่อน growth แบบต่อเนื่องได้ เพราะตัววาดรับค่า 0–1 ตรงๆ ระยะทั้ง 10 เป็นแค่ป้ายทับบนค่านั้น
+// ถ้าเห็นต้นกระโดดเปลี่ยนทรงตอนข้ามระยะ แปลว่าค่าใน treeArt กับ stages ไม่ต่อเนื่องกัน
 
-const SPACING = 3.2
-const GARDEN_COUNT = 48
+const FOREST_SIZES = [12, 48, 120, 250]
 
 export default function TreeLabPage() {
   const [seed, setSeed] = useState('demo-1')
-  const [mode, setMode] = useState<'stages' | 'garden'>('stages')
+  const [growth, setGrowth] = useState(0.5)
+  const [forestSize, setForestSize] = useState(48)
 
-  const stageTrees = useMemo(
-    () => STAGES.map((st) => ({ ...st, shape: buildTree(seed, st.growth, 'high') })),
+  const stageArts = useMemo(
+    () => TREE_STAGES.map((s) => ({ ...s, art: buildTreeArt(seed, s.growth, 'full') })),
     [seed],
   )
+  const tallest = Math.max(...stageArts.map((s) => s.art.height))
+  // ยึดพื้นเหมือนแถบระยะในหน้าป่า — ระยะแรกๆ ต้องเห็นรูปร่าง ไม่ใช่เป็นจุด
+  const scaleOf = (h: number) => (cell * 0.86) / Math.max(h, tallest * 0.26)
 
-  const gardenTrees = useMemo(() => {
-    const out: { shape: ReturnType<typeof buildTree>; pos: [number, number, number] }[] = []
-    for (let i = 0; i < GARDEN_COUNT; i++) {
-      const row = Math.floor(i / 8)
-      const col = i % 8
-      const jitterX = ((i * 37) % 100) / 100 - 0.5
-      const jitterZ = ((i * 61) % 100) / 100 - 0.5
-      out.push({
-        shape: buildTree(`member-${i}`, 0.2 + ((i * 29) % 80) / 100, 'low'),
-        pos: [(col - 3.5) * 4 + jitterX * 1.6, 0, row * -4.5 + jitterZ * 1.4],
-      })
-    }
-    return out
-  }, [])
+  const forestTrees = useMemo(
+    () =>
+      Array.from({ length: forestSize }, (_, i) => ({
+        seed: `member-${i}`,
+        growth: ((i * 29) % 100) / 100,
+      })),
+    [forestSize],
+  )
 
-  const stagesHeight = Math.max(...stageTrees.map((s) => s.shape.height))
-  const gardenHeight = Math.max(...gardenTrees.map((t) => t.shape.height))
+  const cell = 150
 
   return (
     <div className="min-h-dvh bg-canvas p-6">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="font-display text-2xl text-ink mb-1">ห้องทดลองต้นไม้ 3D</h1>
-        <p className="text-ink/60 text-sm mb-4">
-          {mode === 'stages'
-            ? 'ระยะการเติบโต 7 ขั้น — seed เดียวกันได้ต้นหน้าตาเดิมเสมอ'
-            : `สวนของสำนัก ${GARDEN_COUNT} ต้น (รายละเอียดระดับ low)`}
-        </p>
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div>
+          <h1 className="font-display text-2xl text-ink mb-1">ห้องทดลองต้นไม้</h1>
+          <p className="text-ink/60 text-sm">
+            SVG ล้วน ไม่มี three.js — seed เดียวกันได้ต้นหน้าตาเดิมเสมอ
+          </p>
+        </div>
 
-        <div className="flex gap-2 mb-4 items-center flex-wrap">
-          <button
-            type="button"
-            onClick={() => setMode(mode === 'stages' ? 'garden' : 'stages')}
-            className="rounded-full bg-accent-deep text-white px-4 py-2 text-sm"
-          >
-            {mode === 'stages' ? `ดูสวน ${GARDEN_COUNT} ต้น` : 'ดูระยะการเติบโต'}
-          </button>
-          {mode === 'stages' &&
-            ['demo-1', 'demo-2', 'demo-3', 'demo-4'].map((s) => (
+        <div className="flex gap-2 flex-wrap">
+          {['demo-1', 'demo-2', 'demo-3', 'demo-4'].map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setSeed(s)}
+              className={`rounded-full px-4 py-2 text-sm ${
+                seed === s ? 'bg-accent-deep text-white' : 'bg-ink/5 text-ink/70'
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
+        {/* ระยะทั้งหมดเรียงกัน */}
+        <div className="pop-card p-4 overflow-x-auto">
+          <p className="text-ink font-medium text-sm mb-3">
+            ระยะการเติบโต {TREE_STAGES.length} ขั้น
+          </p>
+          <div className="min-w-[60rem]">
+            <svg
+              viewBox={`0 0 ${cell * TREE_STAGES.length} ${cell + 10}`}
+              className="w-full h-auto"
+            >
+              <defs>
+                <TreeDefs />
+              </defs>
+              {stageArts.map((s, i) => (
+                <g
+                  key={s.id}
+                  transform={`translate(${i * cell + cell / 2} ${cell}) scale(${scaleOf(s.art.height)})`}
+                >
+                  <TreeGroup art={s.art} />
+                </g>
+              ))}
+            </svg>
+            <div
+              className="grid mt-2"
+              style={{ gridTemplateColumns: `repeat(${TREE_STAGES.length}, minmax(0, 1fr))` }}
+            >
+              {stageArts.map((s) => (
+                <p key={s.id} className="text-center text-ink text-xs px-1">
+                  {s.label}
+                  <span className="block text-ink/40">{Math.round(s.growth * 100)}%</span>
+                </p>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ต้นเดี่ยวเลื่อนค่าได้อิสระ — ไว้ดูว่าช่วงรอยต่อระหว่างระยะต่อเนื่องไหม */}
+        <div className="pop-card p-4">
+          <div className="flex items-baseline justify-between mb-3">
+            <p className="text-ink font-medium text-sm">ต้นเดี่ยว</p>
+            <p className="tabular text-ink/50 text-xs">
+              growth {growth.toFixed(3)} · {TREE_STAGES.filter((s) => growth >= s.growth).at(-1)?.label}
+            </p>
+          </div>
+          <TreeSvg seed={seed} growth={growth} className="w-full max-w-md mx-auto" />
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.001}
+            value={growth}
+            onChange={(e) => setGrowth(Number(e.target.value))}
+            className="w-full mt-4 accent-[#3f7256]"
+          />
+        </div>
+
+        {/* ป่า — เช็กว่าต้นเยอะแล้วยังอ่านออกไหม และ DOM บวมแค่ไหน */}
+        <div className="pop-card p-4">
+          <div className="flex gap-2 flex-wrap mb-3 items-center">
+            <p className="text-ink font-medium text-sm mr-2">ป่าจำลอง</p>
+            {FOREST_SIZES.map((n) => (
               <button
-                key={s}
+                key={n}
                 type="button"
-                onClick={() => setSeed(s)}
-                className={`rounded-full px-4 py-2 text-sm ${
-                  seed === s ? 'bg-accent text-white' : 'bg-ink/5 text-ink/70'
+                onClick={() => setForestSize(n)}
+                className={`rounded-full px-3 py-1.5 text-xs ${
+                  forestSize === n ? 'bg-accent text-white' : 'bg-ink/5 text-ink/70'
                 }`}
               >
-                {s}
+                {n} ต้น
               </button>
             ))}
-        </div>
-
-        {/* Canvas เดียวตลอด สลับแค่เนื้อหาข้างใน */}
-        <div className="pop-card overflow-hidden">
-          <ForestScene
-            className="h-[26rem] w-full"
-            fitHeight={mode === 'stages' ? stagesHeight : gardenHeight}
-            fitWidth={mode === 'stages' ? SPACING * (STAGES.length - 1) : 30}
-          >
-            {mode === 'stages'
-              ? stageTrees.map((s, i) => (
-                  <Tree3D
-                    key={`stage-${s.label}`}
-                    shape={s.shape}
-                    position={[(i - (STAGES.length - 1) / 2) * SPACING, 0, 0]}
-                  />
-                ))
-              : gardenTrees.map((t, i) => (
-                  <Tree3D key={`garden-${i}`} shape={t.shape} position={t.pos} />
-                ))}
-          </ForestScene>
-        </div>
-
-        {mode === 'stages' && (
-          <div className="grid grid-cols-7 gap-2 mt-3">
-            {stageTrees.map((s) => (
-              <p key={s.label} className="text-center text-ink text-xs">
-                {s.label}
-                <span className="block text-ink/40">
-                  {Math.round(s.growth * 100)}% · {s.shape.height.toFixed(1)}m
-                </span>
-              </p>
-            ))}
           </div>
-        )}
+          <ForestSvg trees={forestTrees} mineSeed="member-3" className="w-full h-auto" />
+        </div>
       </div>
     </div>
   )

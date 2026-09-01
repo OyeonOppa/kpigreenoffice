@@ -5,6 +5,9 @@
  * (เหมือนที่เกมแข่งสดแยก LIVE_GAME ใน content.ts ออกจาก game/config.ts)
  */
 
+import { ORG_TREE } from '../content'
+import { TREE_STAGES, type TreeStage } from '../components/tree/stages'
+
 /** แต้มที่ทำให้ต้นโตเต็มที่ */
 export const FULL_POINTS = 600
 
@@ -20,43 +23,52 @@ export const DAILY_CAP = 40
 /**
  * จำนวนต้นสูงสุดที่วาดในสวนหนึ่งฉาก
  *
- * มาจากการวัดจริง: 48 ต้นที่ LOD 'low' = ~265,000 สามเหลี่ยม ซึ่งมือถือรับไหว
- * 250 ต้นจะเป็นล้านกว่า เฟรมตกทันที คนที่เกินโควตานี้แสดงเป็นตัวเลข "และอีก N คน" แทน
+ * เดิมตัดที่ 60 เพราะข้อจำกัดของ WebGL (250 ต้นคือสามเหลี่ยมล้านกว่าชิ้น)
+ * ตอนนี้ต้นไม้เป็น SVG แล้ว เพดานจึงสูงขึ้นมาก — ที่ยังมีอยู่เพราะจำนวนชิ้นใน DOM
+ * ยังโตตามจำนวนต้นอยู่ดี ไม่ใช่เพราะการ์ดจอไม่ไหวเหมือนก่อน
  */
-export const GARDEN_MAX = 60
+export const GARDEN_MAX = 300
 
 /**
- * ระยะการเติบโต 7 ขั้น — ค่า growth ตรงกับพารามิเตอร์ที่ส่งให้ buildTree()
+ * ระยะการเติบโต 10 ขั้น — นิยามอยู่ที่ `components/tree/stages.ts` ที่เดียว
  *
- * ชื่อระยะอิงขนาดต้นล้วนๆ ไม่มี "ออกดอก/ออกผล" เพราะ treeGeometry ยังสร้างแต่กิ่งกับใบ
- * ถ้าจะใช้ชื่อพวกนั้นต้องเพิ่มดอก/ผลใน geometry ก่อน ไม่งั้นป้ายบอกอย่างแต่ต้นเป็นอีกอย่าง
- *
- * และไม่เริ่มที่ "เมล็ด" เพราะ growth 0 วาดออกมาเป็นต้นเล็กสูงราว 0.9 เมตรที่มีใบแล้ว
- * ไม่ใช่เมล็ดในดิน — ป้ายต้องตรงกับสิ่งที่เห็นบนจอ
+ * อยู่ที่นั่นเพราะตัววาดต้นไม้อ่านค่า growth ของแต่ละระยะไปใช้เป็นจุดสลับรูปร่างจริง
+ * (เมล็ด → หน่ออ่อน → ต้น → ออกดอก → ติดผล) ถ้าแยกกันคนละไฟล์ วันหนึ่งจะมีป้ายว่า
+ * "ออกดอก" ทั้งที่บนจอยังไม่มีดอก
  */
-export const STAGES = [
-  { id: 'sapling', label: 'ต้นกล้า', growth: 0 },
-  { id: 'young', label: 'ต้นอ่อน', growth: 0.15 },
-  { id: 'juvenile', label: 'ต้นรุ่น', growth: 0.3 },
-  { id: 'grown', label: 'ต้นโต', growth: 0.5 },
-  { id: 'large', label: 'ต้นใหญ่', growth: 0.7 },
-  { id: 'full', label: 'ทรงพุ่มเต็ม', growth: 0.85 },
-  { id: 'shade', label: 'ไม้ใหญ่ให้ร่มเงา', growth: 1 },
-] as const
-
-export type StageId = (typeof STAGES)[number]['id']
-export type Stage = (typeof STAGES)[number]
+export const STAGES = TREE_STAGES
+export type { TreeStageId as StageId, TreeStage as Stage } from '../components/tree/stages'
 
 /** แต้มสะสม → ค่า growth 0–1 ที่ส่งให้ buildTree */
 export function growthFromPoints(points: number): number {
   return Math.max(0, Math.min(1, points / FULL_POINTS))
 }
 
+/**
+ * uid → รหัสสุ่มรูปทรงต้นไม้สำหรับป่าหน้าแรก
+ *
+ * ป่าหน้าแรกคนนอกเห็น จึงส่งค่านี้แทน uid — ต้นเดิมได้รูปทรงเดิมทุกครั้ง
+ * แต่ผู้ชมย้อนกลับไปหาว่าเป็นใครไม่ได้ เจ้าตัวหาต้นตัวเองเจอเพราะคำนวณค่าเดียวกันได้จาก uid ของตัวเอง
+ */
+export function treeSeed(uid: string): string {
+  let h = 2166136261
+  for (let i = 0; i < uid.length; i++) {
+    h ^= uid.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return (h >>> 0).toString(36)
+}
+
+/** แต้มรวมทั้งหน่วยงาน → ค่า growth ของต้นไม้องค์กรในหน้าแรก */
+export function orgGrowthFromPoints(points: number): number {
+  return Math.max(0, Math.min(1, points / ORG_TREE.goalPoints))
+}
+
 /** ระยะปัจจุบัน + ต้องอีกกี่แต้มถึงระยะถัดไป (null = โตเต็มแล้ว) */
 export function stageOf(points: number): {
   index: number
-  stage: Stage
-  next: Stage | null
+  stage: TreeStage
+  next: TreeStage | null
   pointsToNext: number
 } {
   const g = growthFromPoints(points)

@@ -4,10 +4,10 @@ import HomePage from './pages/HomePage'
 import LiveHostPage from './pages/LiveHostPage'
 import LivePlayerPage from './pages/LivePlayerPage'
 
-// 3D โหลดแยกก้อน — three.js หนัก ห้ามให้ไปถ่วงหน้าแรกกับหน้าเกมแยกขยะ
+// โหลดแยกก้อน — คนที่มาอ่านหน้าแรกเฉยๆ ไม่ต้องโหลดหน้าพวกนี้ติดไปด้วย
+// (เดิมแยกเพราะ three.js หนัก ตอนนี้ต้นไม้เป็น SVG แล้ว เหลือแค่เหตุผลเรื่องโค้ดที่ไม่ได้ใช้)
 const ForestPage = lazy(() => import('./pages/ForestPage'))
 const TreeLabPage = lazy(() => import('./pages/TreeLabPage'))
-// หน้าสตาฟไม่มี 3D แต่โหลดแยกเหมือนกัน — คนใช้มีไม่กี่คน ไม่ต้องให้ทุกคนโหลดติดไปด้วย
 const ForestStaffPage = lazy(() => import('./pages/ForestStaffPage'))
 
 // เส้นทางแบบ hash — โฮสต์แบบ static ไฟล์เดียวใช้ได้เลย ไม่ต้องตั้ง rewrite ที่เซิร์ฟเวอร์
