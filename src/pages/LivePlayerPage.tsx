@@ -494,11 +494,6 @@ function ExplainView({ room }: { room: RoomSnapshot }) {
         </div>
       </div>
       <p className="text-ink/80 text-[15px] leading-relaxed">{reveal.explanation}</p>
-      {reveal.checkLocal && (
-        <p className="text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-xs mt-4">
-          ข้อนี้แยกได้ก็ต่อเมื่อที่ทำงานมีจุดรับเฉพาะ ถ้ายังไม่มี ให้ทิ้งถังทั่วไปไปก่อน
-        </p>
-      )}
       {reveal.source && (
         <a
           href={reveal.source.url}

@@ -50,7 +50,6 @@ export default function Leaderboard({
                 {entry.name}
                 {me && <span className="text-accent-deep text-xs ml-2">คุณ</span>}
               </span>
-              {lg && <span className="block truncate text-ink/55 text-sm">{entry.team}</span>}
             </span>
             {entry.delta > 0 && (
               <span
