@@ -424,7 +424,7 @@ function HostExplain({ room }: { room: RoomSnapshot }) {
         <p className="text-ink/85 text-xl sm:text-3xl leading-relaxed">{reveal.explanation}</p>
         {reveal.checkLocal && (
           <p className="text-amber-800 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 text-base mt-6">
-            ข้อนี้ขึ้นกับว่าหน่วยงานมีจุดรับเฉพาะหรือไม่ — ถ้ายังไม่มี ให้ถือเป็นขยะทั่วไป
+            ข้อนี้แยกได้ก็ต่อเมื่อมีจุดรับเฉพาะ — บอกผู้เล่นด้วยว่าจุดรับของงานเราอยู่ตรงไหน ถ้ายังไม่มีให้ทิ้งถังทั่วไป
           </p>
         )}
         {reveal.source && (
