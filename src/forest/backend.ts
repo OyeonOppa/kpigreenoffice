@@ -9,9 +9,8 @@ import type {
 } from './types'
 
 export interface ForestProfile {
-  name: string
+  /** สิ่งเดียวที่ผู้ใช้ตั้งเองได้ — ชื่อกับสำนักมาจากรายชื่อองค์กร */
   look: AvatarLook
-  team: string
 }
 
 /**
@@ -44,13 +43,15 @@ export interface ForestBackend {
   currentUser(): ForestUser | null
 
   /**
-   * เข้าระบบด้วยอีเมลองค์กร
+   * เข้าระบบด้วยชื่อผู้ใช้ + รหัส (รหัสพนักงาน) จากรายชื่อที่สร้างไว้ล่วงหน้า
    *
-   * โหมดจำลองรับอีเมลตรงๆ เพื่อให้ลองหน้าจอได้โดยไม่ต้องตั้ง Google OAuth
-   * ของจริงพารามิเตอร์นี้จะกลายเป็น id_token จาก Google ไม่ใช่อีเมลที่ผู้ใช้พิมพ์
-   * คืน ok:false พร้อมเหตุผลเมื่อโดเมนไม่ใช่ของหน่วยงาน
+   * เซิร์ฟเวอร์เป็นคนตรวจรหัสแล้วคืนโทเคนที่เซ็นไว้ — หน้าจอเก็บโทเคน ไม่เก็บรหัส
+   * คืน ok:false พร้อมเหตุผลเมื่อชื่อผู้ใช้/รหัสไม่ถูกต้อง
    */
-  signIn(emailOrToken: string): Promise<{ ok: boolean; user?: ForestUser; reason?: string }>
+  signIn(
+    username: string,
+    password: string,
+  ): Promise<{ ok: boolean; user?: ForestUser; reason?: string }>
   signOut(): void
   onAuthChanged(cb: (user: ForestUser | null) => void): () => void
 
@@ -62,7 +63,7 @@ export interface ForestBackend {
    */
   subscribeOrg(cb: (org: OrgSnapshot) => void): () => void
 
-  /** ลงทะเบียน/แก้ข้อมูลต้นของตัวเอง เรียกซ้ำได้ ไม่รีเซ็ตแต้ม */
+  /** เลือก/เปลี่ยนตัวละคร — ครั้งแรกที่เรียกคือ "ปลูกต้น" ให้ตัวเอง เรียกซ้ำได้ ไม่รีเซ็ตแต้ม */
   saveProfile(uid: string, profile: ForestProfile): Promise<void>
 
   /**
@@ -76,8 +77,8 @@ export interface ForestBackend {
 
   subscribeForest(uid: string, cb: (snapshot: ForestSnapshot) => void): () => void
 
-  /** รายชื่อทั้งหน่วยงาน — สำหรับหน้าสตาฟ ไม่ใช่หน้าผู้ใช้ทั่วไป */
-  listMembers(): ForestMember[]
+  /** รายชื่อทั้งหน่วยงาน — สำหรับหน้าสตาฟ ไม่ใช่หน้าผู้ใช้ทั่วไป (ของจริงเช็คสิทธิ์ที่เซิร์ฟเวอร์) */
+  listMembers(): Promise<ForestMember[]>
 
   /**
    * สร้างเพื่อนร่วมสวนจำลองไว้ดูหน้าตาสวนตอนยังไม่มีคนใช้จริง (โหมดจำลองเท่านั้น)

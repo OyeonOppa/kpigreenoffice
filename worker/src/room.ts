@@ -22,6 +22,10 @@ export interface Env {
   GAME_ROOM: DurableObjectNamespace<GameRoom>
   /** เว็บที่เปิด WebSocket มาที่ห้องนี้ได้ (คั่นด้วย ,) — กันเว็บอื่นแอบต่อเข้ามา */
   ALLOWED_ORIGINS: string
+  /** ฐานข้อมูลแคมเปญป่า 3R — ผูกใน wrangler.jsonc (ไม่มีก็ต่อ /api/forest/* ไม่ได้) */
+  DB?: D1Database
+  /** ความลับเซ็นโทเคน session ของแคมเปญป่า — `wrangler secret put SESSION_SECRET` */
+  SESSION_SECRET?: string
 }
 
 /** สถานะห้องส่วนที่เล็กพอจะเก็บเป็นก้อนเดียว */

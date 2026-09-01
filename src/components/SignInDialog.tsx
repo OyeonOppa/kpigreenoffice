@@ -1,20 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Sprout, X } from 'lucide-react'
-import { FOREST, LIVE_GAME } from '../content'
+import { FOREST } from '../content'
 import { FOREST_REHEARSAL } from '../forest'
 import { useForestAuth } from '../forest/hooks'
 
 /**
- * กล่องเข้าสู่ระบบด้วยอีเมลองค์กร
+ * กล่องเข้าสู่ระบบด้วยชื่อผู้ใช้ + รหัสพนักงาน
  *
- * ตอนนี้เป็นโหมดจำลอง: กรอกอีเมล @kpi.ac.th แล้วเข้าได้เลย ไม่ได้ต่อ Google จริง
- * ตอนต่อของจริงให้แทนเนื้อในกล่องนี้ด้วยปุ่ม Google Sign-In แล้วส่ง id_token เข้า signIn()
- * ที่เหลือ (navbar สลับปุ่ม, hero สลับต้นไม้) ฟังจาก onAuthChanged อยู่แล้ว ไม่ต้องแก้
+ * บัญชีถูกสร้างไว้ล่วงหน้าจากรายชื่อในองค์กร ไม่มีการสมัครเอง
+ * เซิร์ฟเวอร์ตรวจรหัสแล้วคืนโทเคน — navbar/hero ฟังจาก onAuthChanged อยู่แล้ว ไม่ต้องแก้
  */
 export default function SignInDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { busy, signIn } = useForestAuth()
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -38,10 +38,12 @@ export default function SignInDialog({ open, onClose }: { open: boolean; onClose
   }, [open])
 
   const submit = async () => {
+    if (!username.trim() || !password) return
     setError(null)
-    const result = await signIn(email)
+    const result = await signIn(username, password)
     if (result.ok) {
-      setEmail('')
+      setUsername('')
+      setPassword('')
       setError(null)
       onClose()
     } else {
@@ -86,19 +88,32 @@ export default function SignInDialog({ open, onClose }: { open: boolean; onClose
             </h2>
             <p className="text-ink/60 text-sm text-center mb-5">{FOREST.auth.intro}</p>
 
-            <label className="block text-ink/70 text-sm mb-1" htmlFor="signin-email">
-              อีเมลองค์กร
+            <label className="block text-ink/70 text-sm mb-1" htmlFor="signin-username">
+              ชื่อผู้ใช้
             </label>
             <input
               ref={inputRef}
-              id="signin-email"
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="signin-username"
+              type="text"
+              autoComplete="username"
+              autoCapitalize="none"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && void submit()}
-              placeholder={`somchai@${LIVE_GAME.allowedDomain}`}
+              placeholder="เช่น somchai.j"
+              className="w-full rounded-2xl border-2 border-line bg-surface px-4 py-2.5 outline-none focus:border-accent"
+            />
+
+            <label className="block text-ink/70 text-sm mb-1 mt-3" htmlFor="signin-password">
+              รหัสผ่าน (รหัสพนักงาน)
+            </label>
+            <input
+              id="signin-password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && void submit()}
               className="w-full rounded-2xl border-2 border-line bg-surface px-4 py-2.5 outline-none focus:border-accent"
             />
 
@@ -107,7 +122,7 @@ export default function SignInDialog({ open, onClose }: { open: boolean; onClose
             <button
               type="button"
               onClick={() => void submit()}
-              disabled={busy || !email.trim()}
+              disabled={busy || !username.trim() || !password}
               className="pop-btn w-full bg-accent-deep text-white py-3 font-medium mt-4 disabled:opacity-50"
             >
               {busy ? 'กำลังเข้าสู่ระบบ…' : 'เข้าสู่ระบบ'}

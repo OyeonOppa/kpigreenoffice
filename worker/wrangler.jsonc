@@ -25,6 +25,22 @@
     }
   ],
 
+  // ฐานข้อมูลแคมเปญป่า 3R (#/forest) — เก็บผู้ใช้ + แต้ม
+  //
+  // ยังปิดอยู่: /api/forest/* จะตอบ 503 จนกว่าจะเปิดบล็อกนี้ (เกมแยกขยะแข่งสด deploy ได้ตามปกติ)
+  //
+  // เปิดใช้:
+  //   1. npx --prefix worker wrangler d1 create kpi-forest
+  //   2. ลบเครื่องหมาย // หน้า "d1_databases" ข้างล่าง แล้วใส่ database_id ที่ได้
+  //   3. npx --prefix worker wrangler d1 migrations apply kpi-forest --remote
+  //   4. npx --prefix worker wrangler secret put SESSION_SECRET   (พิมพ์สตริงสุ่มยาวๆ)
+  //   5. node scripts/gen-users.mjs <ไฟล์รายชื่อ.csv>
+  //      npx --prefix worker wrangler d1 execute kpi-forest --remote --file=seed/users.sql
+  //
+  // "d1_databases": [
+  //   { "binding": "DB", "database_name": "kpi-forest", "database_id": "PUT-D1-DATABASE-ID-HERE" }
+  // ],
+
   "vars": {
     // เว็บที่เปิด WebSocket มาที่ห้องนี้ได้ (คั่นด้วย , — เทียบแบบตรงตัว ไม่มี wildcard)
     // ตัวแรกคือโดเมนจริงที่ใช้ในงาน · kpi-lowcarbon.pages.dev เก็บไว้เป็นสำรอง/ตอนทดสอบ

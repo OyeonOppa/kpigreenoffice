@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Check, Home, QrCode, Shuffle, Sprout, Trees, Users } from 'lucide-react'
-import { FOREST, LIVE_GAME, ORG_UNITS } from '../content'
+import { FOREST } from '../content'
 import { lookFromSeed, randomLook } from '../game/avatar'
 import SignInDialog from '../components/SignInDialog'
 import { sfx } from '../game/sfx'
@@ -58,7 +58,7 @@ export default function ForestPage() {
     )
   }
 
-  // ล็อกอินแล้วแต่ยังไม่ได้ปลูก — ตั้งชื่อที่ให้คนอื่นเห็น เลือกตัวละคร แล้วเลือกสำนัก
+  // ล็อกอินแล้วแต่ยังไม่ได้เลือกตัวละคร — ชื่อกับสำนักมาจากรายชื่อองค์กรแล้ว เหลือแค่เลือกตัวละคร
   if (!forest.me) {
     return (
       <Shell onSignOut={signOut}>
@@ -125,7 +125,7 @@ function SignInPrompt({ onSignIn }: { onSignIn: () => void }) {
           {FOREST.auth.title}
         </button>
         <p className="text-ink/45 text-xs mt-4">
-          ต้นไม้ผูกกับบัญชี @{LIVE_GAME.allowedDomain} ของคุณ เข้าเครื่องไหนก็เจอต้นเดิม
+          เข้าด้วยชื่อผู้ใช้ + รหัสพนักงานที่หน่วยงานแจกให้ ต้นไม้ผูกกับบัญชี เข้าเครื่องไหนก็เจอต้นเดิม
         </p>
       </div>
     </div>
@@ -135,17 +135,13 @@ function SignInPrompt({ onSignIn }: { onSignIn: () => void }) {
 // ---------- เริ่มต้น: ตัวตน + ปลูกต้นแรก ----------
 
 function PlantCard({ user }: { user: ForestUser }) {
-  const [name, setName] = useState(user.name)
   const [look, setLook] = useState<AvatarLook>(() => lookFromSeed(user.uid))
-  const [team, setTeam] = useState(ORG_UNITS[0] as string)
   const [saving, setSaving] = useState(false)
 
   const submit = async () => {
-    const finalName = name.trim()
-    if (!finalName) return
     setSaving(true)
     try {
-      await forestBackend.saveProfile(user.uid, { name: finalName, look, team })
+      await forestBackend.saveProfile(user.uid, { look })
     } finally {
       setSaving(false)
     }
@@ -156,11 +152,13 @@ function PlantCard({ user }: { user: ForestUser }) {
       <div className="pop-card p-6">
         <Sprout size={36} className="text-accent mx-auto mb-2" />
         <h1 className="font-display text-xl text-ink text-center mb-1">{FOREST.heading}</h1>
-        <p className="text-ink/60 text-sm text-center mb-1">{FOREST.intro}</p>
-        <p className="text-ink/45 text-xs text-center mb-6 truncate">เข้าระบบเป็น {user.email}</p>
+        <p className="text-ink/60 text-sm text-center mb-1">เลือกตัวละครประจำตัว แล้วปลูกต้นแรกได้เลย</p>
+        <p className="text-ink/45 text-xs text-center mb-6">
+          {user.nickname || user.name} · {user.team}
+        </p>
 
-        <div className="flex items-center gap-3 mb-5">
-          <PlayerAvatar look={look} size={56} />
+        <div className="flex flex-col items-center gap-3 mb-6">
+          <PlayerAvatar look={look} size={80} />
           <button
             type="button"
             onClick={() => setLook(randomLook())}
@@ -170,42 +168,15 @@ function PlantCard({ user }: { user: ForestUser }) {
           </button>
         </div>
 
-        <label className="block text-ink/70 text-sm mb-1" htmlFor="forest-name">
-          ชื่อที่ให้คนอื่นเห็น
-        </label>
-        <input
-          id="forest-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          maxLength={30}
-          placeholder="เช่น พี่ก้อย"
-          className="w-full rounded-2xl border-2 border-line bg-surface px-4 py-2.5 mb-4 outline-none focus:border-accent"
-        />
-
-        <label className="block text-ink/70 text-sm mb-1" htmlFor="forest-team">
-          สำนัก/กอง — ต้นของคุณจะไปยืนรวมในสวนของสำนักนี้
-        </label>
-        <select
-          id="forest-team"
-          value={team}
-          onChange={(e) => setTeam(e.target.value)}
-          className="w-full rounded-2xl border-2 border-line bg-surface px-4 py-2.5 mb-5 outline-none focus:border-accent"
-        >
-          {ORG_UNITS.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
-
         <button
           type="button"
           onClick={() => void submit()}
-          disabled={saving || !name.trim()}
+          disabled={saving}
           className="pop-btn w-full bg-accent-deep text-white py-3 font-medium disabled:opacity-50"
         >
           {saving ? 'กำลังปลูก…' : 'ปลูกต้นของฉัน'}
         </button>
+        <p className="text-ink/40 text-xs text-center mt-3">เปลี่ยนตัวละครทีหลังได้จากหน้าต้นของฉัน</p>
       </div>
     </div>
   )
@@ -225,6 +196,8 @@ function ForestView({
 }) {
   const [view, setView] = useState<'mine' | 'garden'>('mine')
   const [toast, setToast] = useState<{ text: string; ok: boolean } | null>(null)
+  const [editingLook, setEditingLook] = useState(false)
+  const [draftLook, setDraftLook] = useState<AvatarLook>(me.look)
 
   const gardenTrees = useMemo(
     () => forest.garden.map((m) => ({ seed: treeSeed(m.uid), growth: m.growth })),
@@ -264,7 +237,17 @@ function ForestView({
       {/* สรุปต้นของฉัน */}
       <div className="pop-card p-4 sm:p-5 mb-3">
         <div className="flex items-center gap-3">
-          <PlayerAvatar look={me.look} size={44} />
+          <button
+            type="button"
+            onClick={() => {
+              setDraftLook(me.look)
+              setEditingLook((v) => !v)
+            }}
+            className="rounded-full ring-2 ring-transparent hover:ring-accent/40 transition-shadow"
+            aria-label="เปลี่ยนตัวละคร"
+          >
+            <PlayerAvatar look={me.look} size={44} />
+          </button>
           <div className="min-w-0 flex-1">
             <p className="text-ink font-medium truncate">{me.name}</p>
             <p className="text-ink/50 text-xs truncate">{me.team}</p>
@@ -293,6 +276,37 @@ function ForestView({
             />
           </div>
         </div>
+
+        {editingLook && (
+          <div className="mt-4 pt-4 border-t border-line flex items-center gap-3">
+            <PlayerAvatar look={draftLook} size={48} />
+            <button
+              type="button"
+              onClick={() => setDraftLook(randomLook())}
+              className="inline-flex items-center gap-1.5 rounded-full bg-ink/5 text-ink/70 px-3 py-2 text-sm"
+            >
+              <Shuffle size={14} /> สุ่ม
+            </button>
+            <div className="flex-1" />
+            <button
+              type="button"
+              onClick={() => setEditingLook(false)}
+              className="text-ink/50 text-sm px-2 py-2"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                await forestBackend.saveProfile(uid, { look: draftLook })
+                setEditingLook(false)
+              }}
+              className="rounded-2xl bg-accent-deep text-white px-4 py-2 text-sm"
+            >
+              บันทึก
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex gap-2 mb-3">

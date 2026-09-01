@@ -1,4 +1,5 @@
 import { GameRoom, type Env } from './room'
+import { handleForest } from './forest/handler'
 
 export { GameRoom }
 
@@ -65,6 +66,10 @@ export default {
     if (url.pathname === '/api/health') {
       return Response.json({ ok: true, now: Date.now() }, { headers: cors })
     }
+
+    // แคมเปญป่า 3R — REST + D1 (คืน null ถ้าไม่ใช่เส้นทาง /api/forest/*)
+    const forest = await handleForest(request, url, env, cors)
+    if (forest) return forest
 
     return new Response('ไม่พบเส้นทางนี้', { status: 404, headers: cors })
   },

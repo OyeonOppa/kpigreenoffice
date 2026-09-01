@@ -1,4 +1,4 @@
-import { FOREST, LIVE_GAME } from '../content'
+import { FOREST } from '../content'
 import { lookFromSeed } from '../game/avatar'
 import type { AvatarLook } from '../game/types'
 import type { ForestBackend, ForestProfile } from './backend'
@@ -112,21 +112,26 @@ const toMember = (doc: MemberDoc): ForestMember => ({
 const AUTH_KEY = `${NS}:auth`
 const authListeners = new Set<(u: ForestUser | null) => void>()
 
+/**
+ * บัญชีทดสอบสำหรับโหมดจำลอง — ของจริงมาจากรายชื่อในองค์กร (D1) ที่สร้างด้วย scripts/gen-users.mjs
+ * รหัสคือ "รหัสพนักงาน" ตามที่ตกลงไว้ ในโหมดจำลองตั้งเลขสั้นๆ พอ
+ */
+const DEMO_USERS: (ForestUser & { password: string })[] = [
+  { uid: 'u-demo1', username: 'demo1', password: '1111', name: 'สมชาย ใจดี (ตัวอย่าง)', nickname: 'ชาย', team: '(ตัวอย่าง) สำนักงานเลขาธิการ', role: 'member' },
+  { uid: 'u-demo2', username: 'demo2', password: '2222', name: 'สมหญิง รักษ์โลก (ตัวอย่าง)', nickname: 'หญิง', team: '(ตัวอย่าง) สำนักงานเลขาธิการ', role: 'member' },
+  { uid: 'u-demo3', username: 'demo3', password: '3333', name: 'อนุชา ประหยัด (ตัวอย่าง)', nickname: 'ชา', team: '(ตัวอย่าง) สำนักวิจัยและพัฒนา', role: 'member' },
+  { uid: 'u-staff', username: 'staff', password: 'staff', name: 'เจ้าหน้าที่ 3R (ตัวอย่าง)', nickname: 'สตาฟ', team: '(ตัวอย่าง) สำนักงานเลขาธิการ', role: 'staff' },
+]
+
+const stripPw = ({ password: _pw, ...u }: (typeof DEMO_USERS)[number]): ForestUser => u
+
 function readAuth(): ForestUser | null {
   const user = readJson<ForestUser>(AUTH_KEY)
   return user?.uid ? user : null
 }
 
-/**
- * uid ที่คงที่ต่ออีเมล — เข้าใหม่ด้วยอีเมลเดิมต้องเจอต้นเดิม ไม่ใช่ปลูกใหม่ทุกครั้ง
- *
- * ของจริงเซิร์ฟเวอร์เป็นคนแจก uid จาก token ที่ตรวจแล้ว ไม่ได้คิดจากอีเมลแบบนี้
- */
-function uidFromEmail(email: string): string {
-  let hash = 0
-  for (let i = 0; i < email.length; i++) hash = (hash * 31 + email.charCodeAt(i)) | 0
-  return `u-${Math.abs(hash).toString(36)}`
-}
+/** หา demo user จาก uid — ใช้ดึงชื่อ/สำนักที่ตั้งไว้ในบัญชี ไม่ให้หน้าจอกรอกเอง */
+const demoByUid = (uid: string) => DEMO_USERS.find((u) => u.uid === uid) ?? null
 
 function writeAuth(user: ForestUser | null) {
   try {
@@ -236,21 +241,11 @@ export const mockForestBackend: ForestBackend = {
 
   currentUser: readAuth,
 
-  async signIn(emailOrToken) {
-    const email = emailOrToken.trim().toLowerCase()
-    const domain = email.split('@')[1]
-
-    // โหมดจำลองตรวจโดเมนในเครื่อง — พอให้เห็นว่าหน้าจอตอบสนองยังไงตอนโดเมนผิด
-    // ของจริงด่านนี้ต้องอยู่ฝั่งเซิร์ฟเวอร์เท่านั้น ตรวจในเบราว์เซอร์ข้ามได้ด้วย devtools
-    if (!domain) return { ok: false, reason: 'กรอกอีเมลให้ครบ เช่น somchai@' + LIVE_GAME.allowedDomain }
-    if (domain !== LIVE_GAME.allowedDomain) {
-      return { ok: false, reason: `ใช้ได้เฉพาะอีเมล @${LIVE_GAME.allowedDomain} เท่านั้น` }
-    }
-
-    const uid = uidFromEmail(email)
-    // ชื่อตั้งต้นจากหน้าอีเมล แก้ทีหลังได้ตอนปลูก — ของจริงจะได้ชื่อจริงมาจาก Google
-    const existingName = readJson<MemberDoc>(memberKey(uid))?.name
-    const user: ForestUser = { uid, email, name: existingName ?? email.split('@')[0] }
+  async signIn(username, password) {
+    const u = username.trim().toLowerCase()
+    const match = DEMO_USERS.find((d) => d.username === u && d.password === password)
+    if (!match) return { ok: false, reason: 'ชื่อผู้ใช้หรือรหัสไม่ถูกต้อง' }
+    const user = stripPw(match)
     writeAuth(user)
     return { ok: true, user }
   },
@@ -267,12 +262,13 @@ export const mockForestBackend: ForestBackend = {
 
   async saveProfile(uid, profile: ForestProfile) {
     const existing = readJson<MemberDoc>(memberKey(uid))
+    // ชื่อกับสำนักมาจากบัญชี ไม่ให้หน้าจอกรอก — ผู้ใช้ตั้งได้แค่ตัวละคร (look)
+    const account = demoByUid(uid)
     writeJson(memberKey(uid), {
       uid,
-      name: profile.name,
+      name: account?.nickname || account?.name || existing?.name || 'ผู้ใช้',
       look: profile.look,
-      team: profile.team,
-      // แก้โปรไฟล์ไม่รีเซ็ตแต้ม — ย้ายสำนักแล้วต้นต้องย้ายตามไปทั้งต้น
+      team: account?.team ?? existing?.team ?? '',
       points: existing?.points ?? 0,
       updatedAt: Date.now(),
     } satisfies MemberDoc)
@@ -349,7 +345,7 @@ export const mockForestBackend: ForestBackend = {
     }
   },
 
-  listMembers() {
+  async listMembers() {
     return allMemberDocs()
       .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name, 'th'))
       .map(toMember)

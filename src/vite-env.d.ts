@@ -7,6 +7,8 @@ declare module 'virtual:live-backend' {
 
 interface ImportMetaEnv {
   readonly VITE_LIVE_API?: string
+  /** REST API ของแคมเปญป่า 3R — ปกติเป็น URL เดียวกับ VITE_LIVE_API (Worker ตัวเดียวกัน) */
+  readonly VITE_FOREST_API?: string
 }
 
 interface ImportMeta {

@@ -9,10 +9,10 @@ export function useForestAuth() {
 
   useEffect(() => forestBackend.onAuthChanged(setUser), [])
 
-  const signIn = useCallback(async (emailOrToken: string) => {
+  const signIn = useCallback(async (username: string, password: string) => {
     setBusy(true)
     try {
-      return await forestBackend.signIn(emailOrToken)
+      return await forestBackend.signIn(username, password)
     } finally {
       setBusy(false)
     }

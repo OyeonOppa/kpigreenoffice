@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Home, Search } from 'lucide-react'
 import { FOREST } from '../content'
 import PlayerAvatar from '../components/live/PlayerAvatar'
@@ -28,16 +28,25 @@ export default function ForestStaffPage() {
   const [done, setDone] = useState<string | null>(null)
   // นับขึ้นทุกครั้งที่ให้แต้มเสร็จ เพื่อบังคับให้ดึงรายชื่อใหม่ (หลังบ้านนี้ไม่ได้ push ข้อมูลมาเอง)
   const [revision, setRevision] = useState(0)
+  const [allMembers, setAllMembers] = useState<ForestMember[]>([])
+
+  useEffect(() => {
+    let alive = true
+    void forestBackend.listMembers().then((list) => {
+      if (alive) setAllMembers(list)
+    })
+    return () => {
+      alive = false
+    }
+  }, [revision])
 
   const members = useMemo(() => {
-    void revision
-    const all = forestBackend.listMembers()
     const q = query.trim().toLowerCase()
-    if (!q) return all
-    return all.filter(
+    if (!q) return allMembers
+    return allMembers.filter(
       (m) => m.name.toLowerCase().includes(q) || m.team.toLowerCase().includes(q),
     )
-  }, [query, revision])
+  }, [query, allMembers])
 
   const award = async (member: ForestMember, amount: number, reason: string) => {
     const result = await forestBackend.awardPoints(member.uid, amount, reason)
