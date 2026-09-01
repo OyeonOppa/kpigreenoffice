@@ -197,6 +197,9 @@ export class GameRoom extends DurableObject<Env> {
       case 'join':
         await this.handleJoin(ws, info, msg.name, msg.look, msg.team)
         break
+      case 'leave':
+        await this.handleLeave(ws, info)
+        break
       case 'answer':
         await this.handleAnswer(ws, info, msg.round, msg.bin)
         break
@@ -298,6 +301,24 @@ export class GameRoom extends DurableObject<Env> {
     // ตอนคน 250 คนสแกน QR เข้ามาไล่ๆ กัน ถ้ายิง broadcast เต็มห้องต่อ 1 คนที่เข้า
     // จะกลายเป็น O(N²) ส่ง — รวบให้เหลือ ~วินาทีละ 2 ครั้งพอ ตัวเลขในล็อบบี้ไม่ต้องเป๊ะวินาที
     this.queueRoomBroadcast()
+  }
+
+  /**
+   * ผู้เล่นกด "ออกจากห้อง" เอง — ต่างจากเน็ตหลุด (webSocketClose) ที่ตั้งใจไม่ลบผู้เล่น
+   * ตรงนี้ต้องเอาออกจากห้องจริง ไม่งั้นตัวละครค้างบนจอสตาฟ และกลับเข้ามาใหม่จะเจอสถานะเดิมค้าง
+   * ล้างคำตอบด้วย เผื่อออกกลางเกมแล้วกลับเข้ามารอบใหม่
+   * ไม่แตะบอท (bot = 1) และไม่แตะ hostUid — ปุ่มนี้มีเฉพาะหน้าผู้เล่นตอน lobby
+   */
+  private async handleLeave(ws: WebSocket, info: SocketInfo) {
+    this.ctx.storage.sql.exec('DELETE FROM answers WHERE uid = ?', info.uid)
+    this.ctx.storage.sql.exec('DELETE FROM results WHERE uid = ?', info.uid)
+    this.ctx.storage.sql.exec('DELETE FROM players WHERE uid = ? AND bot = 0', info.uid)
+    this.queueRoomBroadcast()
+    try {
+      ws.close(1000, 'ออกจากห้อง')
+    } catch {
+      // ปิดไปแล้ว
+    }
   }
 
   /** รวบ broadcast เต็มห้อง (room + roster) ให้ถี่สุดราว 2.5 ครั้ง/วินาที กันสตอร์มตอนคนเข้าพร้อมกัน */
