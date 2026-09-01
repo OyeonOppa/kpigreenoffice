@@ -1,7 +1,7 @@
 // เนื้อหาทั้งหมดของเว็บ — แก้ที่ไฟล์นี้ไฟล์เดียว
 // TODO: ข้อมูลจริงจากหน่วยงาน — ชื่อหน่วยงาน, เป้าหมาย/ปีเป้าหมาย, ช่องทางติดต่อ
 
-export const SITE_NAME = 'Green Office' // TODO: ข้อมูลจริงจากหน่วยงาน
+export const SITE_NAME = 'Low Carbon KPI' // TODO: ข้อมูลจริงจากหน่วยงาน
 
 // true = ใช้รูปนิ่งแทนวิดีโอทุกจุด (ยังไม่มีไฟล์วิดีโอจริง)
 // false = กลับไปใช้วิดีโอ (VIDEO_URLS) ตามปกติ
@@ -246,7 +246,7 @@ export const FOOTER = {
     phone: '0-0000-0000',
     email: 'contact@example.org',
   },
-  copyright: `© ${new Date().getFullYear()} ${'Green Office'} — สงวนลิขสิทธิ์`,
+  copyright: `© ${new Date().getFullYear()} ${SITE_NAME} — สงวนลิขสิทธิ์`,
 }
 
 export const ABOUT = {
