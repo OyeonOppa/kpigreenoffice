@@ -1,5 +1,12 @@
 import type { AvatarLook } from '../game/types'
-import type { ActivityId, ForestMember, ForestSnapshot, ForestUser, LogResult } from './types'
+import type {
+  ActivityId,
+  ForestMember,
+  ForestSnapshot,
+  ForestUser,
+  LogResult,
+  OrgSnapshot,
+} from './types'
 
 export interface ForestProfile {
   name: string
@@ -30,13 +37,30 @@ export interface ForestBackend {
   // แคมเปญนี้มีการล็อกอินของตัวเอง ไม่ได้ใช้ของเกมแข่งสด เพราะที่นั่นเซิร์ฟเวอร์แจก uid
   // ตอนเข้าห้องแข่งเท่านั้น ก่อนเข้าห้อง uid ยังว่าง — เป็นเจ้าของต้นไม้ไม่ได้
   //
-  // ของจริงต้องเปลี่ยนตรงนี้เป็น Google Sign-In + บังคับโดเมนแบบเดียวกับเกมแข่งสด
-  // แล้วให้เซิร์ฟเวอร์เป็นคนบอก uid จาก token ที่ตรวจแล้ว
+  // ของจริงเป็น Google Workspace ของหน่วยงาน (โดเมน kpi.ac.th)
+  // adapter จริงต้องรับ id_token จาก Google แล้วให้เซิร์ฟเวอร์เป็นคนตรวจลายเซ็น + โดเมน
+  // แล้วคืน uid ที่ผูกกับอีเมลนั้น — ห้ามให้หน้าจอเป็นคนบอกว่าตัวเองเป็นใคร
 
   currentUser(): ForestUser | null
-  signIn(name: string): Promise<ForestUser>
+
+  /**
+   * เข้าระบบด้วยอีเมลองค์กร
+   *
+   * โหมดจำลองรับอีเมลตรงๆ เพื่อให้ลองหน้าจอได้โดยไม่ต้องตั้ง Google OAuth
+   * ของจริงพารามิเตอร์นี้จะกลายเป็น id_token จาก Google ไม่ใช่อีเมลที่ผู้ใช้พิมพ์
+   * คืน ok:false พร้อมเหตุผลเมื่อโดเมนไม่ใช่ของหน่วยงาน
+   */
+  signIn(emailOrToken: string): Promise<{ ok: boolean; user?: ForestUser; reason?: string }>
   signOut(): void
   onAuthChanged(cb: (user: ForestUser | null) => void): () => void
+
+  /**
+   * ยอดรวมทั้งหน่วยงานสำหรับต้นไม้องค์กรในหน้าแรก — คนที่ยังไม่ล็อกอินก็เรียกได้
+   *
+   * ของจริงให้ตอบจากค่าที่สรุปไว้แล้ว (นับใหม่ตอนมีคนได้แต้ม) ไม่ใช่ไล่รวมทั้งตารางทุกครั้ง
+   * หน้าแรกเป็นหน้าที่คนเข้าเยอะสุด ถ้าคิวรีหนักทุกครั้งที่โหลดจะเป็นจุดที่ล้มก่อนเพื่อน
+   */
+  subscribeOrg(cb: (org: OrgSnapshot) => void): () => void
 
   /** ลงทะเบียน/แก้ข้อมูลต้นของตัวเอง เรียกซ้ำได้ ไม่รีเซ็ตแต้ม */
   saveProfile(uid: string, profile: ForestProfile): Promise<void>
