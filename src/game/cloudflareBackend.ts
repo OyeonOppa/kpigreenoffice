@@ -58,9 +58,15 @@ const joinWaiters = new Set<(result: JoinResult) => void>()
 
 // ---------- ตัวช่วยเก็บสถานะล็อกอิน ----------
 
+// เก็บใน localStorage ไม่ใช่ sessionStorage — ผู้เล่นที่ปิดแท็บพลาด/เบราว์เซอร์ crash
+// กลางเกม เปิดกลับมาต้องเป็นคนเดิม ไม่งั้นได้ uid ใหม่ = คะแนนเดิมค้างในห้องเข้าไม่ถึง
+// (sessionStorage รอดแค่ตอนรีเฟรช ไม่รอดตอนปิดแท็บ)
+//
+// ข้อแลก: เปิดสองแท็บในเครื่องเดียวจะเป็นผู้เล่นคนเดียวกัน — งานจริงไม่มีใครทำ
+// ตอนซ้อมระบบที่ต้องการหลายผู้เล่นในเครื่องเดียว ใช้ปุ่ม "เพิ่มบอท" ที่จอสตาฟแทน
 function readAuth(): AuthUser | null {
   try {
-    const raw = sessionStorage.getItem(AUTH_KEY)
+    const raw = localStorage.getItem(AUTH_KEY)
     return raw ? (JSON.parse(raw) as AuthUser) : null
   } catch {
     return null
@@ -69,8 +75,8 @@ function readAuth(): AuthUser | null {
 
 function writeAuth(user: AuthUser | null) {
   try {
-    if (user) sessionStorage.setItem(AUTH_KEY, JSON.stringify(user))
-    else sessionStorage.removeItem(AUTH_KEY)
+    if (user) localStorage.setItem(AUTH_KEY, JSON.stringify(user))
+    else localStorage.removeItem(AUTH_KEY)
   } catch {
     // โหมดส่วนตัวเขียนไม่ได้ ไม่เป็นไร
   }
