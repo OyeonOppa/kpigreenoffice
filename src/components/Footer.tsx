@@ -1,4 +1,4 @@
-import { Leaf, Mail, MapPin, Phone } from 'lucide-react'
+import { Mail, MapPin, Phone } from 'lucide-react'
 import { FOOTER, NAV_LINKS, SITE_NAME } from '../content'
 
 export default function Footer() {
@@ -8,8 +8,12 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <Leaf size={22} className="text-accent-deep" />
-              <span className="text-ink font-semibold text-lg">{SITE_NAME}</span>
+              <img
+                src="/images/low carbon logo.webp"
+                alt=""
+                className="h-7 w-7 shrink-0 object-contain"
+              />
+              <img src="/images/low carbon text.webp" alt={SITE_NAME} className="h-5 w-auto" />
             </div>
             <p className="text-ink/65 text-sm leading-relaxed max-w-xs">{FOOTER.about}</p>
           </div>

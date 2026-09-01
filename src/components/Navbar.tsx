@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronDown, LogIn, Leaf, Menu, Sprout, X } from 'lucide-react'
+import { ChevronDown, LogIn, Menu, Sprout, X } from 'lucide-react'
 import { FOREST, HERO, NAV_LINKS, SITE_NAME, type NavLink } from '../content'
 import { lookFromSeed } from '../game/avatar'
 import { useForestAuth } from '../forest/hooks'
@@ -29,9 +29,17 @@ export default function Navbar() {
     <header className="fixed top-0 inset-x-0 z-50 px-4 sm:px-6 py-6">
       <nav className="liquid-glass liquid-glass-nav rounded-full max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
         <div className="flex items-center min-w-0">
-          <a href="#" className="flex items-center gap-2 min-w-0">
-            <Leaf size={24} className="text-accent-deep shrink-0" />
-            <span className="text-ink font-bold text-lg truncate">{SITE_NAME}</span>
+          <a href="#" className="flex items-center gap-2 min-w-0" aria-label={SITE_NAME}>
+            <img
+              src="/images/low carbon logo.webp"
+              alt=""
+              className="h-7 w-7 shrink-0 object-contain"
+            />
+            <img
+              src="/images/low carbon text.webp"
+              alt={SITE_NAME}
+              className="h-5 w-auto shrink-0"
+            />
           </a>
           <div className="hidden md:flex items-center gap-6 ml-8">
             {NAV_LINKS.map((link) => (
