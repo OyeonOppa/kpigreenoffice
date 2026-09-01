@@ -156,12 +156,16 @@ function buildTree(rand: () => number, g: number, detail: TreeDetail): TreeArt {
   const t = clamp01((g - SEEDLING_AT) / (1 - SEEDLING_AT))
   // ช่วงแรกโตเร็ว ช่วงหลังโตช้า — คนเพิ่งเริ่มเล่นจะเห็นต้นขยับทันตาในวันแรก
   const eased = Math.pow(t, 0.7)
+  // ความคืบหน้าเฉพาะ "ครึ่งหลัง" — 0 จนถึงระยะใบแก่ แล้วไต่ถึง 1 ตอนไม้ใหญ่
+  // ใช้คุมสิ่งที่ควรมาทีหลัง: ทรงพุ่มโค้งมนทึบ ลำต้นหนา กิ่งแผ่กว้าง
+  // เพราะถ้าผูกกับ eased เฉยๆ ระยะ "แตกกิ่ง" จะมีพุ่มทึบจนมองไม่เห็นกิ่งที่ควรเป็นพระเอก
+  const late = clamp01((t - 0.35) / 0.65)
   const simple = detail === 'simple'
 
   // ลำต้นกินราว 40% ของความสูงทั้งต้น ที่เหลือเป็นทรงพุ่ม
   // เคยตั้งไว้ยาวกว่านี้แล้วได้ต้นที่พุ่มไปกองอยู่ยอดเดียวเหมือนต้นยาง ไม่ใช่ไม้ให้ร่มเงา
-  const trunkH = 20 + eased * 70
-  const trunkW = 3.6 + eased * 13.5
+  const trunkH = 20 + eased * 70 + late * 30
+  const trunkW = 3.6 + eased * 13.5 + late * 7
   // ต้นเล็กมีแค่แกนเดียว ต้นโตแตกกิ่งซ้อนหลายชั้น
   //
   // 'simple' ตัดที่ 1–2 ชั้น เพราะจำนวนชิ้นโตแบบทวีคูณตามความลึก
@@ -170,9 +174,13 @@ function buildTree(rand: () => number, g: number, detail: TreeDetail): TreeArt {
   const maxDepth = Math.max(1, Math.round(1 + eased * (simple ? 0.8 : 4)))
   // พุ่มใบเล็กกว่าที่คิดโดยตั้งใจ — ถ้าใหญ่กว่านี้ก้อนใบจะทับกันจนกลายเป็นเมฆก้อนเดียว
   // แล้วโครงกิ่งที่อุตส่าห์แตกไว้จะมองไม่เห็นเลย ซึ่งเป็นสิ่งที่ระยะ "แตกกิ่ง" ต้องสื่อ
-  const leafR = 5.5 + eased * 7.5
+  const leafR = 5.5 + eased * 7.5 + late * 4.5
   // ความแก่ของใบ — ต้นอ่อนใบสีอ่อน ต้นโตใบเข้มขึ้นเรื่อยๆ
   const maturity = clamp01((g - SEEDLING_AT) / 0.5)
+
+  // ระยะหลังมีทรงพุ่มโดมคลุมแล้ว จึงลดใบที่ปลายกิ่งลง ไม่งั้นชิ้นส่วนบวมเป็นพันต่อต้น
+  // (ก่อนหน้านี้ไม้ใหญ่หนึ่งต้น = ใบ ~1700 วง กิน DOM หนักและกรอบก็โตเกินจอ)
+  const crownActive = late > 0.2
 
   const branches: TreeBranch[] = []
   const leaves: LeafBlob[] = []
@@ -181,7 +189,13 @@ function buildTree(rand: () => number, g: number, detail: TreeDetail): TreeArt {
   let topY = 0
 
   const addLeafCluster = (x: number, y: number, scale: number) => {
-    const clumps = simple ? 2 : 2 + Math.floor(rand() * 2)
+    const clumps = simple
+      ? crownActive
+        ? 1
+        : 2
+      : crownActive
+        ? 2
+        : 2 + Math.floor(rand() * 2)
     for (let i = 0; i < clumps; i++) {
       const bx = x + (rand() - 0.5) * scale * 1.15
       const by = y + (rand() - 0.5) * scale * 0.95
@@ -253,7 +267,7 @@ function buildTree(rand: () => number, g: number, detail: TreeDetail): TreeArt {
     // ใบเกาะกิ่งชั้นในบ้าง ไม่ใช่แค่ปลายสุด ไม่งั้นตรงกลางพุ่มจะโหว่เห็นแต่กิ่งเปล่า
     // แต่ให้น้อย ไม่งั้นกลับไปทึบจนบังโครงกิ่งเหมือนเดิม
     // โหมด simple ข้ามทั้งหมด — จากระยะป่ามองไม่ออกว่าพุ่มทึบหรือโปร่ง
-    if (!simple && depth <= 2 && rand() < 0.5) addLeafCluster(x2, y2, leafR * 0.82)
+    if (!simple && !crownActive && depth <= 2 && rand() < 0.5) addLeafCluster(x2, y2, leafR * 0.82)
   }
 
   // ลำต้นเรียวขึ้นไปและเอียงนิดหน่อย ต้นไม้จริงไม่ตั้งฉากเป๊ะ
@@ -270,7 +284,66 @@ function buildTree(rand: () => number, g: number, detail: TreeDetail): TreeArt {
   topY = -trunkH
 
   // แตกกิ่งจากยอดลำต้นทันที ไม่มีท่อนตั้งตรงคั่นกลาง
-  spawnChildren(lean, -trunkH, (rand() - 0.5) * 0.1, trunkH * 0.95, topW, maxDepth + 1)
+  // เลเวลหลังกิ่งยาวขึ้น พุ่มจึงแผ่กว้างออกด้านข้างแบบไม้ให้ร่มเงา ไม่ใช่พุ่มตั้งสูงแคบ
+  spawnChildren(lean, -trunkH, (rand() - 0.5) * 0.1, trunkH * 0.95 * (1 + late * 0.08), topW, maxDepth + 1)
+
+  // ---- ทรงพุ่มโค้งมนของไม้ใหญ่ ----
+  //
+  // กิ่งกับใบปลายกิ่งด้านบนพอบอกได้ว่า "แตกกิ่ง/มีใบ" แต่ยังไม่เป็นก้อนพุ่มทึบ
+  // ระยะหลังๆ (ใบแก่เต็มต้น → ไม้ใหญ่) ต้องอ่านออกทันทีว่าเป็นพุ่มกลมทึบ แม้ต้นจะสูงแค่ 40 พิกเซล
+  // จึงพอกก้อนใบใหญ่เป็นโดมคลุมโครงกิ่ง โดยความทึบ/กว้างไต่ตาม late
+  if (late > 0.001) {
+    const cx = (minX + maxX) / 2
+    const spanX = Math.max(leafR, (maxX - minX) / 2)
+    // ไม้ให้ร่มเงาเป็นทรง "ร่ม" — กว้างกว่าสูง ยอดค่อนข้างแบน ไม่ใช่โดมสูง
+    const crownW = spanX * (1 + late * 0.32) + leafR * (1 + late * 1.1)
+    // วางวงรีให้คร่อม "โซนกิ่ง" จริง (ตั้งแต่ยอดกิ่งลงมาถึงช่วงที่กิ่งแยกจากลำต้น)
+    // ไม่ใช่ลอยเหนือยอด — พุ่มต้องนั่งบนโครงกิ่ง
+    const branchBase = -trunkH * 0.55
+    const crownCy = (topY + branchBase) / 2 - leafR * 0.2 * late
+    const crownRy = ((branchBase - topY) / 2) * (0.82 + late * 0.12) + leafR * 0.55
+    const shellR = leafR * (1 + late * 0.32)
+    const shellCount = (simple ? 6 : 11) + Math.round(late * (simple ? 4 : 9))
+
+    // เปลือกนอก — เกาะตามส่วนโค้งด้านบนของวงรี ดึงเข้าในนิดหน่อยและสุ่มตำแหน่ง
+    // ไม่งั้นได้ขอบเป็นลูกปัดกลมๆ เรียงเป็นสร้อย ไม่เหมือนขอบใบจริง
+    for (let i = 0; i < shellCount; i++) {
+      const a =
+        Math.PI * (-0.04 + ((i + (rand() - 0.5) * 0.7) / Math.max(1, shellCount - 1)) * 1.08)
+      const rad = 0.82 + rand() * 0.2
+      const bx = cx + Math.cos(a) * crownW * rad
+      const by = crownCy - Math.sin(a) * crownRy * rad
+      const r = shellR * (0.82 + rand() * 0.5)
+      leaves.push({
+        x: round(bx),
+        y: round(by),
+        r: round(r),
+        tint: clamp01(maturity + 0.08 + (rand() - 0.5) * 0.3),
+      })
+      minX = Math.min(minX, bx - r)
+      maxX = Math.max(maxX, bx + r)
+      topY = Math.min(topY, by - r)
+    }
+
+    // เติมเนื้อในพุ่มให้ทึบ ไม่โหว่เห็นกิ่ง — สุ่มกระจายทั่ววงรี เอนไปกลางพุ่มมากกว่าขอบ
+    const fillCount = (simple ? 7 : 18) + Math.round(late * (simple ? 8 : 26))
+    for (let i = 0; i < fillCount; i++) {
+      const rr = Math.pow(rand(), 0.7)
+      const ang = rand() * Math.PI * 2
+      const bx = cx + Math.cos(ang) * rr * crownW * 0.92
+      const by = crownCy + Math.sin(ang) * rr * crownRy * 0.9
+      const r = shellR * (0.6 + rand() * 0.42)
+      leaves.push({
+        x: round(bx),
+        y: round(by),
+        r: round(r),
+        tint: clamp01(maturity + (rand() - 0.5) * 0.35),
+      })
+      minX = Math.min(minX, bx - r)
+      maxX = Math.max(maxX, bx + r)
+      topY = Math.min(topY, by - r)
+    }
+  }
 
   // ---- ดอกกับผล ----
   //

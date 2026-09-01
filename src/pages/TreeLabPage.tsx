@@ -26,7 +26,11 @@ export default function TreeLabPage() {
   )
   const tallest = Math.max(...stageArts.map((s) => s.art.height))
   // ยึดพื้นเหมือนแถบระยะในหน้าป่า — ระยะแรกๆ ต้องเห็นรูปร่าง ไม่ใช่เป็นจุด
-  const scaleOf = (h: number) => (cell * 0.86) / Math.max(h, tallest * 0.26)
+  const scaleOf = (a: { height: number; halfWidth: number }) =>
+    Math.min(
+      (cell * 0.86) / Math.max(a.height, tallest * 0.26),
+      (cell * 0.54) / Math.max(a.halfWidth, 1),
+    )
 
   const forestTrees = useMemo(
     () =>
@@ -80,7 +84,7 @@ export default function TreeLabPage() {
               {stageArts.map((s, i) => (
                 <g
                   key={s.id}
-                  transform={`translate(${i * cell + cell / 2} ${cell}) scale(${scaleOf(s.art.height)})`}
+                  transform={`translate(${i * cell + cell / 2} ${cell}) scale(${scaleOf(s.art)})`}
                 >
                   <TreeGroup art={s.art} />
                 </g>

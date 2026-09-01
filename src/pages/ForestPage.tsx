@@ -488,7 +488,12 @@ function StageRail({ current }: { current: number }) {
   // ยึดพื้นความสูงไว้ที่ 26% ของต้นใหญ่สุด — ถ้าย่อตามสัดส่วนจริงล้วน
   // เมล็ดกับหน่ออ่อนจะเหลือแค่จุดสองพิกเซล ซึ่งทำให้แถบนี้ไม่ตอบโจทย์ที่มันมีอยู่
   // (บอกว่าระยะถัดไปหน้าตายังไง) ส่วนขนาดจริงเทียบกันดูได้จากป่าอยู่แล้ว
-  const scaleOf = (h: number) => (cell * 0.8) / Math.max(h, tallest * 0.26)
+  // ย่อให้พอดีช่องทั้งด้านสูงและด้านกว้าง — ไม้ใหญ่ทรงพุ่มกว้างจะได้ไม่ล้นไปทับช่องข้างๆ
+  const scaleOf = (a: { height: number; halfWidth: number }) =>
+    Math.min(
+      (cell * 0.8) / Math.max(a.height, tallest * 0.26),
+      (cell * 0.52) / Math.max(a.halfWidth, 1),
+    )
 
   return (
     <div className="pop-card p-3 sm:p-4 mb-3 overflow-x-auto">
@@ -515,7 +520,7 @@ function StageRail({ current }: { current: number }) {
                   opacity="0.1"
                 />
               )}
-              <g transform={`translate(${i * cell + cell / 2} ${cell}) scale(${scaleOf(art.height)})`}>
+              <g transform={`translate(${i * cell + cell / 2} ${cell}) scale(${scaleOf(art)})`}>
                 <TreeGroup art={art} shadow={false} />
               </g>
             </g>
