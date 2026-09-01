@@ -26,9 +26,11 @@
   ],
 
   "vars": {
-    // เว็บที่เปิด WebSocket มาที่ห้องนี้ได้ (คั่นด้วย ,) — กันเว็บอื่นแอบต่อเข้ามาที่ห้องเรา
-    // ใส่โดเมนเว็บจริงของหน่วยงานไว้ตัวแรก แล้วตามด้วย localhost สำหรับตอนพัฒนา
+    // เว็บที่เปิด WebSocket มาที่ห้องนี้ได้ (คั่นด้วย , — เทียบแบบตรงตัว ไม่มี wildcard)
+    // ตัวแรกคือโดเมนจริงที่ใช้ในงาน · kpi-lowcarbon.pages.dev เก็บไว้เป็นสำรอง/ตอนทดสอบ
+    // ที่เหลือคือ localhost ตอนพัฒนา
     // เกมนี้ไม่มีล็อกอิน ด่านนี้จึงเป็นด่านเดียวที่กันคนนอก — อย่าใส่ * หรือปล่อยว่าง
-    "ALLOWED_ORIGINS": "https://kpi-lowcarbon.pages.dev,http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173"
+    // แก้ไฟล์นี้แล้วต้อง `npm --prefix worker run deploy` ใหม่ ค่าถึงจะมีผล
+    "ALLOWED_ORIGINS": "https://lowcarbon.kpi.ac.th,https://kpi-lowcarbon.pages.dev,http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173"
   }
 }
