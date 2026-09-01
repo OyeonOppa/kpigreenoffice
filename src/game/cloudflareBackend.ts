@@ -358,6 +358,30 @@ export const cloudflareBackend: GameBackend = {
     }
   },
 
+  leaveRoom(pin) {
+    const conn = connection
+    if (!conn || conn.pin !== pin) return
+    // ตั้ง closed ก่อน เพื่อไม่ให้ handler ของ 'close' ตั้ง timer reconnect
+    conn.closed = true
+    try {
+      if (conn.socket.readyState === WebSocket.OPEN) {
+        conn.socket.send(JSON.stringify({ t: 'leave' }))
+      }
+    } catch {
+      // ปิดไปแล้ว — เซิร์ฟเวอร์จะไม่รู้ว่าออก แต่ webSocketClose ฝั่งนั้นไม่ลบอยู่แล้ว
+    }
+    // หน่วงนิดให้ 'leave' ออกจากสายก่อนค่อยปิด
+    window.setTimeout(() => {
+      try {
+        conn.socket.close(1000, 'ออกจากห้อง')
+      } catch {
+        // noop
+      }
+    }, 120)
+    connection = null
+    joinWaiters.clear()
+  },
+
   exportCsv(pin) {
     const conn = connection
     if (!conn || conn.pin !== pin) return ''

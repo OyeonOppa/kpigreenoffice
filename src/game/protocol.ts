@@ -29,6 +29,7 @@ export type ClientMessage =
   // เพื่อให้เป็นคนเดิมตอน reconnect (เน็ตสะดุด/รีเฟรช)
   | { t: 'auth'; uid: string; name: string }
   | { t: 'join'; name: string; look: AvatarLook; team: string }
+  | { t: 'leave' }
   | { t: 'answer'; round: number; bin: BinId }
   | { t: 'start' }
   | { t: 'skip' }

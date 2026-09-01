@@ -492,6 +492,27 @@ export const mockBackend: GameBackend = {
     return { ok: true }
   },
 
+  leaveRoom(pin) {
+    const user = readAuth()
+    if (!user) return
+    try {
+      localStorage.removeItem(playerKey(pin, user.uid))
+      for (const k of keysWithPrefix(`${NS}:answer:${pin}:`)) {
+        if (k.endsWith(`:${user.uid}`)) localStorage.removeItem(k)
+      }
+    } catch {
+      // เข้าถึง localStorage ไม่ได้ — ปล่อยผ่าน
+    }
+    // ลบออกจาก doc.players ด้วย — syncPlayersFromDocs เติมเข้าอย่างเดียว ไม่เคยลบ
+    // ถ้าไม่ลบตรงนี้ ตัวละครจะค้างบนจอสตาฟจนกว่าจะสร้างห้องใหม่
+    const doc = readJson<RoomDoc>(roomKey(pin))
+    if (doc && doc.players[user.uid]) {
+      delete doc.players[user.uid]
+      writeJson(roomKey(pin), doc)
+    }
+    notify(pin)
+  },
+
   async submitAnswer(pin, roundIndex, bin) {
     const user = readAuth()
     if (!user) return false

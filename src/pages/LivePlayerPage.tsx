@@ -69,7 +69,15 @@ export default function LivePlayerPage() {
         </span>
       }
     >
-      <PlayerGame room={room} uid={user.uid} pin={pin} onLeave={() => enterRoom(null)} />
+      <PlayerGame
+        room={room}
+        uid={user.uid}
+        pin={pin}
+        onLeave={() => {
+          backend.leaveRoom(pin)
+          enterRoom(null)
+        }}
+      />
     </LiveShell>
   )
 }
