@@ -60,6 +60,17 @@ export function TreeGroup({ art, shadow = true }: { art: TreeArt; shadow?: boole
 
   return (
     <>
+      {/* เงาทรงร่มของไม้ใหญ่ให้ร่มเงา — วาดเสมอแม้ปิด shadow เพราะเป็นตัวแยกระยะสุดท้าย */}
+      {art.groundShade > 0 && (
+        <ellipse
+          cx={0}
+          cy={2}
+          rx={art.groundShade}
+          ry={Math.max(3, art.groundShade * 0.16)}
+          fill="#2f5b44"
+          opacity="0.14"
+        />
+      )}
       {shadow && (
         <ellipse
           cx={0}

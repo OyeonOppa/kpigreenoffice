@@ -48,6 +48,11 @@ export interface TreeArt {
   halfWidth: number
   /** ความสูงจากพื้นถึงยอด */
   height: number
+  /**
+   * ครึ่งความกว้างของเงาที่ทอดลงพื้น — 0 เมื่อยังไม่ถึงระยะ "ไม้ใหญ่ให้ร่มเงา"
+   * เป็นสัญญาณภาพเดียวที่บอก "ร่มเงา" ได้ในแถบระยะที่ต้นเล็กแค่ 40 พิกเซล
+   */
+  groundShade: number
 }
 
 // ---------- สุ่มแบบคงที่ ----------
@@ -77,8 +82,11 @@ const round = (v: number) => Math.round(v * 100) / 100
 // จุดสลับรูปร่าง อ่านจาก TREE_STAGES ที่เดียว — ป้ายชื่อกับรูปจะได้ตรงกันเสมอ
 const SPROUT_AT = stageGrowth('sprout')
 const SEEDLING_AT = stageGrowth('seedling')
+const LEAFY_AT = stageGrowth('leafy')
+const CANOPY_AT = stageGrowth('canopy')
 const FLOWER_AT = stageGrowth('flowering')
 const FRUIT_AT = stageGrowth('fruiting')
+const SHADE_AT = stageGrowth('shade')
 
 // ---------- ตัวสร้าง ----------
 
@@ -118,6 +126,7 @@ function buildSeed(rand: () => number, g: number): TreeArt {
     fruits: [],
     halfWidth: rx + 2,
     height: ry * 2.4,
+    groundShade: 0,
   }
 }
 
@@ -146,6 +155,7 @@ function buildSprout(rand: () => number, g: number): TreeArt {
     fruits: [],
     halfWidth: leafR * 2.2,
     height: h + leafR * 1.6,
+    groundShade: 0,
   }
 }
 
@@ -160,12 +170,22 @@ function buildTree(rand: () => number, g: number, detail: TreeDetail): TreeArt {
   // ใช้คุมสิ่งที่ควรมาทีหลัง: ทรงพุ่มโค้งมนทึบ ลำต้นหนา กิ่งแผ่กว้าง
   // เพราะถ้าผูกกับ eased เฉยๆ ระยะ "แตกกิ่ง" จะมีพุ่มทึบจนมองไม่เห็นกิ่งที่ควรเป็นพระเอก
   const late = clamp01((t - 0.35) / 0.65)
+  // ปัจจัยแยกรายระยะ อ่านจาก growth ตรงๆ ให้แต่ละระยะปลายอ่านออกว่าต่างกัน
+  // (เดิมทุกระยะหลังแตกกิ่งคือ "ลำต้น + โดมเขียวที่โตทีละนิด" ย่อเล็กแล้วเหมือนกันหมด)
+  //  leafyF : 0 ก่อนใบแก่ → 1 ตอนทรงพุ่มเต็ม  — คุมความฟูของใบปลายกิ่งช่วง "ใบแก่เต็มต้น"
+  //  domeF  : 0 ก่อนทรงพุ่มเต็ม → 1 ตอนไม้ใหญ่ — คุมโดมพุ่มทึบ ให้เริ่มที่ "ทรงพุ่มเต็ม" ไม่ใช่ "ใบแก่"
+  //  shadeF : 0 ก่อนติดผล → 1 ตอนไม้ใหญ่       — คุมพุ่มทรงร่มที่แผ่กว้าง + เงาทอดพื้น
+  const leafyF = clamp01((g - LEAFY_AT) / (CANOPY_AT - LEAFY_AT))
+  const domeF = clamp01((g - CANOPY_AT) / (SHADE_AT - CANOPY_AT))
+  const shadeF = clamp01((g - FRUIT_AT) / (SHADE_AT - FRUIT_AT))
+  const domeActive = g >= CANOPY_AT - 0.015
   const simple = detail === 'simple'
 
   // ลำต้นกินราว 40% ของความสูงทั้งต้น ที่เหลือเป็นทรงพุ่ม
   // เคยตั้งไว้ยาวกว่านี้แล้วได้ต้นที่พุ่มไปกองอยู่ยอดเดียวเหมือนต้นยาง ไม่ใช่ไม้ให้ร่มเงา
   const trunkH = 20 + eased * 70 + late * 30
-  const trunkW = 3.6 + eased * 13.5 + late * 7
+  // ลำต้นหนาขึ้นชัดเจนตอนเป็นไม้ใหญ่ — ต้นให้ร่มเงาของจริงลำต้นอวบ ไม่ใช่ก้านเรียว
+  const trunkW = 3.6 + eased * 13.5 + late * 7 + shadeF * 6
   // ต้นเล็กมีแค่แกนเดียว ต้นโตแตกกิ่งซ้อนหลายชั้น
   //
   // 'simple' ตัดที่ 1–2 ชั้น เพราะจำนวนชิ้นโตแบบทวีคูณตามความลึก
@@ -178,9 +198,10 @@ function buildTree(rand: () => number, g: number, detail: TreeDetail): TreeArt {
   // ความแก่ของใบ — ต้นอ่อนใบสีอ่อน ต้นโตใบเข้มขึ้นเรื่อยๆ
   const maturity = clamp01((g - SEEDLING_AT) / 0.5)
 
-  // ระยะหลังมีทรงพุ่มโดมคลุมแล้ว จึงลดใบที่ปลายกิ่งลง ไม่งั้นชิ้นส่วนบวมเป็นพันต่อต้น
+  // ระยะ "ทรงพุ่มเต็ม" ขึ้นไปมีโดมพุ่มคลุมแล้ว จึงลดใบที่ปลายกิ่งลง ไม่งั้นชิ้นส่วนบวมเป็นพันต่อต้น
   // (ก่อนหน้านี้ไม้ใหญ่หนึ่งต้น = ใบ ~1700 วง กิน DOM หนักและกรอบก็โตเกินจอ)
-  const crownActive = late > 0.2
+  // ผูกกับ domeActive แทน late เพื่อให้ระยะ "ใบแก่เต็มต้น" ยังโชว์ใบปลายกิ่งฟูๆ ก่อนจะกลายเป็นโดมทึบ
+  const crownActive = domeActive
 
   const branches: TreeBranch[] = []
   const leaves: LeafBlob[] = []
@@ -265,9 +286,14 @@ function buildTree(rand: () => number, g: number, detail: TreeDetail): TreeArt {
     spawnChildren(x2, y2, angle, len, w, depth)
 
     // ใบเกาะกิ่งชั้นในบ้าง ไม่ใช่แค่ปลายสุด ไม่งั้นตรงกลางพุ่มจะโหว่เห็นแต่กิ่งเปล่า
-    // แต่ให้น้อย ไม่งั้นกลับไปทึบจนบังโครงกิ่งเหมือนเดิม
+    // ช่วง "ใบแก่เต็มต้น" (leafyF ไต่ 0→1) เติมถี่ขึ้นเรื่อยๆ ให้พุ่มฟูขึ้นก่อน แล้วค่อยกลายเป็นโดมทึบ
+    // ที่ระยะ "แตกกิ่ง" (leafyF = 0) แทบไม่เติม โครงกิ่งจึงยังเป็นพระเอก
     // โหมด simple ข้ามทั้งหมด — จากระยะป่ามองไม่ออกว่าพุ่มทึบหรือโปร่ง
-    if (!simple && !crownActive && depth <= 2 && rand() < 0.5) addLeafCluster(x2, y2, leafR * 0.82)
+    if (!simple && !crownActive && depth <= 2) {
+      if (rand() < 0.12 + leafyF * 0.6) addLeafCluster(x2, y2, leafR * 0.82)
+      if (leafyF > 0.5 && depth <= 1 && rand() < leafyF * 0.7)
+        addLeafCluster(x2, y2, leafR * (0.6 + leafyF * 0.4))
+    }
   }
 
   // ลำต้นเรียวขึ้นไปและเอียงนิดหน่อย ต้นไม้จริงไม่ตั้งฉากเป๊ะ
@@ -289,21 +315,24 @@ function buildTree(rand: () => number, g: number, detail: TreeDetail): TreeArt {
 
   // ---- ทรงพุ่มโค้งมนของไม้ใหญ่ ----
   //
-  // กิ่งกับใบปลายกิ่งด้านบนพอบอกได้ว่า "แตกกิ่ง/มีใบ" แต่ยังไม่เป็นก้อนพุ่มทึบ
-  // ระยะหลังๆ (ใบแก่เต็มต้น → ไม้ใหญ่) ต้องอ่านออกทันทีว่าเป็นพุ่มกลมทึบ แม้ต้นจะสูงแค่ 40 พิกเซล
-  // จึงพอกก้อนใบใหญ่เป็นโดมคลุมโครงกิ่ง โดยความทึบ/กว้างไต่ตาม late
-  if (late > 0.001) {
+  // เริ่มที่ระยะ "ทรงพุ่มเต็ม" (domeActive) — ก่อนหน้านั้น (ใบแก่เต็มต้น) ตั้งใจให้พุ่มยังฟูเป็นก้อนๆ
+  // เห็นโครงกิ่งลอดได้ ไม่ใช่โดมทึบ ระยะพวกนี้จะได้อ่านออกว่าต่างกัน แม้ต้นจะสูงแค่ 40 พิกเซล
+  // จากนั้น domeF (ทรงพุ่มเต็ม 0 → ไม้ใหญ่ 1) คุมความทึบ และ shadeF คุมการแผ่กว้างเป็นทรง "ร่ม"
+  if (domeActive) {
     const cx = (minX + maxX) / 2
     const spanX = Math.max(leafR, (maxX - minX) / 2)
-    // ไม้ให้ร่มเงาเป็นทรง "ร่ม" — กว้างกว่าสูง ยอดค่อนข้างแบน ไม่ใช่โดมสูง
-    const crownW = spanX * (1 + late * 0.32) + leafR * (1 + late * 1.1)
+    // ไม้ให้ร่มเงาเป็นทรง "ร่ม" — กว้างกว่าสูงชัดเจน ยอดแบน ไม่ใช่โดมสูง
+    // shadeF ดันความกว้างแยกจาก domeF เพื่อให้ "ติดผล → ไม้ใหญ่" ต่างกันที่ทรง ไม่ใช่แค่มี/ไม่มีผล
+    const crownW = spanX * (1 + domeF * 0.3 + shadeF * 0.4) + leafR * (1 + domeF * 0.9 + shadeF * 0.7)
     // วางวงรีให้คร่อม "โซนกิ่ง" จริง (ตั้งแต่ยอดกิ่งลงมาถึงช่วงที่กิ่งแยกจากลำต้น)
     // ไม่ใช่ลอยเหนือยอด — พุ่มต้องนั่งบนโครงกิ่ง
     const branchBase = -trunkH * 0.55
-    const crownCy = (topY + branchBase) / 2 - leafR * 0.2 * late
-    const crownRy = ((branchBase - topY) / 2) * (0.82 + late * 0.12) + leafR * 0.55
-    const shellR = leafR * (1 + late * 0.32)
-    const shellCount = (simple ? 6 : 11) + Math.round(late * (simple ? 4 : 9))
+    const crownCy = (topY + branchBase) / 2 - leafR * 0.2 * domeF
+    // ยอดพุ่มแบนลงเรื่อยๆ เมื่อเข้าสู่ระยะไม้ใหญ่ (ทรงร่ม)
+    const crownRy =
+      ((branchBase - topY) / 2) * (0.82 + domeF * 0.1 - shadeF * 0.22) + leafR * (0.55 - shadeF * 0.15)
+    const shellR = leafR * (1 + domeF * 0.32)
+    const shellCount = (simple ? 6 : 11) + Math.round((domeF + shadeF * 0.5) * (simple ? 4 : 9))
 
     // เปลือกนอก — เกาะตามส่วนโค้งด้านบนของวงรี ดึงเข้าในนิดหน่อยและสุ่มตำแหน่ง
     // ไม่งั้นได้ขอบเป็นลูกปัดกลมๆ เรียงเป็นสร้อย ไม่เหมือนขอบใบจริง
@@ -326,7 +355,7 @@ function buildTree(rand: () => number, g: number, detail: TreeDetail): TreeArt {
     }
 
     // เติมเนื้อในพุ่มให้ทึบ ไม่โหว่เห็นกิ่ง — สุ่มกระจายทั่ววงรี เอนไปกลางพุ่มมากกว่าขอบ
-    const fillCount = (simple ? 7 : 18) + Math.round(late * (simple ? 8 : 26))
+    const fillCount = (simple ? 7 : 18) + Math.round((domeF + shadeF * 0.4) * (simple ? 8 : 26))
     for (let i = 0; i < fillCount; i++) {
       const rr = Math.pow(rand(), 0.7)
       const ang = rand() * Math.PI * 2
@@ -353,30 +382,33 @@ function buildTree(rand: () => number, g: number, detail: TreeDetail): TreeArt {
 
   if (g >= FLOWER_AT) {
     // ดอกเยอะสุดตอนเพิ่งออกดอก แล้วค่อยลดลงตอนติดผล เหมือนของจริงที่ดอกร่วงกลายเป็นผล
+    // ดอกต้องใหญ่พออ่านออกในแถบระยะที่ต้นสูงแค่ ~40 พิกเซล ไม่งั้น "ออกดอก" จะดูเท่า "ทรงพุ่มเต็ม"
     const peak = clamp01((g - FLOWER_AT) / (FRUIT_AT - FLOWER_AT))
-    const density = g >= FRUIT_AT ? 0.16 : 0.2 + peak * 0.3
+    const density = g >= FRUIT_AT ? 0.1 : 0.28 + peak * 0.32
     for (const blob of leaves) {
       if (rand() > density) continue
       flowers.push({
         x: round(blob.x + (rand() - 0.5) * blob.r),
         y: round(blob.y + (rand() - 0.5) * blob.r),
-        r: round(Math.max(1.2, blob.r * 0.2)),
+        r: round(Math.max(2, blob.r * 0.34)),
       })
     }
   }
 
   if (g >= FRUIT_AT) {
-    const density = 0.14 + clamp01((g - FRUIT_AT) / (1 - FRUIT_AT)) * 0.16
+    const density = 0.2 + clamp01((g - FRUIT_AT) / (1 - FRUIT_AT)) * 0.18
     for (const blob of leaves) {
       if (rand() > density) continue
       fruits.push({
         // ผลห้อยใต้พุ่มเสมอ ถ้าโผล่ด้านบนจะดูเหมือนลอยอยู่เหนือใบ
         x: round(blob.x + (rand() - 0.5) * blob.r * 0.8),
         y: round(blob.y + blob.r * 0.42),
-        r: round(Math.max(1.6, blob.r * 0.26)),
+        r: round(Math.max(2.4, blob.r * 0.36)),
       })
     }
   }
+
+  const halfWidth = Math.max(Math.abs(minX), Math.abs(maxX)) + 2
 
   return {
     phase: 'tree',
@@ -385,7 +417,9 @@ function buildTree(rand: () => number, g: number, detail: TreeDetail): TreeArt {
     leaves,
     flowers,
     fruits,
-    halfWidth: Math.max(Math.abs(minX), Math.abs(maxX)) + 2,
+    halfWidth,
     height: Math.abs(topY) + 4,
+    // เงาทอดพื้นกว้างๆ เฉพาะช่วง "ติดผล → ไม้ใหญ่ให้ร่มเงา" — เป็นตัวบอก "ร่มเงา" ที่อ่านออกในแถบระยะ
+    groundShade: shadeF > 0.01 ? halfWidth * (0.9 + shadeF * 0.5) : 0,
   }
 }

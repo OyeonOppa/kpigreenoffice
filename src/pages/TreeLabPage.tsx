@@ -20,17 +20,18 @@ export default function TreeLabPage() {
   const [growth, setGrowth] = useState(0.5)
   const [forestSize, setForestSize] = useState(48)
 
+  const cell = 150
+
   const stageArts = useMemo(
     () => TREE_STAGES.map((s) => ({ ...s, art: buildTreeArt(seed, s.growth, 'full') })),
     [seed],
   )
   const tallest = Math.max(...stageArts.map((s) => s.art.height))
-  // ยึดพื้นเหมือนแถบระยะในหน้าป่า — ระยะแรกๆ ต้องเห็นรูปร่าง ไม่ใช่เป็นจุด
+  const widest = Math.max(...stageArts.map((s) => s.art.halfWidth))
+  // สเกลร่วมเหมือนแถบระยะในหน้าป่า — ระยะหลังตัวใหญ่ขึ้นจริง ระยะแรกๆ ดันขึ้นให้พอเห็นรูปร่าง
+  const base = Math.min((cell * 0.86) / tallest, (cell * 0.5) / widest)
   const scaleOf = (a: { height: number; halfWidth: number }) =>
-    Math.min(
-      (cell * 0.86) / Math.max(a.height, tallest * 0.26),
-      (cell * 0.54) / Math.max(a.halfWidth, 1),
-    )
+    a.height * base < cell * 0.24 ? (cell * 0.24) / a.height : base
 
   const forestTrees = useMemo(
     () =>
@@ -40,8 +41,6 @@ export default function TreeLabPage() {
       })),
     [forestSize],
   )
-
-  const cell = 150
 
   return (
     <div className="min-h-dvh bg-canvas p-6">

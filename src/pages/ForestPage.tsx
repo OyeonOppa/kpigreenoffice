@@ -480,20 +480,20 @@ function ForestView({
  */
 function StageRail({ current }: { current: number }) {
   const cell = 46
+  // 'full' ไม่ใช่ 'simple' — มีแค่ 10 ต้น ไม่ใช่ป่า 250 ต้น จึงเก็บดอก/ผล/ใบปลายกิ่งไว้ได้
+  // ('simple' ตัดสิ่งพวกนี้ทิ้ง ทำให้ระยะ ออกดอก/ติดผล/ไม้ใหญ่ ดูเหมือนกันหมด)
   const arts = useMemo(
-    () => TREE_STAGES.map((s, i) => buildTreeArt(`stage-${i}`, s.growth, 'simple')),
+    () => TREE_STAGES.map((s, i) => buildTreeArt(`stage-${i}`, s.growth, 'full')),
     [],
   )
   const tallest = Math.max(...arts.map((a) => a.height))
-  // ยึดพื้นความสูงไว้ที่ 26% ของต้นใหญ่สุด — ถ้าย่อตามสัดส่วนจริงล้วน
-  // เมล็ดกับหน่ออ่อนจะเหลือแค่จุดสองพิกเซล ซึ่งทำให้แถบนี้ไม่ตอบโจทย์ที่มันมีอยู่
-  // (บอกว่าระยะถัดไปหน้าตายังไง) ส่วนขนาดจริงเทียบกันดูได้จากป่าอยู่แล้ว
-  // ย่อให้พอดีช่องทั้งด้านสูงและด้านกว้าง — ไม้ใหญ่ทรงพุ่มกว้างจะได้ไม่ล้นไปทับช่องข้างๆ
+  const widest = Math.max(...arts.map((a) => a.halfWidth))
+  // สเกลร่วมก้อนเดียวสำหรับทุกระยะ — ระยะหลังจึงตัวใหญ่ขึ้นจริงเมื่อเทียบกัน
+  // ไม่ใช่ย่อแต่ละต้นให้เต็มช่องเท่ากันจนดูขนาดเดียว
+  const base = Math.min((cell * 0.82) / tallest, (cell * 0.46) / widest)
+  // เมล็ด/หน่ออ่อน เล็กจนเป็นจุด — ดันขึ้นให้พอเห็นรูปร่าง ระยะอื่นใช้สเกลร่วมตามสัดส่วนจริง
   const scaleOf = (a: { height: number; halfWidth: number }) =>
-    Math.min(
-      (cell * 0.8) / Math.max(a.height, tallest * 0.26),
-      (cell * 0.52) / Math.max(a.halfWidth, 1),
-    )
+    a.height * base < cell * 0.24 ? (cell * 0.24) / a.height : base
 
   return (
     <div className="pop-card p-3 sm:p-4 mb-3 overflow-x-auto">
