@@ -37,9 +37,9 @@
   //   5. node scripts/gen-users.mjs <ไฟล์รายชื่อ.csv>
   //      npx --prefix worker wrangler d1 execute kpi-forest --remote --file=seed/users.sql
   //
-  // "d1_databases": [
-  //   { "binding": "DB", "database_name": "kpi-forest", "database_id": "PUT-D1-DATABASE-ID-HERE" }
-  // ],
+  "d1_databases": [
+    { "binding": "DB", "database_name": "kpi-forest", "database_id": "0dc0c24d-d57c-42d4-93c9-9cf706489b2e" }
+  ],
 
   "vars": {
     // เว็บที่เปิด WebSocket มาที่ห้องนี้ได้ (คั่นด้วย , — เทียบแบบตรงตัว ไม่มี wildcard)
