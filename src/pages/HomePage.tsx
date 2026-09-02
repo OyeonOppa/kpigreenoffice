@@ -11,13 +11,14 @@ import PhilosophySection from '../components/PhilosophySection'
 import ServicesSection from '../components/ServicesSection'
 import MediaSection from '../components/MediaSection'
 import PartnersSection from '../components/PartnersSection'
-import DashboardSection from '../components/DashboardSection'
 import Footer from '../components/Footer'
 import BackToTop from '../components/BackToTop'
 
 // ลำดับ section ตรงกับลำดับเมนูใน NAV_LINKS:
 //   นโยบาย (#about → #goals → #actions) · Knowledge (#climate → #three-r → #waste → #media)
-//   Game (#games) · ความร่วมมือ (#partners) · ผลลัพธ์ (#dashboard)
+//   Game (#games) · ความร่วมมือ (#partners)
+// "ผลลัพธ์ของทั้งองค์กร" (#dashboard) ย้ายเข้าไปอยู่ใน HeroSection แล้ว —
+// hero เป็นภาพรวมพลังองค์กรทั้งหมด ทั้งป่า 3R และคาร์บอนที่ลดได้จริง
 export default function HomePage() {
   return (
     <main className="bg-canvas min-h-screen">
@@ -34,7 +35,6 @@ export default function HomePage() {
       <ServicesSection />
       <MediaSection />
       <PartnersSection />
-      <DashboardSection />
       <Footer />
       <BackToTop />
     </main>

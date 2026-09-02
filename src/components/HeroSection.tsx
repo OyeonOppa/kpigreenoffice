@@ -1,12 +1,12 @@
 import { useRef, useState } from 'react'
 import { Globe, LogIn, Mail, Phone, Sprout } from 'lucide-react'
 import { useVideoCrossfade } from '../hooks/useVideoCrossfade'
-import { FOREST, ORG_TREE, VIDEO_URLS, IMAGE_URLS, USE_STATIC_IMAGES } from '../content'
+import { DASHBOARD, FOREST, ORG_TREE, VIDEO_URLS, IMAGE_URLS, USE_STATIC_IMAGES } from '../content'
 import { DAILY_CAP, stageOf, treeSeed, type ForestMember, type OrgSnapshot } from '../forest'
 import { useForest, useForestAuth, useOrgForest } from '../forest/hooks'
 import ForestSvg from './tree/ForestSvg'
 import MediaBackground from './MediaBackground'
-import LiveEnvWidget from './LiveEnvWidget'
+import ImpactStats from './ImpactStats'
 import SignInDialog from './SignInDialog'
 
 const nf = new Intl.NumberFormat('th-TH')
@@ -77,8 +77,19 @@ export default function HeroSection() {
           </div>
         </div>
 
-        <div className="w-full max-w-3xl mx-auto mt-10 md:mt-12">
-          <LiveEnvWidget />
+        {/* ผลลัพธ์ของทั้งองค์กรอยู่ใน hero เลย — hero คือภาพรวมพลังขององค์กรทั้งหมด
+            ทั้งป่า 3R (แต้มกิจกรรม) และคาร์บอนที่คณะทำงานลดได้จริง อยู่หน้าจอเดียวกัน
+            id="dashboard" ให้เมนู "ผลลัพธ์" กับการ์ดทางลัดเลื่อนมาที่นี่ */}
+        <div
+          id="dashboard"
+          className="w-full max-w-6xl mx-auto mt-12 md:mt-16 scroll-mt-24"
+        >
+          <p className="text-accent-deep text-xs sm:text-sm font-medium tracking-widest uppercase text-center mb-3">
+            {DASHBOARD.heading}
+          </p>
+          <div className="liquid-glass liquid-glass-nav rounded-3xl px-4 sm:px-6 py-6 sm:py-8">
+            <ImpactStats />
+          </div>
         </div>
       </div>
 
