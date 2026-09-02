@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { AlertCircle, Check, ExternalLink, Shuffle, X } from 'lucide-react'
+import { AlertCircle, Check, ChevronDown, ExternalLink, Shuffle, X } from 'lucide-react'
 import { AVATAR_PARTS, WASTE } from '../content'
 import { LIVE_CONFIG, backend, type AvatarLook, type BinId, type RoomSnapshot } from '../game'
 import { lookFromSeed, randomLook, ringStyle } from '../game/avatar'
@@ -200,11 +200,27 @@ function AvatarStudio({
     { key: 'badge' as const, label: 'เหรียญ', options: AVATAR_PARTS.badges, cols: 'grid-cols-6' },
   ]
 
+  // ยุบรายละเอียดการแต่งตัวไว้ก่อน — งานวันเปิดตัวคนต่อคิวเข้าห้องพร้อมกัน
+  // ปุ่ม "เข้าห้อง" ต้องอยู่ในจอโดยไม่ต้องเลื่อนผ่านสี/กรอบ/สัตว์ 28 ตัว/เหรียญ
+  // คนที่อยากแต่งกดเปิดเองได้ คนที่ไม่แต่งได้ลุคสุ่มที่ไม่ซ้ำกันอยู่แล้ว
+  const [open, setOpen] = useState(false)
+
   return (
     <div className="mb-5">
       <div className="flex items-center gap-3 mb-3">
         <PlayerAvatar look={look} size={60} />
-        <p className="flex-1 min-w-0 text-ink text-sm font-medium">แต่งตัวละคร</p>
+        <div className="flex-1 min-w-0">
+          <p className="text-ink text-sm font-medium">ตัวละครของคุณ</p>
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="text-accent-deep text-xs inline-flex items-center gap-1 mt-0.5"
+            aria-expanded={open}
+          >
+            {open ? 'ซ่อน' : 'แต่งเพิ่ม'}
+            <ChevronDown size={13} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
         <button
           type="button"
           onClick={() => onChange(randomLook())}
@@ -214,6 +230,8 @@ function AvatarStudio({
         </button>
       </div>
 
+      {!open ? null : (
+      <>
       <p className="text-ink/60 text-xs mb-1.5">สีพื้น</p>
       <div className="grid grid-cols-8 gap-1.5 mb-3">
         {AVATAR_PARTS.colors.map((c) => (
@@ -270,6 +288,8 @@ function AvatarStudio({
           </div>
         </div>
       ))}
+      </>
+      )}
     </div>
   )
 }

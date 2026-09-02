@@ -345,11 +345,34 @@ function PhaseProgressBar({ endsAt, totalMs }: { endsAt: number; totalMs: number
   )
 }
 
+function HostCountdownNumber({ endsAt }: { endsAt: number }) {
+  const now = useNow()
+  const seconds = Math.max(0, Math.ceil((endsAt - now) / 1000))
+  const urgent = seconds <= 3
+
+  return (
+    <div className="flex items-baseline justify-center gap-2 mb-2 shrink-0">
+      <motion.span
+        key={seconds}
+        initial={{ scale: urgent ? 1.35 : 1, opacity: 0.6 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.25 }}
+        className="font-display tabular leading-none text-6xl sm:text-8xl 2xl:text-9xl"
+        style={{ color: urgent ? 'oklch(58% 0.21 28)' : 'var(--color-accent-deep)' }}
+      >
+        {seconds}
+      </motion.span>
+      <span className="text-ink/50 text-lg sm:text-2xl">วินาที</span>
+    </div>
+  )
+}
+
 function HostAnswering({ room }: { room: RoomSnapshot }) {
   const endsAt = (room.round?.startedAt ?? 0) + LIVE_CONFIG.answerMs
 
   return (
     <div className="h-full flex flex-col">
+      <HostCountdownNumber endsAt={endsAt} />
       <PhaseProgressBar endsAt={endsAt} totalMs={LIVE_CONFIG.answerMs} />
 
       <div className="flex-1 min-h-0 grid lg:grid-cols-2 gap-6 items-center">

@@ -140,15 +140,16 @@ export default function TreeSvg({
 }: TreeSvgProps) {
   const art = useMemo(() => buildTreeArt(seed, growth, detail), [seed, growth, detail])
 
-  // ยึดกรอบขั้นต่ำไว้ที่ขนาดไม้ใหญ่ประมาณหนึ่ง เพื่อให้ "ต้นเล็ก" ดูเล็กจริงเมื่อเทียบกับกรอบ
+  // ยึดกรอบขั้นต่ำไว้พอให้ "ต้นเล็ก" ดูเล็กจริงเมื่อเทียบกับกรอบ แต่ไม่สูงเกินจน
+  // การ์ด "ต้นของฉัน" บนมือถือกลายเป็นช่องว่างครึ่งจอตอนยังเป็นเมล็ด (กรอบกว้างกว่าสูง ~1.7:1)
   const halfW = Math.max(96, art.halfWidth + 8)
-  const top = -Math.max(150, art.height + 10)
+  const top = -Math.max(110, art.height + 10)
 
   return (
     <div className={className ?? 'relative w-full max-w-xs sm:max-w-sm'}>
       <svg
         viewBox={`${-halfW} ${top} ${halfW * 2} ${-top + 14}`}
-        className="w-full h-auto overflow-visible"
+        className="w-full h-auto max-h-[70vh] overflow-visible"
         role="img"
         aria-label={label ?? `ต้นไม้ เติบโต ${Math.round(growth * 100)} เปอร์เซ็นต์`}
       >
