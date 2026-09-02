@@ -1,26 +1,26 @@
 import { useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
 import {
-  BookOpenText,
   Calculator,
   ChartLine,
   FileCheck2,
   Gamepad2,
-  Handshake,
-  ListChecks,
+  Newspaper,
+  Sprout,
   Trash2,
+  Trophy,
   type LucideIcon,
 } from 'lucide-react'
 import { QUICK_ACTIONS } from '../content'
 
 const ICONS: Record<(typeof QUICK_ACTIONS)[number]['id'], LucideIcon> = {
-  policy: FileCheck2,
+  forest: Sprout,
+  live: Trophy,
   calculator: Calculator,
   game: Gamepad2,
+  policy: FileCheck2,
   bins: Trash2,
-  actions: ListChecks,
-  media: BookOpenText,
-  partners: Handshake,
+  media: Newspaper,
   dashboard: ChartLine,
 }
 

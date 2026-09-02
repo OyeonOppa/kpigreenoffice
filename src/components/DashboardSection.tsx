@@ -1,35 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
 import { DASHBOARD } from '../content'
+import ImpactStats from './ImpactStats'
 
-function CountUp({ target, decimals, start }: { target: number; decimals: number; start: boolean }) {
-  const [value, setValue] = useState(0)
-
-  useEffect(() => {
-    if (!start) return
-    let rafId = 0
-    const t0 = performance.now()
-    const duration = 1500
-    const tick = (now: number) => {
-      const t = Math.min((now - t0) / duration, 1)
-      const eased = 1 - Math.pow(1 - t, 3)
-      setValue(target * eased)
-      if (t < 1) rafId = requestAnimationFrame(tick)
-    }
-    rafId = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(rafId)
-  }, [start, target])
-
-  return (
-    <>
-      {value.toLocaleString('th-TH', {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals,
-      })}
-    </>
-  )
-}
-
+// หมวด "ผลลัพธ์" — ตัวเลขทั้งหมดมาจาก ORG_IMPACT ผ่าน ImpactStats แหล่งเดียว
 export default function DashboardSection() {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: '-100px' })
@@ -59,33 +33,13 @@ export default function DashboardSection() {
           {DASHBOARD.heading}
         </motion.h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-10">
-          {DASHBOARD.stats.map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 50 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.8, delay: 0.2 + i * 0.15 }}
-              className="liquid-glass rounded-3xl p-8 md:p-10 text-center"
-            >
-              <div className="text-4xl mb-4">{stat.emoji}</div>
-              <p className="font-display text-5xl md:text-6xl text-accent-deep mb-1">
-                <CountUp target={stat.value} decimals={stat.decimals} start={isInView} />
-              </p>
-              <p className="text-ink/65 text-sm mb-4">{stat.unit}</p>
-              <p className="text-ink/65 text-sm">{stat.label}</p>
-            </motion.div>
-          ))}
-        </div>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={isInView ? { opacity: 1 } : {}}
-          transition={{ duration: 0.8, delay: 0.6 }}
-          className="text-ink/65 text-sm text-center"
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.8, delay: 0.2 }}
         >
-          {DASHBOARD.note}
-        </motion.p>
+          <ImpactStats />
+        </motion.div>
       </div>
     </section>
   )

@@ -7,7 +7,6 @@ import { useForest, useForestAuth, useOrgForest } from '../forest/hooks'
 import ForestSvg from './tree/ForestSvg'
 import MediaBackground from './MediaBackground'
 import LiveEnvWidget from './LiveEnvWidget'
-import HeroStats from './HeroStats'
 import SignInDialog from './SignInDialog'
 
 const nf = new Intl.NumberFormat('th-TH')
@@ -71,10 +70,6 @@ export default function HeroSection() {
               onSignIn={() => setSignInOpen(true)}
             />
           )}
-        </div>
-
-        <div className="w-full max-w-6xl mx-auto mt-10 md:mt-12">
-          <HeroStats />
         </div>
 
         <div className="w-full max-w-3xl mx-auto mt-10 md:mt-12">

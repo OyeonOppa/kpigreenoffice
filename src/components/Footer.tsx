@@ -2,6 +2,10 @@ import { Mail, MapPin, Phone } from 'lucide-react'
 import { FOOTER, NAV_LINKS, SITE_NAME } from '../content'
 
 export default function Footer() {
+  // ช่องที่ยังไม่มีข้อมูลจริงจะไม่ถูกแสดง — ไม่โชว์เบอร์/อีเมลปลอมบนเว็บจริง
+  const { address, phone, email } = FOOTER.contact
+  const hasContact = Boolean(address || phone || email)
+
   return (
     <footer id="contact" className="bg-canvas border-t border-line px-6 pt-16 pb-8 scroll-mt-24">
       <div className="max-w-6xl mx-auto">
@@ -36,17 +40,33 @@ export default function Footer() {
 
           <div>
             <p className="text-ink font-medium text-sm mb-4">ติดต่อเรา</p>
-            <ul className="flex flex-col gap-2.5 text-ink/65 text-sm">
-              <li className="flex items-start gap-2">
-                <MapPin size={15} className="mt-0.5 shrink-0" /> {FOOTER.contact.address}
-              </li>
-              <li className="flex items-center gap-2">
-                <Phone size={15} className="shrink-0" /> {FOOTER.contact.phone}
-              </li>
-              <li className="flex items-center gap-2">
-                <Mail size={15} className="shrink-0" /> {FOOTER.contact.email}
-              </li>
-            </ul>
+            {hasContact ? (
+              <ul className="flex flex-col gap-2.5 text-ink/65 text-sm">
+                {FOOTER.contact.address && (
+                  <li className="flex items-start gap-2">
+                    <MapPin size={15} className="mt-0.5 shrink-0" /> {FOOTER.contact.address}
+                  </li>
+                )}
+                {FOOTER.contact.phone && (
+                  <li className="flex items-center gap-2">
+                    <Phone size={15} className="shrink-0" />
+                    <a href={`tel:${FOOTER.contact.phone}`} className="hover:text-ink transition-colors">
+                      {FOOTER.contact.phone}
+                    </a>
+                  </li>
+                )}
+                {FOOTER.contact.email && (
+                  <li className="flex items-center gap-2">
+                    <Mail size={15} className="shrink-0" />
+                    <a href={`mailto:${FOOTER.contact.email}`} className="hover:text-ink transition-colors">
+                      {FOOTER.contact.email}
+                    </a>
+                  </li>
+                )}
+              </ul>
+            ) : (
+              <p className="text-ink/55 text-sm">{FOOTER.contactPending}</p>
+            )}
           </div>
         </div>
 

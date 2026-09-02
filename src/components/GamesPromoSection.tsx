@@ -8,7 +8,11 @@ export default function GamesPromoSection() {
   const isInView = useInView(ref, { once: true, margin: '-100px' })
 
   return (
-    <section ref={ref} className="bg-canvas py-20 md:py-28 px-6 overflow-hidden">
+    <section
+      id="games"
+      ref={ref}
+      className="bg-canvas py-20 md:py-28 px-6 overflow-hidden scroll-mt-24"
+    >
       <div className="max-w-6xl mx-auto">
         <motion.p
           initial={{ opacity: 0, y: 20 }}
