@@ -101,11 +101,15 @@ export default function SignInDialog({ open, onClose }: { open: boolean; onClose
               onChange={(e) => setUsername(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && void submit()}
               placeholder="เช่น somchai.j"
+              aria-describedby="signin-username-hint"
               className="w-full rounded-2xl border-2 border-line bg-surface px-4 py-2.5 outline-none focus:border-accent"
             />
+            <p id="signin-username-hint" className="text-ink/50 text-xs mt-1 leading-relaxed">
+              {FOREST.auth.usernameHint}
+            </p>
 
             <label className="block text-ink/70 text-sm mb-1 mt-3" htmlFor="signin-password">
-              รหัสผ่าน (รหัสพนักงาน)
+              รหัสผ่าน
             </label>
             <input
               id="signin-password"
@@ -114,8 +118,12 @@ export default function SignInDialog({ open, onClose }: { open: boolean; onClose
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && void submit()}
+              aria-describedby="signin-password-hint"
               className="w-full rounded-2xl border-2 border-line bg-surface px-4 py-2.5 outline-none focus:border-accent"
             />
+            <p id="signin-password-hint" className="text-ink/50 text-xs mt-1 leading-relaxed">
+              {FOREST.auth.passwordHint}
+            </p>
 
             {error && <p className="text-red-600 text-xs mt-2">{error}</p>}
 
