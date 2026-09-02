@@ -150,7 +150,7 @@ function OrgStrip({
           className="liquid-glass rounded-full px-6 py-2.5 mt-5 text-ink text-sm font-medium hover:bg-ink/5 transition-colors inline-flex items-center gap-2"
         >
           <Sprout size={16} className="text-accent" />
-          ปลูกต้นของฉัน
+          ปลูกต้นไม้ของฉัน
         </a>
       ) : (
         <button
@@ -159,7 +159,7 @@ function OrgStrip({
           className="liquid-glass rounded-full px-6 py-2.5 mt-5 text-ink text-sm font-medium hover:bg-ink/5 transition-colors inline-flex items-center gap-2"
         >
           <LogIn size={16} />
-          เข้าสู่ระบบเพื่อปลูกต้นของฉัน
+          เข้าสู่ระบบเพื่อปลูกต้นไม้ของฉัน
         </button>
       )}
     </div>

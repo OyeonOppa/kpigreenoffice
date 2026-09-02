@@ -160,6 +160,14 @@ function toOrg(w: WireOrg): OrgSnapshot {
 
 // ---------- polling ----------
 
+/** tick ของ poll ที่ยัง subscribe อยู่ — mutation เรียกให้ดึงข้อมูลใหม่ทันที ไม่ต้องรอครบ POLL_MS */
+const activePolls = new Set<() => void>()
+
+/** เรียกหลัง mutation สำเร็จ — สวน/ต้น/แต้ม อัปเดตทันทีโดยไม่ต้องรีเฟรชหน้า */
+function pokePolls() {
+  for (const tick of activePolls) void tick()
+}
+
 function poll<T>(fetcher: () => Promise<T | null>, cb: (v: T) => void): () => void {
   let stopped = false
   const tick = async () => {
@@ -168,9 +176,11 @@ function poll<T>(fetcher: () => Promise<T | null>, cb: (v: T) => void): () => vo
   }
   void tick()
   const timer = setInterval(tick, POLL_MS)
+  activePolls.add(tick)
   return () => {
     stopped = true
     clearInterval(timer)
+    activePolls.delete(tick)
   }
 }
 
@@ -228,7 +238,7 @@ export const cloudflareForestBackend: ForestBackend = {
 
   async saveProfile(_uid, profile: ForestProfile) {
     await api('/api/forest/profile', { method: 'POST', auth: true, body: { look: profile.look } })
-    // ให้ผู้ที่ subscribe อยู่เห็นผลรอบถัดไปเอง (poll) — ไม่มี push
+    pokePolls()
   },
 
   async logActivity(_uid, activityId): Promise<LogResult> {
@@ -238,6 +248,7 @@ export const cloudflareForestBackend: ForestBackend = {
       body: { activityId },
     })
     if (!ok) return { ok: false, reason: 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง' }
+    if (data.ok) pokePolls()
     return data
   },
 
@@ -248,6 +259,7 @@ export const cloudflareForestBackend: ForestBackend = {
       body: { uid, points, note },
     })
     if (!ok) return { ok: false, reason: 'ให้แต้มไม่สำเร็จ' }
+    if (data.ok) pokePolls()
     return data
   },
 

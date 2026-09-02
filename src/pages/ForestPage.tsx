@@ -183,7 +183,7 @@ function PlantCard({ user }: { user: ForestUser }) {
           disabled={saving}
           className="pop-btn w-full bg-accent-deep text-white py-3 font-medium disabled:opacity-50"
         >
-          {saving ? 'กำลังปลูก…' : 'ปลูกต้นของฉัน'}
+          {saving ? 'กำลังปลูก…' : 'ปลูกต้นไม้ของฉัน'}
         </button>
         <p className="text-ink/40 text-xs text-center mt-3">เปลี่ยนตัวละครทีหลังได้จากหน้าต้นของฉัน</p>
       </div>
