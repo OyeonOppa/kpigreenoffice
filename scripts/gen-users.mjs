@@ -200,11 +200,13 @@ const lines = [
   '',
 ]
 for (const u of users) {
+  // must_change_pw = 1 ตอนสร้าง — บังคับตั้งรหัสใหม่ตอนเข้าครั้งแรก
+  // รันซ้ำเพื่อแก้ชื่อ/สำนัก จงใจไม่แตะ pw_hash/pw_salt/must_change_pw จะได้ไม่รีเซ็ตรหัสที่ผู้ใช้เปลี่ยนเอง
   lines.push(
-    `INSERT INTO forest_users (uid, username, email, name, nickname, team, role, pw_hash, pw_salt, created_at)\n` +
-      `VALUES (${sql(u.uid)}, ${sql(u.username)}, ${sql(u.email)}, ${sql(u.name)}, ${sql(u.nickname)}, ${sql(u.team)}, ${sql(u.role)}, ${sql(u.pwHash)}, ${sql(u.saltHex)}, ${now})\n` +
+    `INSERT INTO forest_users (uid, username, email, name, nickname, team, role, pw_hash, pw_salt, must_change_pw, created_at)\n` +
+      `VALUES (${sql(u.uid)}, ${sql(u.username)}, ${sql(u.email)}, ${sql(u.name)}, ${sql(u.nickname)}, ${sql(u.team)}, ${sql(u.role)}, ${sql(u.pwHash)}, ${sql(u.saltHex)}, 1, ${now})\n` +
       `ON CONFLICT(uid) DO UPDATE SET username=excluded.username, email=excluded.email, name=excluded.name,\n` +
-      `  nickname=excluded.nickname, team=excluded.team, role=excluded.role, pw_hash=excluded.pw_hash, pw_salt=excluded.pw_salt;`,
+      `  nickname=excluded.nickname, team=excluded.team, role=excluded.role;`,
   )
 }
 lines.push('')

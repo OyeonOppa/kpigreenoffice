@@ -200,6 +200,20 @@ export const cloudflareForestBackend: ForestBackend = {
     setSession(null, null)
   },
 
+  async changePassword(newPassword) {
+    const { ok, data } = await api<{ ok?: boolean; reason?: string }>('/api/forest/password', {
+      method: 'POST',
+      auth: true,
+      body: { newPassword },
+    })
+    if (!ok || !data.ok) {
+      return { ok: false, reason: data.reason ?? 'ตั้งรหัสผ่านใหม่ไม่สำเร็จ' }
+    }
+    const user = readUser()
+    if (user) setSession(readToken(), { ...user, mustChangePassword: false })
+    return { ok: true }
+  },
+
   onAuthChanged(cb) {
     authListeners.add(cb)
     cb(readUser())

@@ -117,7 +117,7 @@ const authListeners = new Set<(u: ForestUser | null) => void>()
  * รหัสคือ "รหัสพนักงาน" ตามที่ตกลงไว้ ในโหมดจำลองตั้งเลขสั้นๆ พอ
  */
 const DEMO_USERS: (ForestUser & { password: string })[] = [
-  { uid: 'u-demo1', username: 'demo1', password: '1111', name: 'สมชาย ใจดี (ตัวอย่าง)', nickname: 'ชาย', team: '(ตัวอย่าง) สำนักงานเลขาธิการ', role: 'member' },
+  { uid: 'u-demo1', username: 'demo1', password: '1111', name: 'สมชาย ใจดี (ตัวอย่าง)', nickname: 'ชาย', team: '(ตัวอย่าง) สำนักงานเลขาธิการ', role: 'member', mustChangePassword: true },
   { uid: 'u-demo2', username: 'demo2', password: '2222', name: 'สมหญิง รักษ์โลก (ตัวอย่าง)', nickname: 'หญิง', team: '(ตัวอย่าง) สำนักงานเลขาธิการ', role: 'member' },
   { uid: 'u-demo3', username: 'demo3', password: '3333', name: 'อนุชา ประหยัด (ตัวอย่าง)', nickname: 'ชา', team: '(ตัวอย่าง) สำนักวิจัยและพัฒนา', role: 'member' },
   { uid: 'u-staff', username: 'staff', password: 'staff', name: 'เจ้าหน้าที่ 3R (ตัวอย่าง)', nickname: 'สตาฟ', team: '(ตัวอย่าง) สำนักงานเลขาธิการ', role: 'staff' },
@@ -252,6 +252,22 @@ export const mockForestBackend: ForestBackend = {
 
   signOut() {
     writeAuth(null)
+  },
+
+  async changePassword(newPassword) {
+    const pw = newPassword.trim()
+    if (pw.length < 6) return { ok: false, reason: 'รหัสผ่านต้องยาวอย่างน้อย 6 ตัว' }
+    const current = readAuth()
+    if (!current) return { ok: false, reason: 'ต้องเข้าสู่ระบบก่อน' }
+    // โหมดจำลอง: อัปเดตรหัสในหน่วยความจำ (รีเซ็ตเมื่อรีโหลด) แล้วปลดธงบังคับเปลี่ยน
+    const match = DEMO_USERS.find((d) => d.uid === current.uid)
+    if (match && pw === match.password) return { ok: false, reason: 'ตั้งรหัสใหม่ที่ไม่ซ้ำรหัสเดิม' }
+    if (match) {
+      match.password = pw
+      match.mustChangePassword = false
+    }
+    writeAuth({ ...current, mustChangePassword: false })
+    return { ok: true }
   },
 
   onAuthChanged(cb) {

@@ -24,6 +24,8 @@ export interface ForestUser {
   team: string
   /** 'staff' = กดให้แต้มคนอื่นได้ (หน้า #/forest/staff) */
   role: 'member' | 'staff'
+  /** true = ยังใช้รหัสพนักงานเป็นรหัสผ่าน ต้องตั้งรหัสใหม่ก่อนใช้งานต่อ */
+  mustChangePassword?: boolean
 }
 
 /**

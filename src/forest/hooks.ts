@@ -18,7 +18,16 @@ export function useForestAuth() {
     }
   }, [])
 
-  return { user, busy, signIn, signOut: forestBackend.signOut }
+  const changePassword = useCallback(async (newPassword: string) => {
+    setBusy(true)
+    try {
+      return await forestBackend.changePassword(newPassword)
+    } finally {
+      setBusy(false)
+    }
+  }, [])
+
+  return { user, busy, signIn, changePassword, signOut: forestBackend.signOut }
 }
 
 /**

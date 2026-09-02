@@ -56,6 +56,12 @@ export interface ForestBackend {
   onAuthChanged(cb: (user: ForestUser | null) => void): () => void
 
   /**
+   * ตั้งรหัสผ่านใหม่ให้คนที่ล็อกอินอยู่ — ใช้ตอนถูกบังคับเปลี่ยนครั้งแรก (mustChangePassword)
+   * สำเร็จแล้ว currentUser().mustChangePassword จะกลายเป็น false
+   */
+  changePassword(newPassword: string): Promise<{ ok: boolean; reason?: string }>
+
+  /**
    * ยอดรวมทั้งหน่วยงานสำหรับต้นไม้องค์กรในหน้าแรก — คนที่ยังไม่ล็อกอินก็เรียกได้
    *
    * ของจริงให้ตอบจากค่าที่สรุปไว้แล้ว (นับใหม่ตอนมีคนได้แต้ม) ไม่ใช่ไล่รวมทั้งตารางทุกครั้ง

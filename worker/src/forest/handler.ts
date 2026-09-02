@@ -7,7 +7,7 @@
  * (ดูโน้ตเดียวกันใน src/forest/backend.ts)
  */
 import { ACTIVITY_POINTS, DAILY_CAP, GARDEN_MAX } from './activities'
-import { issueToken, verifyPassword, verifyToken } from './crypto'
+import { hashPassword, issueToken, randomSaltHex, verifyPassword, verifyToken } from './crypto'
 
 export interface ForestEnv {
   DB?: D1Database
@@ -28,6 +28,7 @@ interface UserRow {
   role: string
   pw_hash: string
   pw_salt: string
+  must_change_pw: number
   look_json: string | null
   points: number
   updated_at: number
@@ -70,6 +71,8 @@ function publicUser(row: UserRow) {
     team: row.team,
     role: row.role,
     look: parseLook(row),
+    // ยังใช้รหัสพนักงานเป็นรหัสผ่านอยู่ — หน้าจอบังคับให้ตั้งใหม่ก่อนใช้งานต่อ
+    mustChangePassword: row.must_change_pw !== 0,
   }
 }
 
@@ -150,6 +153,26 @@ export async function handleForest(
 
   if (path === '/api/forest/session' && request.method === 'GET') {
     return json({ user: publicUser(me) }, 200, cors)
+  }
+
+  // ---- ตั้งรหัสผ่านใหม่ (บังคับตอนเข้าครั้งแรก แต่เรียกซ้ำเปลี่ยนรหัสทีหลังก็ได้) ----
+  if (path === '/api/forest/password' && request.method === 'POST') {
+    const body = (await request.json().catch(() => ({}))) as { newPassword?: string }
+    const newPassword = (body.newPassword ?? '').trim()
+    if (newPassword.length < 6) {
+      return json({ ok: false, reason: 'รหัสผ่านต้องยาวอย่างน้อย 6 ตัว' }, 200, cors)
+    }
+    if (await verifyPassword(newPassword, me.pw_salt, me.pw_hash)) {
+      return json({ ok: false, reason: 'ตั้งรหัสใหม่ที่ไม่ซ้ำรหัสเดิม' }, 200, cors)
+    }
+    const salt = randomSaltHex()
+    const hash = await hashPassword(newPassword, salt)
+    await env.DB.prepare(
+      'UPDATE forest_users SET pw_hash = ?, pw_salt = ?, must_change_pw = 0, updated_at = ? WHERE uid = ?',
+    )
+      .bind(hash, salt, now, me.uid)
+      .run()
+    return json({ ok: true }, 200, cors)
   }
 
   // ---- เลือก/เปลี่ยนตัวละคร (เขียนได้แค่ look — ชื่อกับสำนักมาจากรายชื่อองค์กร) ----

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Check, Home, QrCode, Shuffle, Sprout, Trees, Users } from 'lucide-react'
+import { Check, Home, KeyRound, QrCode, Shuffle, Sprout, Trees, Users } from 'lucide-react'
 import { FOREST } from '../content'
 import { lookFromSeed, randomLook } from '../game/avatar'
 import SignInDialog from '../components/SignInDialog'
@@ -36,7 +36,7 @@ import { useForest, useForestAuth } from '../forest/hooks'
  */
 
 export default function ForestPage() {
-  const { user, signOut } = useForestAuth()
+  const { user, signOut, changePassword } = useForestAuth()
   const forest = useForest(user?.uid ?? null)
   const [signInOpen, setSignInOpen] = useState(false)
 
@@ -46,6 +46,15 @@ export default function ForestPage() {
       <Shell>
         <SignInPrompt onSignIn={() => setSignInOpen(true)} />
         <SignInDialog open={signInOpen} onClose={() => setSignInOpen(false)} />
+      </Shell>
+    )
+  }
+
+  // เข้าครั้งแรก ยังใช้รหัสพนักงานเป็นรหัสผ่าน — บังคับตั้งรหัสใหม่ก่อน ปิดหน้านี้ไม่ได้จนกว่าจะตั้งเสร็จ
+  if (user.mustChangePassword) {
+    return (
+      <Shell onSignOut={signOut}>
+        <ChangePasswordCard onSubmit={changePassword} />
       </Shell>
     )
   }
@@ -182,6 +191,89 @@ function PlantCard({ user }: { user: ForestUser }) {
   )
 }
 
+
+// ---------- เข้าครั้งแรก: บังคับตั้งรหัสผ่านใหม่ ----------
+
+function ChangePasswordCard({
+  onSubmit,
+}: {
+  onSubmit: (newPassword: string) => Promise<{ ok: boolean; reason?: string }>
+}) {
+  const [pw, setPw] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  const tooShort = pw.length > 0 && pw.length < 6
+  const mismatch = confirm.length > 0 && pw !== confirm
+  const canSubmit = pw.length >= 6 && pw === confirm && !busy
+
+  const submit = async () => {
+    if (!canSubmit) return
+    setBusy(true)
+    setError(null)
+    try {
+      const result = await onSubmit(pw)
+      if (!result.ok) setError(result.reason ?? 'ตั้งรหัสผ่านใหม่ไม่สำเร็จ')
+      // สำเร็จ — auth listener อัปเดต user เอง หน้านี้จะเด้งไปหน้าถัดไป
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="max-w-md mx-auto pt-6">
+      <div className="pop-card p-6">
+        <KeyRound size={34} className="text-accent mx-auto mb-2" />
+        <h1 className="font-display text-xl text-ink text-center mb-1">ตั้งรหัสผ่านใหม่</h1>
+        <p className="text-ink/60 text-sm text-center mb-6">
+          เข้าครั้งแรกยังใช้รหัสพนักงานเป็นรหัสผ่านอยู่ — ตั้งรหัสใหม่ที่รู้คนเดียวก่อนใช้งานต่อ
+        </p>
+
+        <label className="block text-ink/70 text-sm mb-1" htmlFor="new-pw">
+          รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)
+        </label>
+        <input
+          id="new-pw"
+          type="password"
+          autoComplete="new-password"
+          value={pw}
+          onChange={(e) => setPw(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && void submit()}
+          className="w-full rounded-2xl border-2 border-line bg-surface px-4 py-2.5 outline-none focus:border-accent"
+        />
+
+        <label className="block text-ink/70 text-sm mb-1 mt-3" htmlFor="confirm-pw">
+          พิมพ์รหัสใหม่อีกครั้ง
+        </label>
+        <input
+          id="confirm-pw"
+          type="password"
+          autoComplete="new-password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && void submit()}
+          className="w-full rounded-2xl border-2 border-line bg-surface px-4 py-2.5 outline-none focus:border-accent"
+        />
+
+        {(tooShort || mismatch || error) && (
+          <p className="text-red-600 text-xs mt-2">
+            {error ?? (tooShort ? 'รหัสผ่านสั้นเกินไป' : 'รหัสผ่านสองช่องไม่ตรงกัน')}
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={() => void submit()}
+          disabled={!canSubmit}
+          className="pop-btn w-full bg-accent-deep text-white py-3 font-medium mt-4 disabled:opacity-50"
+        >
+          {busy ? 'กำลังบันทึก…' : 'บันทึกรหัสผ่านใหม่'}
+        </button>
+      </div>
+    </div>
+  )
+}
 
 // ---------- หน้าหลัก ----------
 
