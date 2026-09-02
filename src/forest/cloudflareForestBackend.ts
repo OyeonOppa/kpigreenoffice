@@ -21,7 +21,7 @@ import type {
  * ตัวตน: เก็บ "โทเคนที่เซิร์ฟเวอร์เซ็น" ไว้ใน localStorage ไม่เก็บรหัสผ่าน
  * ทุก mutation เซิร์ฟเวอร์อ่าน uid จากโทเคนเอง — ค่า uid ที่หน้าจอส่งมาถือเป็นแค่ใบ้ ไม่เชื่อ
  *
- * เรียลไทม์: ใช้การ poll ทุก POLL_MS วินาที จังหวะแคมเปญนี้ไม่ต้องการความสดระดับวินาที
+ * เรียลไทม์: poll ทุก POLL_MS + สั่งดึงทันทีหลัง action ของตัวเอง (pokePolls) จังหวะแคมเปญนี้ไม่ต้องสดระดับวินาที
  */
 
 const API_BASE = (import.meta.env.VITE_FOREST_API as string | undefined)?.replace(/\/$/, '') ?? ''
@@ -29,7 +29,9 @@ const API_BASE = (import.meta.env.VITE_FOREST_API as string | undefined)?.replac
 const NS = 'kpi-forest'
 const TOKEN_KEY = `${NS}:token`
 const USER_KEY = `${NS}:user`
-const POLL_MS = 20_000
+// 8 วิ — พอให้เห็นแต้มของคนอื่นในสำนักไหลเข้ามาเกือบสด โดยที่ /api/forest/me (คิวรีสวน+ยอดรวม)
+// ยังไม่หนักเกินสำหรับ D1 แม้ทั้งหน่วยงานเปิดหน้าค้างพร้อมกัน · action ของตัวเองรีเฟรชทันทีอยู่แล้ว (pokePolls)
+const POLL_MS = 8_000
 
 // ---------- storage ----------
 
