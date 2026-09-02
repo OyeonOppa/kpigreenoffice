@@ -221,18 +221,21 @@ export async function handleForest(
       (e) => e.source === 'self' && e.day_key === day,
     )
 
+    // สวนของสำนัก/ยอดรวมออฟฟิศ — นับเฉพาะคนที่ปลูกต้นแรกแล้ว (look_json IS NOT NULL)
+    // เหตุผลเดียวกับ /api/forest/org: ไม่งั้นทุกบัญชีที่ seed ไว้ล่วงหน้าแต่ยังไม่เคยล็อกอิน
+    // จะโผล่มาเป็นเมล็ดเต็มสวน (growthFromPoints(0) ของทุกคนหน้าตาเหมือนกันหมด แยกไม่ออกว่าใครทำจริง)
     const gardenRows = await env.DB.prepare(
-      'SELECT uid, name, nickname, team, look_json, points, updated_at FROM forest_users WHERE team = ? ORDER BY points DESC, name ASC LIMIT ?',
+      'SELECT uid, name, nickname, team, look_json, points, updated_at FROM forest_users WHERE team = ? AND look_json IS NOT NULL ORDER BY points DESC, name ASC LIMIT ?',
     )
       .bind(me.team, GARDEN_MAX)
       .all<Pick<UserRow, 'uid' | 'name' | 'nickname' | 'team' | 'look_json' | 'points' | 'updated_at'>>()
     const teamCount = await env.DB.prepare(
-      'SELECT COUNT(*) AS n FROM forest_users WHERE team = ?',
+      'SELECT COUNT(*) AS n FROM forest_users WHERE team = ? AND look_json IS NOT NULL',
     )
       .bind(me.team)
       .first<{ n: number }>()
     const office = await env.DB.prepare(
-      'SELECT COUNT(*) AS n, COALESCE(SUM(points), 0) AS total FROM forest_users',
+      'SELECT COUNT(*) AS n, COALESCE(SUM(points), 0) AS total FROM forest_users WHERE look_json IS NOT NULL',
     ).first<{ n: number; total: number }>()
 
     const toMember = (r: {
