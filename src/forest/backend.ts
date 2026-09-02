@@ -4,6 +4,7 @@ import type {
   ForestMember,
   ForestSnapshot,
   ForestUser,
+  LeaderboardSnapshot,
   LogResult,
   OrgSnapshot,
 } from './types'
@@ -82,6 +83,12 @@ export interface ForestBackend {
   awardPoints(uid: string, points: number, note: string): Promise<LogResult>
 
   subscribeForest(uid: string, cb: (snapshot: ForestSnapshot) => void): () => void
+
+  /**
+   * อันดับคะแนนทั้งหน่วยงาน — ต้องล็อกอิน (ต่างจาก subscribeOrg ที่หน้าแรกใช้ได้โดยไม่ล็อกอิน)
+   * เพราะอันดับนี้มีชื่อคนติดมาด้วย ให้เห็นเฉพาะเพื่อนร่วมงานที่ล็อกอินแล้วเหมือนกัน
+   */
+  subscribeLeaderboard(cb: (lb: LeaderboardSnapshot) => void): () => void
 
   /** รายชื่อทั้งหน่วยงาน — สำหรับหน้าสตาฟ ไม่ใช่หน้าผู้ใช้ทั่วไป (ของจริงเช็คสิทธิ์ที่เซิร์ฟเวอร์) */
   listMembers(): Promise<ForestMember[]>

@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Check, Home, KeyRound, QrCode, Shuffle, Sprout, Trees, Users } from 'lucide-react'
-import { FOREST } from '../content'
+import { Check, Home, KeyRound, QrCode, Shuffle, Sprout, Trees, Trophy, Users } from 'lucide-react'
+import { FOREST, FOREST_BADGES } from '../content'
 import { lookFromSeed, randomLook } from '../game/avatar'
 import SignInDialog from '../components/SignInDialog'
 import { sfx } from '../game/sfx'
 import type { AvatarLook } from '../game'
 import PlayerAvatar from '../components/live/PlayerAvatar'
+import ForestLeaderboard from '../components/ForestLeaderboard'
 import TreeSvg from '../components/tree/TreeSvg'
 import ForestSvg from '../components/tree/ForestSvg'
 import { TREE_STAGES } from '../components/tree/stages'
@@ -25,7 +26,9 @@ import {
   type ForestUser,
   type LogEntry,
 } from '../forest'
-import { useForest, useForestAuth } from '../forest/hooks'
+import { useForest, useForestAuth, useLeaderboard } from '../forest/hooks'
+
+const BADGE_BY_ID = new Map(FOREST_BADGES.map((b) => [b.id, b]))
 
 /**
  * หน้าป่า 3R — ต้นไม้ของฉัน + สวนของสำนัก
@@ -286,10 +289,11 @@ function ForestView({
   forest: ForestSnapshot
   me: ForestMember
 }) {
-  const [view, setView] = useState<'mine' | 'garden'>('mine')
+  const [view, setView] = useState<'mine' | 'garden' | 'rank'>('mine')
   const [toast, setToast] = useState<{ text: string; ok: boolean } | null>(null)
   const [editingLook, setEditingLook] = useState(false)
   const [draftLook, setDraftLook] = useState<AvatarLook>(me.look)
+  const leaderboard = useLeaderboard(view === 'rank')
 
   const gardenTrees = useMemo(
     () => forest.garden.map((m) => ({ seed: treeSeed(m.uid), growth: m.growth })),
@@ -317,7 +321,13 @@ function ForestView({
     const result = await forestBackend.logActivity(uid, activityId)
     if (result.ok) {
       sfx.correct()
-      setToast({ text: `+${result.gained} แต้ม`, ok: true })
+      // ปลดล็อกเหรียญพอดีตอนนี้ — ขึ้นข้อความฉลองแยก ให้เด่นกว่าแค่ +แต้มปกติ
+      const badge = result.earnedBadges?.[0] ? BADGE_BY_ID.get(result.earnedBadges[0]) : null
+      setToast(
+        badge
+          ? { text: `${badge.emoji} ปลดล็อก: ${badge.label}!`, ok: true }
+          : { text: `+${result.gained} แต้ม`, ok: true },
+      )
     } else {
       sfx.wrong()
       setToast({ text: result.reason ?? 'บันทึกไม่สำเร็จ', ok: false })
@@ -412,8 +422,15 @@ function ForestView({
         >
           สวนของสำนัก
         </ViewTab>
+        <ViewTab active={view === 'rank'} onClick={() => setView('rank')} icon={<Trophy size={16} />}>
+          อันดับ
+        </ViewTab>
       </div>
 
+      {view === 'rank' && <ForestLeaderboard lb={leaderboard} meUid={uid} />}
+
+      {view !== 'rank' && (
+      <>
       <div className="pop-card overflow-hidden relative mb-3 px-3 py-4 sm:px-5 sm:py-6">
         {view === 'mine' ? (
           <TreeSvg
@@ -533,6 +550,8 @@ function ForestView({
       </div>
 
       <RecentLog entries={forest.log} />
+      </>
+      )}
 
       <div className="flex items-center justify-center gap-1.5 text-ink/45 text-xs mt-4">
         <Users size={13} />

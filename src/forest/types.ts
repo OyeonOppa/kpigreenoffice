@@ -1,8 +1,9 @@
-import type { FOREST } from '../content'
+import type { FOREST, FOREST_BADGES } from '../content'
 import type { AvatarLook } from '../game/types'
 
 export type ActivityKind = (typeof FOREST.kinds)[number]['id']
 export type ActivityId = (typeof FOREST.activities)[number]['id']
+export type BadgeId = (typeof FOREST_BADGES)[number]['id']
 
 /**
  * ตัวตนของคนที่กำลังใช้หน้าป่า
@@ -102,4 +103,39 @@ export interface LogResult {
   ok: boolean
   reason?: string
   gained?: number
+  /** จำนวนวันต่อเนื่องหลังบันทึกครั้งนี้ (เฉพาะตอน ok:true) — ไว้โชว์ "ต่อเนื่อง N วัน" ทันทีไม่ต้องรอ poll รอบถัดไป */
+  streak?: number
+  /** เหรียญที่เพิ่งปลดล็อกจากการบันทึกครั้งนี้ (ปกติว่างเปล่า) — ไว้ขึ้นข้อความฉลองแยกจากที่เคยได้ไปแล้ว */
+  earnedBadges?: BadgeId[]
+}
+
+/** หนึ่งแถวใน leaderboard — คนละอันดับ */
+export interface LeaderboardEntry {
+  uid: string
+  /** nickname ถ้ามี ไม่งั้น name — เซิร์ฟเวอร์เลือกให้แล้ว */
+  name: string
+  team: string
+  points: number
+  /** อันดับ 1 = คะแนนสูงสุด (แต้มเท่ากันเรียงตามชื่อ) */
+  rank: number
+  look: AvatarLook
+  badges: BadgeId[]
+}
+
+/** อันดับของหนึ่งสำนัก — เรียงด้วยแต้มเฉลี่ยต่อหัว ไม่ใช่แต้มรวม (ดูเหตุผลใน content.ts: LEADERBOARD.teamNote) */
+export interface TeamStanding {
+  team: string
+  memberCount: number
+  totalPoints: number
+  avgPoints: number
+}
+
+/** ข้อมูลหน้าอันดับคะแนน — อยู่หลังล็อกอินเท่านั้น (ต่างจาก OrgSnapshot ที่หน้าแรกใช้ได้โดยไม่ล็อกอิน) */
+export interface LeaderboardSnapshot {
+  /** Top N อันดับแรกของทั้งหน่วยงาน */
+  top: LeaderboardEntry[]
+  /** อันดับของคนที่กำลังดูอยู่ — null ถ้ายังไม่ได้ปลูกต้น (ยังไม่เข้าอันดับ) */
+  me: LeaderboardEntry | null
+  /** อันดับสำนัก เรียงแต้มเฉลี่ยมากไปน้อยแล้ว */
+  teams: TeamStanding[]
 }

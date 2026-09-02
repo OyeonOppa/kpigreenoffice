@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { forestBackend } from './index'
-import type { ForestSnapshot, ForestUser, OrgSnapshot } from './types'
+import type { ForestSnapshot, ForestUser, LeaderboardSnapshot, OrgSnapshot } from './types'
 
 /** ตัวตนของคนที่กำลังใช้หน้าป่า — แยกจากการล็อกอินของเกมแข่งสด (ดูเหตุผลใน forest/backend.ts) */
 export function useForestAuth() {
@@ -56,4 +56,20 @@ export function useOrgForest(): OrgSnapshot | null {
   const [org, setOrg] = useState<OrgSnapshot | null>(null)
   useEffect(() => forestBackend.subscribeOrg(setOrg), [])
   return org
+}
+
+/**
+ * อันดับคะแนนทั้งหน่วยงาน — ต้องล็อกอิน (คนละอย่างกับ useOrgForest ที่ไม่ต้องล็อกอินก็ใช้ได้)
+ * ไม่ได้รับ uid เพราะ backend รู้เองจากโทเคน/ตัวตนที่ล็อกอินอยู่ — เรียกตอนยังไม่ล็อกอินไม่ได้
+ */
+export function useLeaderboard(enabled: boolean): LeaderboardSnapshot | null {
+  const [lb, setLb] = useState<LeaderboardSnapshot | null>(null)
+  useEffect(() => {
+    if (!enabled) {
+      setLb(null)
+      return
+    }
+    return forestBackend.subscribeLeaderboard(setLb)
+  }, [enabled])
+  return lb
 }

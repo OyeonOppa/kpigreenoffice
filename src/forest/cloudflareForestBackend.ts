@@ -7,9 +7,12 @@ import type {
   ForestMember,
   ForestSnapshot,
   ForestUser,
+  LeaderboardEntry,
+  LeaderboardSnapshot,
   LogEntry,
   LogResult,
   OrgSnapshot,
+  TeamStanding,
 } from './types'
 
 /**
@@ -160,6 +163,40 @@ function toOrg(w: WireOrg): OrgSnapshot {
   }
 }
 
+interface WireLeaderboardEntry {
+  uid: string
+  name: string
+  team: string
+  points: number
+  rank: number
+  look: AvatarLook | null
+  badges: string[]
+}
+
+interface WireLeaderboard {
+  top: WireLeaderboardEntry[]
+  me: WireLeaderboardEntry | null
+  teams: TeamStanding[]
+}
+
+const toLeaderboardEntry = (e: WireLeaderboardEntry): LeaderboardEntry => ({
+  uid: e.uid,
+  name: e.name,
+  team: e.team,
+  points: e.points,
+  rank: e.rank,
+  look: e.look ?? lookFromSeed(e.uid),
+  badges: (e.badges ?? []) as LeaderboardEntry['badges'],
+})
+
+function toLeaderboard(w: WireLeaderboard): LeaderboardSnapshot {
+  return {
+    top: (w.top ?? []).map(toLeaderboardEntry),
+    me: w.me ? toLeaderboardEntry(w.me) : null,
+    teams: w.teams ?? [],
+  }
+}
+
 // ---------- polling ----------
 
 /** tick ของ poll ที่ยัง subscribe อยู่ — mutation เรียกให้ดึงข้อมูลใหม่ทันที ไม่ต้องรอครบ POLL_MS */
@@ -269,6 +306,13 @@ export const cloudflareForestBackend: ForestBackend = {
     return poll(async () => {
       const { ok, data } = await api<WireOrg>('/api/forest/org')
       return ok ? toOrg(data) : null
+    }, cb)
+  },
+
+  subscribeLeaderboard(cb) {
+    return poll(async () => {
+      const { ok, data } = await api<WireLeaderboard>('/api/forest/leaderboard', { auth: true })
+      return ok ? toLeaderboard(data) : null
     }, cb)
   },
 

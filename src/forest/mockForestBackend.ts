@@ -1,4 +1,4 @@
-import { FOREST } from '../content'
+import { FOREST, FOREST_BADGES } from '../content'
 import { lookFromSeed } from '../game/avatar'
 import type { AvatarLook } from '../game/types'
 import type { ForestBackend, ForestProfile } from './backend'
@@ -12,13 +12,19 @@ import {
 } from './config'
 import type {
   ActivityId,
+  BadgeId,
   ForestMember,
   ForestSnapshot,
   ForestUser,
+  LeaderboardSnapshot,
   LogEntry,
   LogResult,
   OrgSnapshot,
 } from './types'
+
+/** เกณฑ์ปลดล็อกเหรียญตรา — คู่กับ worker/src/forest/badges.ts (โหมดจริงคำนวณเหมือนกันฝั่งเซิร์ฟเวอร์) */
+const STREAK_BADGE_DAYS = FOREST_BADGES.map((b) => b.days)
+const badgeIdForStreak = (days: number) => `streak-${days}` as BadgeId
 
 /**
  * หลังบ้านจำลองของแคมเปญป่า 3R
@@ -45,6 +51,12 @@ interface MemberDoc {
   updatedAt: number
   /** สมาชิกจำลองสำหรับดูหน้าตาสวน (โหมดจำลองเท่านั้น) */
   demo?: boolean
+  /** สถิติต่อเนื่อง — คู่กับ current_streak/longest_streak/last_active_day ฝั่งจริง */
+  currentStreak?: number
+  longestStreak?: number
+  lastActiveDay?: string
+  /** เหรียญตราที่ปลดล็อกแล้ว */
+  badges?: BadgeId[]
 }
 
 // ---------- storage ----------
@@ -148,6 +160,14 @@ function writeAuth(user: ForestUser | null) {
 const listeners = new Map<string, Set<(s: ForestSnapshot) => void>>()
 /** คนที่ดูหน้าแรกอยู่ — ยังไม่ล็อกอินก็อยู่ในนี้ได้ ต้นองค์กรต้องโตให้เห็นสดๆ เหมือนกัน */
 const orgListeners = new Set<(o: OrgSnapshot) => void>()
+/**
+ * คนที่เปิดหน้าอันดับคะแนนอยู่ — คีย์ด้วย uid เหมือน `listeners` เพราะ leaderboard ต้องรู้ว่า
+ * "อันดับของฉัน" คือของใคร (ต่างจาก orgListeners ที่ไม่ผูกกับใครเพราะไม่มีชื่อคนติดไปด้วย)
+ */
+const leaderboardListeners = new Map<string, Set<(lb: LeaderboardSnapshot) => void>>()
+
+/** จำนวนอันดับที่ส่งให้หน้าจอ — คู่กับ LEADERBOARD_TOP_N ฝั่งจริงใน worker/src/forest/badges.ts */
+const LEADERBOARD_TOP_N = 10
 let channel: BroadcastChannel | null = null
 let storageBound = false
 
@@ -179,6 +199,10 @@ function emitAll() {
   if (orgListeners.size) {
     const org = buildOrgSnapshot()
     for (const cb of orgListeners) cb(org)
+  }
+  for (const [uid, set] of leaderboardListeners) {
+    const lb = buildLeaderboard(uid)
+    for (const cb of set) cb(lb)
   }
 }
 
@@ -226,6 +250,45 @@ function buildOrgSnapshot(): OrgSnapshot {
       seed: treeSeed(d.uid),
       growth: growthFromPoints(d.points),
     })),
+  }
+}
+
+/** อันดับคะแนน — เหมือน buildOrgSnapshot แต่มีชื่อคนติดไปด้วย จึงต้องรู้ว่าใครกำลังดูอยู่ (uid) เพื่อหา "อันดับของฉัน" */
+function buildLeaderboard(uid: string): LeaderboardSnapshot {
+  const docs = [...allMemberDocs()].sort(
+    (a, b) => b.points - a.points || a.name.localeCompare(b.name, 'th'),
+  )
+
+  const ranked = docs.map((d, i) => ({
+    uid: d.uid,
+    name: d.name,
+    team: d.team,
+    points: d.points,
+    rank: i + 1,
+    look: d.look,
+    badges: d.badges ?? [],
+  }))
+
+  const teamAgg = new Map<string, { count: number; total: number }>()
+  for (const d of docs) {
+    const t = teamAgg.get(d.team) ?? { count: 0, total: 0 }
+    t.count += 1
+    t.total += d.points
+    teamAgg.set(d.team, t)
+  }
+  const teams = [...teamAgg.entries()]
+    .map(([team, v]) => ({
+      team,
+      memberCount: v.count,
+      totalPoints: v.total,
+      avgPoints: v.count ? v.total / v.count : 0,
+    }))
+    .sort((a, b) => b.avgPoints - a.avgPoints)
+
+  return {
+    top: ranked.slice(0, LEADERBOARD_TOP_N),
+    me: ranked.find((r) => r.uid === uid) ?? null,
+    teams,
   }
 }
 
@@ -315,10 +378,31 @@ export const mockForestBackend: ForestBackend = {
     // ชนเพดานกลางคัน ให้แต้มเท่าที่เหลือแทนการปฏิเสธ — คนที่ทำจริงแล้วไม่ควรได้ศูนย์
     const gained = Math.min(activity.points, remaining)
 
+    // สถิติต่อเนื่อง — นับเฉพาะวันแรกที่กลับมาทำ ไม่ใช่ทุกครั้งที่กดในวันเดียวกัน
+    const isNewActiveDay = doc.lastActiveDay !== today
+    let currentStreak = doc.currentStreak ?? 0
+    let longestStreak = doc.longestStreak ?? 0
+    let earnedBadges: BadgeId[] = []
+    if (isNewActiveDay) {
+      const yesterday = dayKey(now - 24 * 60 * 60 * 1000)
+      currentStreak = doc.lastActiveDay === yesterday ? currentStreak + 1 : 1
+      longestStreak = Math.max(longestStreak, currentStreak)
+      earnedBadges = STREAK_BADGE_DAYS.filter((d) => d === currentStreak).map(badgeIdForStreak)
+    }
+    const badges = [...new Set([...(doc.badges ?? []), ...earnedBadges])]
+
     appendLog(uid, { id: entryId(), activityId, points: gained, at: now, source: 'self' })
-    writeJson(memberKey(uid), { ...doc, points: doc.points + gained, updatedAt: now })
+    writeJson(memberKey(uid), {
+      ...doc,
+      points: doc.points + gained,
+      updatedAt: now,
+      currentStreak,
+      longestStreak,
+      lastActiveDay: isNewActiveDay ? today : doc.lastActiveDay,
+      badges,
+    })
     notify()
-    return { ok: true, gained }
+    return { ok: true, gained, streak: currentStreak, earnedBadges }
   },
 
   async awardPoints(uid, points, note): Promise<LogResult> {
@@ -358,6 +442,20 @@ export const mockForestBackend: ForestBackend = {
     return () => {
       set.delete(cb)
       if (set.size === 0) listeners.delete(uid)
+    }
+  },
+
+  subscribeLeaderboard(cb) {
+    ensureChannel()
+    // โหมดจำลองไม่มี "โทเคน" ให้ถาม uid จาก readAuth() ตรงๆ แบบเดียวกับหน้าจออื่นในไฟล์นี้
+    const uid = readAuth()?.uid ?? ''
+    const set = leaderboardListeners.get(uid) ?? new Set()
+    set.add(cb)
+    leaderboardListeners.set(uid, set)
+    cb(buildLeaderboard(uid))
+    return () => {
+      set.delete(cb)
+      if (set.size === 0) leaderboardListeners.delete(uid)
     }
   },
 

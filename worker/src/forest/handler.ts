@@ -7,6 +7,7 @@
  * (ดูโน้ตเดียวกันใน src/forest/backend.ts)
  */
 import { ACTIVITY_POINTS, DAILY_CAP, GARDEN_MAX } from './activities'
+import { badgeIdForStreak, LEADERBOARD_TOP_N, STREAK_BADGE_DAYS } from './badges'
 import { hashPassword, issueToken, randomSaltHex, verifyPassword, verifyToken } from './crypto'
 
 export interface ForestEnv {
@@ -31,6 +32,10 @@ interface UserRow {
   must_change_pw: number
   look_json: string | null
   points: number
+  current_streak: number
+  longest_streak: number
+  /** 'YYYY-MM-DD' เขตเวลาไทย ของครั้งล่าสุดที่บันทึกกิจกรรมเอง — null ถ้ายังไม่เคยเลย */
+  last_active_day: string | null
   updated_at: number
 }
 
@@ -313,22 +318,49 @@ export async function handleForest(
     }
     const gained = Math.min(base, remaining)
 
-    try {
-      await env.DB.batch([
+    // สถิติต่อเนื่อง (streak) — นับเฉพาะ "วันแรก" ที่กลับมาทำ ไม่ใช่ทุกครั้งที่กดในวันเดียวกัน
+    // ไม่งั้นคนกดครบ 4 ข้อเช้าเดียวจะได้ streak +4 แทนที่จะเป็น +1
+    const isNewActiveDay = me.last_active_day !== day
+    let newStreak = me.current_streak
+    let newLongestStreak = me.longest_streak
+    let earnedBadges: string[] = []
+    if (isNewActiveDay) {
+      const yesterday = bangkokDayKey(now - 24 * 60 * 60 * 1000)
+      // ต่อเนื่องจากเมื่อวาน = ทบ streak เดิม · ขาดช่วงไปแล้ว (หรือครั้งแรก) = เริ่มนับใหม่จาก 1
+      newStreak = me.last_active_day === yesterday ? me.current_streak + 1 : 1
+      newLongestStreak = Math.max(me.longest_streak, newStreak)
+      // ใช้ "==" ไม่ใช่ ">=" เพราะ streak เพิ่มทีละ 1 เป๊ะ จะข้ามเลขไม่ได้อยู่แล้ว
+      // เช็คแบบนี้เพื่อรู้ว่า "เพิ่งปลดล็อกรอบนี้" ไว้ขึ้นข้อความฉลองแยกจากที่เคยได้ไปแล้ว
+      earnedBadges = STREAK_BADGE_DAYS.filter((d) => d === newStreak).map(badgeIdForStreak)
+    }
+
+    const statements = [
+      env.DB.prepare(
+        "INSERT INTO forest_points_log (id, uid, activity_id, points, at, source, note, day_key) VALUES (?, ?, ?, ?, ?, 'self', NULL, ?)",
+      ).bind(entryId(), me.uid, activityId, gained, now, day),
+      isNewActiveDay
+        ? env.DB.prepare(
+            'UPDATE forest_users SET points = points + ?, current_streak = ?, longest_streak = ?, last_active_day = ?, updated_at = ? WHERE uid = ?',
+          ).bind(gained, newStreak, newLongestStreak, day, now, me.uid)
+        : env.DB.prepare('UPDATE forest_users SET points = points + ?, updated_at = ? WHERE uid = ?').bind(
+            gained,
+            now,
+            me.uid,
+          ),
+      ...earnedBadges.map((badgeId) =>
         env.DB.prepare(
-          "INSERT INTO forest_points_log (id, uid, activity_id, points, at, source, note, day_key) VALUES (?, ?, ?, ?, ?, 'self', NULL, ?)",
-        ).bind(entryId(), me.uid, activityId, gained, now, day),
-        env.DB.prepare('UPDATE forest_users SET points = points + ?, updated_at = ? WHERE uid = ?').bind(
-          gained,
-          now,
-          me.uid,
-        ),
-      ])
+          'INSERT OR IGNORE INTO forest_badges (uid, badge_id, earned_at) VALUES (?, ?, ?)',
+        ).bind(me.uid, badgeId, now),
+      ),
+    ]
+
+    try {
+      await env.DB.batch(statements)
     } catch {
       // ชนดัชนี unique (กดสองครั้งพร้อมกัน) — ถือว่าบันทึกไปแล้ว
       return json({ ok: false, reason: 'ข้อนี้บันทึกไปแล้ววันนี้' }, 200, cors)
     }
-    return json({ ok: true, gained }, 200, cors)
+    return json({ ok: true, gained, streak: newStreak, earnedBadges }, 200, cors)
   }
 
   // ---- สตาฟกดให้แต้ม ----
@@ -382,6 +414,70 @@ export async function handleForest(
       200,
       cors,
     )
+  }
+
+  // ---- อันดับคะแนนทั้งหน่วยงาน (ต้องล็อกอิน — ต่างจาก /api/forest/org ที่หน้าแรกใช้)
+  //
+  // ต้องล็อกอินเพราะอันดับนี้มีชื่อคนติดมาด้วย (ต่างจากป่าหน้าแรกที่ตั้งใจไม่มีชื่อ)
+  // ให้เห็นเฉพาะเพื่อนร่วมงานที่ล็อกอินแล้วเหมือนกัน ไม่ใช่สาธารณะ
+  //
+  // ส่ง Top N + อันดับของตัวเองแยกเสมอ (ไม่ใช่ทั้งบริษัทเรียงเต็มตาราง) — คนที่ยังไม่ติดอันดับ
+  // จะได้เห็นแค่อันดับตัวเอง ไม่เห็นว่าใครอยู่ท้ายตาราง ลดความรู้สึกถูกจับได้หน้าเพื่อนร่วมงาน
+  //
+  // อันดับสำนักใช้แต้มเฉลี่ยต่อหัว ไม่ใช่แต้มรวม — ไม่งั้นสำนักที่มีคนเยอะชนะทุกเดือนโดยไม่เกี่ยวกับความขยัน
+  if (path === '/api/forest/leaderboard' && request.method === 'GET') {
+    const rows = await env.DB.prepare(
+      'SELECT uid, name, nickname, team, look_json, points FROM forest_users WHERE look_json IS NOT NULL ORDER BY points DESC, name ASC',
+    ).all<{
+      uid: string
+      name: string
+      nickname: string | null
+      team: string
+      look_json: string | null
+      points: number
+    }>()
+    const list = rows.results ?? []
+
+    const badgeRows = await env.DB.prepare('SELECT uid, badge_id FROM forest_badges').all<{
+      uid: string
+      badge_id: string
+    }>()
+    const badgesByUid = new Map<string, string[]>()
+    for (const b of badgeRows.results ?? []) {
+      const arr = badgesByUid.get(b.uid) ?? []
+      arr.push(b.badge_id)
+      badgesByUid.set(b.uid, arr)
+    }
+
+    const ranked = list.map((r, i) => ({
+      uid: r.uid,
+      name: r.nickname || r.name,
+      team: r.team,
+      points: r.points,
+      look: r.look_json ? safeJson(r.look_json) : null,
+      rank: i + 1,
+      badges: badgesByUid.get(r.uid) ?? [],
+    }))
+
+    const meEntry = ranked.find((r) => r.uid === me.uid) ?? null
+
+    const teamAgg = new Map<string, { count: number; total: number }>()
+    for (const r of list) {
+      const t = teamAgg.get(r.team) ?? { count: 0, total: 0 }
+      t.count += 1
+      t.total += r.points
+      teamAgg.set(r.team, t)
+    }
+    const teams = [...teamAgg.entries()]
+      .map(([team, v]) => ({
+        team,
+        memberCount: v.count,
+        totalPoints: v.total,
+        avgPoints: v.count ? v.total / v.count : 0,
+      }))
+      .sort((a, b) => b.avgPoints - a.avgPoints)
+
+    return json({ top: ranked.slice(0, LEADERBOARD_TOP_N), me: meEntry, teams }, 200, cors)
   }
 
   return json({ error: 'ไม่พบเส้นทางนี้' }, 404, cors)
