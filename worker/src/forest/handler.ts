@@ -104,12 +104,18 @@ export async function handleForest(
   const now = Date.now()
 
   // ---- ยอดรวมทั้งหน่วยงาน (สาธารณะ ไม่ต้องล็อกอิน) ----
+  //
+  // นับเฉพาะคนที่ "ปลูกต้นแรก" แล้ว (look_json IS NOT NULL) ไม่ใช่ทุกบัญชีที่ถูกสร้างไว้ล่วงหน้า
+  // ผู้ใช้ทั้งหมดถูก seed เข้า forest_users จากรายชื่อองค์กรตั้งแต่ก่อนมีใครล็อกอินเลย (ดู scripts/gen-users.mjs)
+  // ถ้านับทุกแถว หน้าแรกจะโชว์เมล็ดของคนที่ไม่เคยสนใจแคมเปญเลยปนอยู่ตลอดไป
+  // look_json ถูกตั้งค่าตอนเลือกตัวละครหลังบังคับเปลี่ยนรหัสผ่านครั้งแรก (ดู ForestPage.tsx: PlantCard)
+  // ซึ่งเป็นขั้นตอนเดียวกับ "ปลูกต้นแรก" พอดี จึงใช้เป็นสัญญาณนี้ได้โดยไม่ต้องเพิ่มคอลัมน์ใหม่
   if (path === '/api/forest/org' && request.method === 'GET') {
     const agg = await env.DB.prepare(
-      'SELECT COUNT(*) AS n, COALESCE(SUM(points), 0) AS total FROM forest_users',
+      'SELECT COUNT(*) AS n, COALESCE(SUM(points), 0) AS total FROM forest_users WHERE look_json IS NOT NULL',
     ).first<{ n: number; total: number }>()
     const rows = await env.DB.prepare(
-      'SELECT uid, points FROM forest_users ORDER BY points DESC LIMIT ?',
+      'SELECT uid, points FROM forest_users WHERE look_json IS NOT NULL ORDER BY points DESC LIMIT ?',
     )
       .bind(GARDEN_MAX)
       .all<{ uid: string; points: number }>()
