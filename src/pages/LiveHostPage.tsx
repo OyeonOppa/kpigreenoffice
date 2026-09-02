@@ -187,10 +187,10 @@ function HostControls({
 
 function HostStage({ room, pin }: { room: RoomSnapshot; pin: string }) {
   return (
-    <div className="h-full max-w-6xl mx-auto flex flex-col">
+    <div className="h-full max-w-6xl 2xl:max-w-[92rem] mx-auto flex flex-col">
       <HostSounds room={room} />
       {room.status === 'running' && (
-        <div className="flex items-center justify-between text-ink/55 text-sm mb-3 shrink-0">
+        <div className="flex items-center justify-between text-ink/55 text-sm 2xl:text-lg mb-3 shrink-0">
           <span className="tabular">
             ข้อ {room.roundIndex + 1} / {room.totalRounds}
           </span>
@@ -361,7 +361,7 @@ function HostAnswering({ room }: { room: RoomSnapshot }) {
               className="w-40 sm:w-56 lg:w-64"
             />
           </motion.div>
-          <p className="font-display text-3xl sm:text-5xl text-ink">{room.round?.itemName}</p>
+          <p className="font-display text-3xl sm:text-5xl 2xl:text-7xl text-ink">{room.round?.itemName}</p>
           <p className="text-ink/55 mt-2">ทิ้งถังไหนดี?</p>
         </div>
 
@@ -369,7 +369,7 @@ function HostAnswering({ room }: { room: RoomSnapshot }) {
           {WASTE.bins.map((bin) => (
             <div key={bin.id} className="pop-card flex flex-col items-center py-3">
               <MascotBin color={bin.color} className="w-20 sm:w-28" />
-              <p className="text-ink text-base sm:text-xl font-medium mt-1">{bin.type}</p>
+              <p className="text-ink text-base sm:text-xl 2xl:text-3xl font-medium mt-1">{bin.type}</p>
               <p className="text-ink/50 text-xs sm:text-sm">{bin.name}</p>
             </div>
           ))}

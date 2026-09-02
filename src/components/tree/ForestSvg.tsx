@@ -74,6 +74,14 @@ export default function ForestSvg({ trees, mineSeed, className }: ForestSvgProps
     const cols = Math.max(2, Math.ceil(Math.sqrt(n * aspect)))
     const rows = Math.max(1, Math.ceil(n / cols))
 
+    // ป่าย่อ/ขยายตามความกว้างคอนเทนเนอร์เสมอ ถ้าปล่อยให้ viewBox แคบตามจำนวนต้นจริง
+    // ป่าที่มีไม่กี่ต้นจะถูกยืดเต็มจอ ต้นเดียวใหญ่ผิดสัดส่วนและกองอยู่ซ้ายมือ
+    // จึงตรึงความกว้างขั้นต่ำไว้ แล้วจัดต้นที่มีให้อยู่กลางกรอบแทน
+    const minCols = aspect > 2 ? 12 : 6
+    const contentWidth = cols * COL_GAP + COL_GAP * 1.2
+    const width = Math.max(contentWidth, minCols * COL_GAP + COL_GAP * 1.2)
+    const offsetX = (width - contentWidth) / 2
+
     const items = drawn.map((tree, i) => {
       const row = Math.floor(i / cols)
       const col = i % cols
@@ -87,7 +95,7 @@ export default function ForestSvg({ trees, mineSeed, className }: ForestSvgProps
       return {
         tree,
         art: buildTreeArt(tree.seed, tree.growth, 'simple'),
-        x: col * COL_GAP + stagger + jitterX + COL_GAP * 0.6,
+        x: offsetX + col * COL_GAP + stagger + jitterX + COL_GAP * 0.6,
         y: row * ROW_GAP + jitterY,
         scale: TREE_SCALE * (BACK_SCALE + (1 - BACK_SCALE) * depth),
         opacity: BACK_OPACITY + (1 - BACK_OPACITY) * depth,
@@ -95,7 +103,6 @@ export default function ForestSvg({ trees, mineSeed, className }: ForestSvgProps
       }
     })
 
-    const width = cols * COL_GAP + COL_GAP * 1.2
     const tallest = Math.max(...items.map((it) => it.art.height * it.scale))
     const top = -(tallest + 16)
     const bottom = (rows - 1) * ROW_GAP + 22

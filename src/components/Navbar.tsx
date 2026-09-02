@@ -41,7 +41,7 @@ export default function Navbar() {
               className="h-5 w-auto shrink-0"
             />
           </a>
-          <div className="hidden md:flex items-center gap-6 ml-8">
+          <div className="hidden lg:flex items-center gap-6 ml-8">
             {NAV_LINKS.map((link) => (
               <DesktopNavItem
                 key={link.label}
@@ -55,7 +55,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        <div className="hidden md:flex items-center gap-2 shrink-0">
+        <div className="hidden lg:flex items-center gap-2 shrink-0">
           {user ? (
             <AccountMenu
               name={user.name}
@@ -92,7 +92,7 @@ export default function Navbar() {
           onClick={() => setMenuOpen((v) => !v)}
           aria-label={menuOpen ? 'ปิดเมนู' : 'เปิดเมนู'}
           aria-expanded={menuOpen}
-          className="md:hidden liquid-glass liquid-glass-nav rounded-full p-2.5 text-ink shrink-0"
+          className="lg:hidden liquid-glass liquid-glass-nav rounded-full p-2.5 text-ink shrink-0"
         >
           {menuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
@@ -105,7 +105,7 @@ export default function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            className="liquid-glass liquid-glass-nav md:hidden max-w-5xl mx-auto mt-3 rounded-3xl p-3 flex flex-col"
+            className="liquid-glass liquid-glass-nav lg:hidden max-w-5xl mx-auto mt-3 rounded-3xl p-3 flex flex-col"
           >
             {NAV_LINKS.map((link) => (
               <MobileNavItem
@@ -161,7 +161,7 @@ export default function Navbar() {
                   className="w-full flex items-center gap-2 text-ink/80 hover:text-ink text-sm font-medium px-4 py-3 rounded-xl hover:bg-ink/5 transition-colors"
                 >
                   <LogIn size={16} />
-                  เข้าสู่ระบบด้วยอีเมลองค์กร
+                  เข้าสู่ระบบ
                 </button>
               )}
             </div>

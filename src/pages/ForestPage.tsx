@@ -40,7 +40,7 @@ export default function ForestPage() {
   const forest = useForest(user?.uid ?? null)
   const [signInOpen, setSignInOpen] = useState(false)
 
-  // ยังไม่ล็อกอิน — ต้องเข้าด้วยอีเมลองค์กรก่อน ต้นไม้ผูกกับคน ไม่ใช่กับเครื่อง
+  // ยังไม่ล็อกอิน — ต้องเข้าด้วยชื่อผู้ใช้ + รหัสพนักงานก่อน ต้นไม้ผูกกับคน ไม่ใช่กับเครื่อง
   if (!user) {
     return (
       <Shell>

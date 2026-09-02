@@ -59,7 +59,10 @@ export default function SignInDialog({ open, onClose }: { open: boolean; onClose
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-ink/35 backdrop-blur-sm"
+          // items-start + overflow-y-auto (ไม่ใช่ items-center) — บนมือถือที่คีย์บอร์ดเด้งขึ้น
+          // พื้นที่แนวตั้งเหลือไม่ถึงความสูงกล่อง ถ้าจัดกึ่งกลางตรงๆ ปุ่มเข้าสู่ระบบจะหลุดจอและเลื่อนไม่ได้
+          // my-auto ที่กล่องด้านในทำให้ยังอยู่กึ่งกลางเมื่อจอสูงพอ
+          className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto p-4 bg-ink/35 backdrop-blur-sm"
           onClick={onClose}
         >
           <motion.div
@@ -71,7 +74,7 @@ export default function SignInDialog({ open, onClose }: { open: boolean; onClose
             aria-modal="true"
             aria-labelledby="signin-title"
             onClick={(e) => e.stopPropagation()}
-            className="pop-card w-full max-w-sm p-6 relative"
+            className="pop-card w-full max-w-sm p-6 relative my-auto"
           >
             <button
               type="button"
