@@ -51,29 +51,30 @@ export default function HeroSection() {
             {ORG_TREE.label}
           </p>
 
-          {trees.length > 0 ? (
-            // แผ่นกระจกฝ้ารองป่าไว้ — เดิมต้นไม้ลอยตรงบนภาพถ่ายตึกที่มีลวดลายเยอะ
-            // สีเมล็ด/ใบกลืนไปกับภาพจนแยกต้นไม่ออกว่าใครเป็นใคร โดยเฉพาะช่วงที่ทุกต้นยังเป็นเมล็ดสีเดียวกันหมด
-            <div className="liquid-glass liquid-glass-nav rounded-3xl px-2 sm:px-4 py-4 sm:py-6">
+          {/* แผ่นกระจกฝ้าเดียวรองทั้งป่าและตัวเลขสรุป — เดิมทั้งสองส่วนลอยตรงบนภาพถ่ายตึกที่มีลวดลายเยอะ
+              ต้นไม้กลืนไปกับภาพ และตัวเลข/คำอธิบายสีเข้มก็จมกับภาพเช่นกัน โดยเฉพาะช่วงที่ยังไม่มีสถิติเด่นให้ดึงสายตา
+              รวมเป็นการ์ดเดียวแทนที่จะรองแค่ป่า เพราะสองส่วนนี้เป็นเนื้อหาเดียวกัน (ป่า + สรุปของป่านั้น) */}
+          <div className="liquid-glass liquid-glass-nav rounded-3xl px-4 sm:px-6 py-5 sm:py-8">
+            {trees.length > 0 ? (
               <ForestSvg
                 trees={trees}
                 mineSeed={mineSeed}
-                className="w-full h-auto max-h-[42vh] sm:max-h-[46vh]"
+                className="w-full h-auto max-h-[38vh] sm:max-h-[42vh]"
               />
-            </div>
-          ) : (
-            <EmptyForest signedIn={!!user} />
-          )}
+            ) : (
+              <EmptyForest signedIn={!!user} />
+            )}
 
-          {me ? (
-            <MyStrip me={me} todayPoints={forest?.todayPoints ?? 0} />
-          ) : (
-            <OrgStrip
-              org={org}
-              signedIn={!!user}
-              onSignIn={() => setSignInOpen(true)}
-            />
-          )}
+            {me ? (
+              <MyStrip me={me} todayPoints={forest?.todayPoints ?? 0} />
+            ) : (
+              <OrgStrip
+                org={org}
+                signedIn={!!user}
+                onSignIn={() => setSignInOpen(true)}
+              />
+            )}
+          </div>
         </div>
 
         <div className="w-full max-w-3xl mx-auto mt-10 md:mt-12">
