@@ -52,11 +52,15 @@ export default function HeroSection() {
           </p>
 
           {trees.length > 0 ? (
-            <ForestSvg
-              trees={trees}
-              mineSeed={mineSeed}
-              className="w-full h-auto max-h-[42vh] sm:max-h-[46vh]"
-            />
+            // แผ่นกระจกฝ้ารองป่าไว้ — เดิมต้นไม้ลอยตรงบนภาพถ่ายตึกที่มีลวดลายเยอะ
+            // สีเมล็ด/ใบกลืนไปกับภาพจนแยกต้นไม่ออกว่าใครเป็นใคร โดยเฉพาะช่วงที่ทุกต้นยังเป็นเมล็ดสีเดียวกันหมด
+            <div className="liquid-glass liquid-glass-nav rounded-3xl px-2 sm:px-4 py-4 sm:py-6">
+              <ForestSvg
+                trees={trees}
+                mineSeed={mineSeed}
+                className="w-full h-auto max-h-[42vh] sm:max-h-[46vh]"
+              />
+            </div>
           ) : (
             <EmptyForest signedIn={!!user} />
           )}
