@@ -1,13 +1,13 @@
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, useInView } from 'framer-motion'
-import { CalendarDays, ImageOff } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, ImageOff, X } from 'lucide-react'
 import { MEDIA, type MediaItem } from '../content'
 
 /**
  * ผลงานของสำนัก / วิทยาลัย — สามหมวดตรงกับเมนูย่อยใน NAV_LINKS แบบ 1:1
- * (เดิมเมนูย่อยทั้งสามชี้มาที่ #media จุดเดียว และหน้านี้มีแต่ข่าวตัวอย่าง 3 ใบ)
  *
  * หมวดที่ยังไม่มีของจะขึ้นข้อความบอกตรง ๆ ว่ายังไม่มี ไม่ใส่รายการตัวอย่างไว้ก่อน
+ * หมวด "อินโฟกราฟิก" แสดงเป็นแกลเลอรีรูปเต็ม (ไม่ crop) คลิกเปิด lightbox
  */
 export default function MediaSection() {
   const ref = useRef(null)
@@ -54,6 +54,8 @@ export default function MediaSection() {
                 <p className="liquid-glass rounded-2xl px-5 py-6 text-ink/55 text-sm leading-relaxed">
                   {group.emptyText}
                 </p>
+              ) : group.id === 'media-infographic' ? (
+                <InfographicGallery items={group.items} />
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {group.items.map((item) => (
@@ -66,6 +68,128 @@ export default function MediaSection() {
         </div>
       </div>
     </section>
+  )
+}
+
+/**
+ * แกลเลอรีอินโฟกราฟิก — masonry (CSS columns) รูปแสดงเต็มตามสัดส่วนจริง
+ * แนวตั้ง/แนวนอนปนกันได้ คลิกรูปเปิด lightbox เลื่อนดูทีละรูปด้วยปุ่มหรือลูกศรคีย์บอร์ด
+ */
+function InfographicGallery({ items }: { items: MediaItem[] }) {
+  const pics = items.filter((it) => it.image)
+  const [openIndex, setOpenIndex] = useState<number | null>(null)
+
+  const close = useCallback(() => setOpenIndex(null), [])
+  const prev = useCallback(
+    () => setOpenIndex((i) => (i === null ? i : (i - 1 + pics.length) % pics.length)),
+    [pics.length],
+  )
+  const next = useCallback(
+    () => setOpenIndex((i) => (i === null ? i : (i + 1) % pics.length)),
+    [pics.length],
+  )
+
+  useEffect(() => {
+    if (openIndex === null) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close()
+      else if (e.key === 'ArrowLeft') prev()
+      else if (e.key === 'ArrowRight') next()
+    }
+    window.addEventListener('keydown', onKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [openIndex, close, prev, next])
+
+  return (
+    <>
+      <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 md:gap-5 [column-fill:_balance]">
+        {pics.map((item, i) => (
+          <button
+            key={item.title}
+            type="button"
+            onClick={() => setOpenIndex(i)}
+            className="mb-4 md:mb-5 block w-full break-inside-avoid overflow-hidden rounded-2xl liquid-glass p-1.5 group cursor-zoom-in"
+          >
+            <img
+              src={item.image}
+              alt={item.title}
+              loading="lazy"
+              className="w-full h-auto rounded-xl transition-transform duration-500 group-hover:scale-[1.02]"
+            />
+          </button>
+        ))}
+      </div>
+
+      {openIndex !== null && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/80 backdrop-blur-sm p-4 md:p-10"
+            onClick={close}
+          >
+            <button
+              type="button"
+              aria-label="ปิด"
+              onClick={close}
+              className="absolute right-4 top-4 md:right-6 md:top-6 rounded-full bg-canvas/90 p-2 text-ink hover:bg-canvas"
+            >
+              <X size={20} />
+            </button>
+
+            {pics.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  aria-label="รูปก่อนหน้า"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    prev()
+                  }}
+                  className="absolute left-3 md:left-6 rounded-full bg-canvas/90 p-2 text-ink hover:bg-canvas"
+                >
+                  <ChevronLeft size={22} />
+                </button>
+                <button
+                  type="button"
+                  aria-label="รูปถัดไป"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    next()
+                  }}
+                  className="absolute right-3 md:right-6 rounded-full bg-canvas/90 p-2 text-ink hover:bg-canvas"
+                >
+                  <ChevronRight size={22} />
+                </button>
+              </>
+            )}
+
+            <motion.img
+              key={openIndex}
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.2 }}
+              src={pics[openIndex].image}
+              alt={pics[openIndex].title}
+              onClick={(e) => e.stopPropagation()}
+              className="max-h-[88vh] max-w-full w-auto rounded-lg object-contain shadow-2xl"
+            />
+
+            {pics.length > 1 && (
+              <span className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-canvas/90 px-3 py-1 text-ink text-xs">
+                {openIndex + 1} / {pics.length}
+              </span>
+            )}
+          </motion.div>
+        </>
+      )}
+    </>
   )
 }
 

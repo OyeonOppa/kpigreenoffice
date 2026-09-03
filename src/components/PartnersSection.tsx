@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
-import { Building2, Handshake } from 'lucide-react'
+import { Building2, Handshake, Check } from 'lucide-react'
 import { PARTNERS } from '../content'
 
 const icons = [Handshake, Building2]
@@ -50,6 +50,92 @@ export default function PartnersSection() {
               </motion.div>
             )
           })}
+        </div>
+
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="text-ink/65 text-sm tracking-widest uppercase mt-20 mb-4"
+        >
+          {PARTNERS.mouLabel}
+        </motion.p>
+        <motion.h3
+          initial={{ opacity: 0, y: 30 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.7, delay: 0.25 }}
+          className="font-display text-2xl md:text-4xl text-ink tracking-tight mb-10"
+        >
+          {PARTNERS.mouHeading}
+        </motion.h3>
+
+        <div className="flex flex-col gap-8 md:gap-12">
+          {PARTNERS.mous.map((mou, i) => (
+            <motion.article
+              key={mou.partner}
+              initial={{ opacity: 0, y: 50 }}
+              animate={isInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.8, delay: 0.3 + i * 0.15 }}
+              className="liquid-glass rounded-3xl overflow-hidden"
+            >
+              <div className="relative bg-ink/5">
+                <img
+                  src={mou.image}
+                  alt={mou.imageAlt}
+                  loading="lazy"
+                  className="w-full object-cover object-center aspect-[3/2] md:aspect-[2/1]"
+                />
+                <span className="absolute left-4 top-4 md:left-6 md:top-6 flex items-center gap-2 rounded-full bg-canvas/85 backdrop-blur px-3 py-1.5 text-accent-deep text-xs font-medium tracking-wide">
+                  <Handshake size={14} />
+                  MOU {String(i + 1).padStart(2, '0')}
+                </span>
+              </div>
+
+              <div className="p-6 md:p-10">
+                <h4 className="font-display text-ink text-lg md:text-2xl tracking-tight mb-6 md:mb-8">
+                  {mou.partner}
+                </h4>
+
+                <div
+                  className={`grid gap-x-10 gap-y-6 ${
+                    mou.outcomes ? 'md:grid-cols-2' : 'max-w-3xl'
+                  }`}
+                >
+                  <div>
+                    <p className="flex items-center gap-2 text-ink/55 text-xs tracking-widest uppercase mb-3">
+                      <span className="h-px w-6 bg-accent-deep/50" />
+                      ความร่วมมือและเทคโนโลยีที่จะนำมาใช้
+                    </p>
+                    <ul className="space-y-2.5">
+                      {mou.cooperation.map((c) => (
+                        <li key={c} className="flex gap-2.5 text-ink/70 text-sm leading-relaxed">
+                          <Check size={16} className="mt-0.5 shrink-0 text-accent-deep" />
+                          <span>{c}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {mou.outcomes && (
+                    <div>
+                      <p className="flex items-center gap-2 text-ink/55 text-xs tracking-widest uppercase mb-3">
+                        <span className="h-px w-6 bg-accent-deep/50" />
+                        ผลลัพธ์ที่คาดว่าจะได้รับ
+                      </p>
+                      <ul className="space-y-2.5">
+                        {mou.outcomes.map((o) => (
+                          <li key={o} className="flex gap-2.5 text-ink/70 text-sm leading-relaxed">
+                            <Check size={16} className="mt-0.5 shrink-0 text-accent-deep" />
+                            <span>{o}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.article>
+          ))}
         </div>
       </div>
     </section>
