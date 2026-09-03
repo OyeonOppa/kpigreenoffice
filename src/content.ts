@@ -92,7 +92,7 @@ export const NAV_LINKS: NavLink[] = [
     href: '#games',
     children: [
       { label: 'ป่า 3R ปลูกต้นไม้', href: '#/forest' },
-      { label: 'แยกขยะแข่งสด', href: '#/live' },
+      { label: 'ประลองแยกขยะ', href: '#/live' },
       { label: 'เกมแยกขยะลงถัง', href: '#waste-game' },
       { label: 'คำนวณคาร์บอนฟุตพรินต์', href: '#calculator' },
     ],
@@ -178,7 +178,7 @@ export const ORG_IMPACT = {
 // จำนวนควรเป็นผลคูณของ 4 เพราะกริดเป็น 2/4 คอลัมน์
 export const QUICK_ACTIONS = [
   { id: 'forest', label: 'ป่า 3R ของฉัน', href: '#/forest' },
-  { id: 'live', label: 'แยกขยะแข่งสด', href: '#/live' },
+  { id: 'live', label: 'ประลองแยกขยะ', href: '#/live' },
   { id: 'calculator', label: 'คำนวณคาร์บอน', href: '#calculator' },
   { id: 'game', label: 'เกมแยกขยะ', href: '#waste-game' },
   { id: 'policy', label: 'นโยบายของเรา', href: '#about' },
@@ -203,7 +203,7 @@ export const GAMES_PROMO = {
     },
     {
       emoji: '🏆',
-      title: 'แยกขยะแข่งสด เล่นพร้อมกันทั้งหน่วยงาน',
+      title: 'ประลองแยกขยะ เล่นพร้อมกันทั้งหน่วยงาน',
       description:
         'ลากขยะลงถังให้ถูกและให้ไว 10 ข้อ ข้อละ 10 วินาที ตอบไวได้คะแนนเยอะกว่า จบเกมประกาศ 10 อันดับ (สแกน QR หรือกรอก PIN เข้าเล่นได้เลย)',
       href: '#/live',
@@ -624,7 +624,7 @@ export const SERVICES = {
 
 export const LIVE_GAME = {
   label: 'Live Quiz',
-  heading: 'แยกขยะแข่งสด',
+  heading: 'ประลองแยกขยะ',
   intro:
     'แข่งแยกขยะพร้อมกันทั้งหน่วยงาน 10 ข้อ ลากขยะลงถังให้ถูกและให้ไว ยิ่งไวยิ่งได้คะแนน',
   joinPath: '#/live',
