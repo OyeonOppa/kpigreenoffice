@@ -63,6 +63,8 @@ export default function LivePlayerPage() {
 
   return (
     <LiveShell
+      // ช่วงตอบ = จอเดียวจบ ห้ามเลื่อน ถังทั้งสี่ต้องอยู่ครบในจอและอยู่ล่างสุดให้นิ้วโป้งถึงง่าย
+      fill={room.phase === 'answering'}
       topRight={
         <span className="tabular text-ink/60 text-xs">
           PIN {room.pin} · {room.playerCount} คน
@@ -329,8 +331,10 @@ function PlayerGame({
     }
   }
 
+  const tall = room.phase === 'answering'
+
   return (
-    <div className="max-w-lg mx-auto">
+    <div className={`max-w-lg mx-auto ${tall ? 'h-full flex flex-col' : ''}`}>
       <PhaseSounds room={room} lastCorrect={me.lastCorrect} />
       <PlayerHeader room={room} score={me.score} rank={me.rank} />
 
@@ -339,6 +343,7 @@ function PlayerGame({
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25 }}
+        className={tall ? 'flex-1 min-h-0' : ''}
       >
           {room.phase === 'lobby' && <PlayerLobby room={room} onLeave={onLeave} />}
           {room.phase === 'countdown' && <PhaseCountdown room={room} />}
@@ -358,7 +363,7 @@ function PlayerGame({
 function PlayerHeader({ room, score, rank }: { room: RoomSnapshot; score: number; rank: number }) {
   const playing = room.status === 'running'
   return (
-    <div className="flex items-center justify-between gap-3 mb-4">
+    <div className="flex items-center justify-between gap-3 mb-2 sm:mb-4 shrink-0">
       <p className="text-ink/60 text-sm">
         {playing
           ? `ข้อ ${room.roundIndex + 1} / ${room.totalRounds}`
@@ -432,8 +437,9 @@ function AnsweringView({
   const endsAt = (room.round?.startedAt ?? 0) + LIVE_CONFIG.answerMs
 
   return (
-    <div className="pop-card p-5 sm:p-6">
+    <div className="pop-card p-3 sm:p-6 h-full flex flex-col">
       <DragArena
+        className="flex-1 min-h-0"
         itemName={room.round!.itemName}
         itemImage={room.round!.itemImage}
         itemEmoji={room.round!.itemEmoji}
@@ -443,7 +449,7 @@ function AnsweringView({
         countdown={{ endsAt, totalMs: LIVE_CONFIG.answerMs }}
       />
 
-      <p className="text-ink/45 text-xs text-center mt-4 tabular">
+      <p className="text-ink/45 text-[11px] sm:text-xs text-center mt-2 sm:mt-4 tabular">
         ตอบแล้ว {room.answeredCount} / {room.playerCount} คน
       </p>
     </div>

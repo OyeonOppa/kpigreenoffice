@@ -48,6 +48,8 @@ interface Connection {
   closed: boolean
   retryAt: number
   retries: number
+  /** เวลาที่ได้ยินเสียงจากเซิร์ฟเวอร์ครั้งล่าสุด — ใช้จับสายที่ตายเงียบๆ */
+  lastSeen: number
 }
 
 let connection: Connection | null = null
@@ -55,6 +57,8 @@ let connection: Connection | null = null
 let clockSkew = 0
 const authListeners = new Set<(u: AuthUser | null) => void>()
 const joinWaiters = new Set<(result: JoinResult) => void>()
+/** โปรไฟล์ที่ใช้เข้าห้องครั้งล่าสุด — ส่งซ้ำให้เองตอนต่อกลับมาหลังเน็ตหลุด */
+let lastJoin: { pin: string; profile: JoinProfile } | null = null
 
 // ---------- ตัวช่วยเก็บสถานะล็อกอิน ----------
 
@@ -136,6 +140,10 @@ function handleMessage(conn: Connection, msg: ServerMessage) {
     case 'authed':
       writeAuth({ uid: msg.uid, name: msg.name })
       conn.isHost = msg.isHost
+      // ต่อกลับมาหลังเน็ตหลุด — ยืนยันตัวตนในห้องซ้ำให้เอง
+      // ปกติเซิร์ฟเวอร์เก็บผู้เล่นไว้อยู่แล้ว ตรงนี้เป็นตาข่ายกันเคสที่ห้องถูกสร้างใหม่
+      // ผู้เล่นจะได้ไม่ต้องกรอกชื่อใหม่กลางงาน
+      if (lastJoin && lastJoin.pin === conn.pin) send({ t: 'join', ...lastJoin.profile })
       emit(conn)
       break
     case 'room':
@@ -178,39 +186,68 @@ function authenticate() {
   send({ t: 'auth', uid: user.uid, name: user.name })
 }
 
+/**
+ * สายที่ยัง "ใช้ได้" — ต่ออยู่หรือกำลังต่อ
+ *
+ * เช็ค readyState ด้วยเสมอ ไม่ใช่แค่ธง closed: ธงนั้นหมายถึง "ผู้เล่นตั้งใจออก" เท่านั้น
+ * ตอนเน็ตหลุดเองธงยังเป็น false อยู่ ถ้า connect() ดูแค่ธงจะคืนสายที่ตายแล้วกลับไป
+ * แล้วไม่มีการต่อใหม่เลยตลอดงาน (ผู้เล่นค้างอยู่หน้าเดิมจนกว่าจะรีเฟรชเอง)
+ */
+function isLive(conn: Connection | null): boolean {
+  if (!conn || conn.closed) return false
+  return (
+    conn.socket.readyState === WebSocket.OPEN ||
+    conn.socket.readyState === WebSocket.CONNECTING
+  )
+}
+
 function connect(pin: string): Connection {
-  if (connection && connection.pin === pin && !connection.closed) return connection
+  if (connection && connection.pin === pin && isLive(connection)) return connection
 
   if (connection && connection.pin !== pin) {
     connection.closed = true
     connection.socket.close(1000, 'เปลี่ยนห้อง')
   }
 
-  const listeners = connection?.pin === pin ? connection.listeners : new Set<RoomListener>()
+  const previous = connection?.pin === pin ? connection : null
+
+  // สายเก่าของห้องเดิมที่กำลังจะตาย — ปิดทิ้งให้เรียบร้อย จะได้ไม่มีสองสายค้างพร้อมกัน
+  if (previous && previous.socket.readyState !== WebSocket.CLOSED) {
+    try {
+      previous.socket.close(1000, 'ต่อใหม่')
+    } catch {
+      // ปิดไปแล้ว
+    }
+  }
+
+  const listeners = previous ? previous.listeners : new Set<RoomListener>()
 
   const socket = new WebSocket(wsUrl(pin))
   const conn: Connection = {
     pin,
     socket,
     listeners,
-    room: connection?.pin === pin ? (connection.room ?? null) : null,
-    me: connection?.pin === pin ? (connection.me ?? null) : null,
-    results: connection?.pin === pin ? connection.results : {},
-    roster: connection?.pin === pin ? connection.roster : [],
-    isHost: connection?.pin === pin ? connection.isHost : false,
-    answers: connection?.pin === pin ? connection.answers : new Map(),
+    room: previous?.room ?? null,
+    me: previous?.me ?? null,
+    results: previous ? previous.results : {},
+    roster: previous ? previous.roster : [],
+    isHost: previous ? previous.isHost : false,
+    answers: previous ? previous.answers : new Map(),
     closed: false,
     retryAt: 0,
-    retries: connection?.pin === pin ? connection.retries : 0,
+    retries: previous ? previous.retries : 0,
+    lastSeen: Date.now(),
   }
   connection = conn
 
   socket.addEventListener('open', () => {
     conn.retries = 0
+    conn.lastSeen = Date.now()
     authenticate()
   })
 
   socket.addEventListener('message', (event) => {
+    conn.lastSeen = Date.now()
     try {
       handleMessage(conn, JSON.parse(event.data as string) as ServerMessage)
     } catch {
@@ -219,17 +256,83 @@ function connect(pin: string): Connection {
   })
 
   socket.addEventListener('close', () => {
-    if (conn.closed) return
+    if (conn.closed || connection !== conn) return
     // เน็ตหลุดกลางเกมต้องกลับเข้ามาเองได้ ผู้เล่นไม่ควรต้องรีเฟรชเอง
-    // ถอยเวลารอเพิ่มขึ้นเรื่อยๆ กันเคสเซิร์ฟเวอร์ล่มแล้ว 250 เครื่องรุมต่อใหม่พร้อมกัน
-    const delay = Math.min(500 * 2 ** conn.retries, 10_000) + Math.random() * 400
+    // ถอยเวลารอเพิ่มขึ้นเรื่อยๆ + สุ่มกระจาย กันเคสเซิร์ฟเวอร์สะดุดแล้ว 250 เครื่องรุมต่อใหม่พร้อมกัน
+    const delay = Math.min(400 * 2 ** conn.retries, 8000) + Math.random() * 1200
     conn.retries += 1
     window.setTimeout(() => {
       if (connection === conn && !conn.closed) connect(pin)
     }, delay)
   })
 
+  startWatchdog()
   return conn
+}
+
+// ---------- ตัวเฝ้าสาย ----------
+
+/**
+ * มือถือในงานจริงคือด่านที่โหดที่สุด: ล็อกหน้าจอ สลับแอป เดินออกนอกรัศมี Wi-Fi
+ * NAT ของเครือข่ายมือถือตัดสายที่เงียบนานๆ ทิ้งโดยไม่ส่ง close มาให้เบราว์เซอร์รู้
+ * ผลคือ "สายซอมบี้" — readyState ยัง OPEN แต่ไม่มีอะไรวิ่งอีกเลย
+ *
+ * ตัวเฝ้านี้จึงทำสองอย่าง: ส่ง ping ให้มีทราฟฟิกไม่ให้ NAT ตัด และถ้าเงียบเกิน
+ * PING_DEAD_MS ก็ถือว่าตายแล้ว ปิดทิ้งแล้วต่อใหม่ทันที
+ */
+/** เงียบเกินเท่านี้ค่อยเคาะไปสักที — ระหว่างเกมเซิร์ฟเวอร์ส่งสถานะห้องมาตลอดอยู่แล้ว จึงแทบไม่ต้องเคาะเลย */
+const QUIET_MS = 25_000
+/** เงียบเกินเท่านี้ = สายตายแล้ว ต่อใหม่ */
+const DEAD_MS = 50_000
+const CHECK_EVERY_MS = 10_000
+let watchdog = 0
+
+function startWatchdog() {
+  if (watchdog) return
+  watchdog = window.setInterval(() => {
+    const conn = connection
+    if (!conn || conn.closed) return
+
+    if (conn.socket.readyState === WebSocket.OPEN) {
+      const quietFor = Date.now() - conn.lastSeen
+      if (quietFor > DEAD_MS) {
+        // สายซอมบี้ — ปิดเองเพื่อให้ handler 'close' ตั้งเวลาต่อใหม่
+        try {
+          conn.socket.close(4000, 'สายเงียบเกินไป')
+        } catch {
+          // ปิดไปแล้ว
+        }
+        return
+      }
+      // เคาะเฉพาะตอนสายเงียบจริงๆ (ส่วนใหญ่คือช่วงนั่งรอในล็อบบี้)
+      // ถ้าเคาะทุกรอบแบบไม่ดูอะไรเลย 250 เครื่องจะยิงเข้าห้องรวมกันหลักหมื่นครั้งต่องาน
+      // ทั้งที่ระหว่างเกมมีข้อมูลวิ่งอยู่แล้วทุกไม่กี่วินาที
+      if (quietFor >= QUIET_MS) send({ t: 'ping' })
+      return
+    }
+
+    // ปิดไปแล้วแต่ยังไม่มีใครต่อใหม่ให้ (เช่น timer หาย ตอนแท็บถูกพักไว้)
+    if (conn.socket.readyState === WebSocket.CLOSED) reconnectNow()
+  }, CHECK_EVERY_MS)
+}
+
+/** ต่อใหม่เดี๋ยวนี้ ไม่ต้องรอถอยเวลา — ใช้ตอนผู้เล่นกลับมาที่หน้าจอหรือเน็ตกลับมา */
+function reconnectNow() {
+  const conn = connection
+  if (!conn || conn.closed || isLive(conn)) return
+  conn.retries = 0
+  connect(conn.pin)
+}
+
+if (typeof document !== 'undefined') {
+  // กลับมาที่แท็บ/ปลดล็อกหน้าจอ — เช็คสายทันที ไม่ต้องรอรอบ watchdog
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') reconnectNow()
+  })
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', reconnectNow)
+  window.addEventListener('pageshow', reconnectNow)
 }
 
 // ---------- adapter ----------
@@ -259,6 +362,7 @@ export const cloudflareBackend: GameBackend = {
 
   signOut() {
     writeAuth(null)
+    lastJoin = null
     if (connection) {
       connection.closed = true
       connection.socket.close(1000, 'ออกจากระบบ')
@@ -274,7 +378,13 @@ export const cloudflareBackend: GameBackend = {
 
   async joinRoom(pin, profile: JoinProfile) {
     const conn = connect(pin)
-    await waitOpen(conn)
+    const open = await waitOpen(conn)
+    if (!open) {
+      return { ok: false, reason: 'ต่อเซิร์ฟเวอร์ไม่ได้ เช็คสัญญาณแล้วลองใหม่' }
+    }
+    // จำไว้ว่าเข้าห้องด้วยโปรไฟล์อะไร — ตอนเน็ตหลุดแล้วต่อกลับมา ส่ง join ซ้ำให้เอง
+    // ผู้เล่นจะได้ไม่ต้องกรอกชื่อใหม่กลางเกม
+    lastJoin = { pin, profile }
     return new Promise<JoinResult>((resolve) => {
       joinWaiters.add(resolve)
       send({ t: 'join', ...profile })
@@ -311,7 +421,18 @@ export const cloudflareBackend: GameBackend = {
 
   async createRoom() {
     const base = API_BASE || window.location.origin
-    const res = await fetch(`${base}/api/room`, { method: 'POST' })
+    // ส่ง uid ของเครื่องนี้ไปตั้งเป็นเจ้าของห้องตั้งแต่ตอนสร้าง
+    //
+    // เดิมเซิร์ฟเวอร์ยกสิทธิ์ให้ "คนแรกที่ต่อเข้ามา" ซึ่งมีช่องว่างสั้นๆ ระหว่างที่ห้องเกิดแล้ว
+    // แต่เครื่องสตาฟยังต่อ WebSocket ไม่เสร็จ ถ้าจังหวะนั้นมีคนเดา PIN เข้ามาก่อน
+    // คนนั้นจะกลายเป็นสตาฟ แล้วเครื่องสตาฟตัวจริงกดปุ่มอะไรไม่ได้เลยทั้งงาน
+    const user = readAuth() ?? { uid: newGuestUid(), name: 'เจ้าหน้าที่ผู้ดูแลเกม' }
+    writeAuth(user)
+    const res = await fetch(`${base}/api/room`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: user.uid }),
+    })
     if (!res.ok) throw new Error('สร้างห้องไม่สำเร็จ')
     const body = (await res.json()) as { pin: string }
     connect(body.pin)
@@ -379,6 +500,7 @@ export const cloudflareBackend: GameBackend = {
       }
     }, 120)
     connection = null
+    lastJoin = null
     joinWaiters.clear()
   },
 
@@ -404,11 +526,18 @@ export const cloudflareBackend: GameBackend = {
 /** ชื่อกลางที่ vite alias 'virtual:live-backend' หยิบไปใช้ */
 export const backend = cloudflareBackend
 
-function waitOpen(conn: Connection): Promise<void> {
-  if (conn.socket.readyState === WebSocket.OPEN) return Promise.resolve()
+/** รอให้สายเปิด — คืน false ถ้าเปิดไม่ได้ในเวลาที่กำหนด (จะได้ขึ้นข้อความบอกผู้เล่นแทนที่จะค้าง) */
+function waitOpen(conn: Connection): Promise<boolean> {
+  if (conn.socket.readyState === WebSocket.OPEN) return Promise.resolve(true)
   return new Promise((resolve) => {
-    const done = () => resolve()
-    conn.socket.addEventListener('open', done, { once: true })
-    window.setTimeout(done, 5000)
+    let settled = false
+    const finish = (ok: boolean) => {
+      if (settled) return
+      settled = true
+      resolve(ok)
+    }
+    conn.socket.addEventListener('open', () => finish(true), { once: true })
+    conn.socket.addEventListener('close', () => finish(false), { once: true })
+    window.setTimeout(() => finish(conn.socket.readyState === WebSocket.OPEN), 8000)
   })
 }

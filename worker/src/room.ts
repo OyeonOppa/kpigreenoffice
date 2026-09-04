@@ -107,12 +107,15 @@ export class GameRoom extends DurableObject<Env> {
           PRIMARY KEY (round, uid)
         );
 
-        CREATE TABLE IF NOT EXISTS results (
-          round INTEGER NOT NULL,
-          uid TEXT NOT NULL,
-          bin TEXT,
-          correct INTEGER NOT NULL,
-          PRIMARY KEY (round, uid)
+        -- ผลรายข้อของ "ทุกคน" เก็บรวมเป็นก้อนเดียวต่อข้อ ไม่ใช่แถวละคน
+        --
+        -- โควตาของ Durable Objects นับเป็น "จำนวนแถวที่เขียน" ห้อง 250 คนแบบแถวละคน
+        -- กินไป 250 แถวต่อข้อ = 2,500 แถวต่อเกม เฉพาะตารางนี้ตารางเดียว
+        -- เก็บเป็นก้อนเดียวเหลือ 10 แถวต่อเกม และตอนอ่าน (ทุกครั้งที่เปลี่ยนเฟส)
+        -- ก็เหลืออ่านไม่เกิน 10 แถวแทนที่จะเป็น 2,500 แถว
+        CREATE TABLE IF NOT EXISTS roundResults (
+          round INTEGER PRIMARY KEY,
+          payload TEXT NOT NULL
         );
 
         CREATE TABLE IF NOT EXISTS reveals (
@@ -138,7 +141,8 @@ export class GameRoom extends DurableObject<Env> {
 
     if (url.pathname.endsWith('/create')) {
       const pin = url.searchParams.get('pin') ?? ''
-      await this.ensureRoom(pin)
+      const host = url.searchParams.get('host') ?? ''
+      await this.ensureRoom(pin, host)
       return Response.json({ pin })
     }
 
@@ -159,10 +163,12 @@ export class GameRoom extends DurableObject<Env> {
     return new Response(null, { status: 101, webSocket: client })
   }
 
-  private async ensureRoom(pin: string) {
+  private async ensureRoom(pin: string, hostUid = '') {
     if (this.meta.pin) return
     this.meta.pin = pin
     this.meta.createdAt = Date.now()
+    // เครื่องที่กด "สร้างห้อง" เป็นเจ้าของห้องทันที ไม่ต้องรอให้ต่อ WebSocket ก่อน
+    if (/^g-[a-z0-9]{8,40}$/i.test(hostUid)) this.meta.hostUid = hostUid
     this.meta.questionIds = pickQuestions(pin, LIVE_CONFIG.totalRounds)
     await this.saveMeta()
   }
@@ -315,7 +321,7 @@ export class GameRoom extends DurableObject<Env> {
    */
   private async handleLeave(ws: WebSocket, info: SocketInfo) {
     this.ctx.storage.sql.exec('DELETE FROM answers WHERE uid = ?', info.uid)
-    this.ctx.storage.sql.exec('DELETE FROM results WHERE uid = ?', info.uid)
+    this.forgetResults(info.uid)
     this.ctx.storage.sql.exec('DELETE FROM players WHERE uid = ? AND bot = 0', info.uid)
     this.queueRoomBroadcast()
     try {
@@ -607,6 +613,7 @@ export class GameRoom extends DurableObject<Env> {
     )
 
     const distribution = emptyDistribution()
+    const roundResults: Record<string, RoundResult> = {}
     let answeredCount = 0
 
     for (const player of this.listPlayers()) {
@@ -636,14 +643,17 @@ export class GameRoom extends DurableObject<Env> {
         player.uid,
       )
 
-      this.ctx.storage.sql.exec(
-        'INSERT OR REPLACE INTO results (round, uid, bin, correct) VALUES (?, ?, ?, ?)',
-        round,
-        player.uid,
-        inTime && answer ? answer.bin : null,
-        correct ? 1 : 0,
-      )
+      roundResults[player.uid] = {
+        bin: inTime && answer ? (answer.bin as BinId) : null,
+        correct,
+      }
     }
+
+    this.ctx.storage.sql.exec(
+      'INSERT OR REPLACE INTO roundResults (round, payload) VALUES (?, ?)',
+      round,
+      JSON.stringify(roundResults),
+    )
 
     const reveal: RevealInfo = {
       index: round,
@@ -819,18 +829,34 @@ export class GameRoom extends DurableObject<Env> {
     }
   }
 
-  private getResults(uid: string): Record<number, RoundResult> {
-    const rows = this.ctx.storage.sql
-      .exec<{ round: number; bin: string | null; correct: number }>(
-        'SELECT round, bin, correct FROM results WHERE uid = ?',
-        uid,
-      )
+  /** ผลรายข้อทุกข้อที่จบไปแล้ว — แต่ละข้อเป็นก้อนเดียว (uid → ผล) */
+  private roundResultBlobs(): { round: number; map: Record<string, RoundResult> }[] {
+    return this.ctx.storage.sql
+      .exec<{ round: number; payload: string }>('SELECT round, payload FROM roundResults')
       .toArray()
+      .map((r) => ({ round: r.round, map: JSON.parse(r.payload) as Record<string, RoundResult> }))
+  }
+
+  private getResults(uid: string): Record<number, RoundResult> {
     const out: Record<number, RoundResult> = {}
-    for (const r of rows) {
-      out[r.round] = { bin: (r.bin as BinId | null) ?? null, correct: r.correct === 1 }
+    for (const { round, map } of this.roundResultBlobs()) {
+      const hit = map[uid]
+      if (hit) out[round] = hit
     }
     return out
+  }
+
+  /** ลบผลของคนที่กดออกจากห้อง เพื่อไม่ให้ผลเก่าค้างถ้ากลับเข้ามาใหม่ */
+  private forgetResults(uid: string) {
+    for (const { round, map } of this.roundResultBlobs()) {
+      if (!(uid in map)) continue
+      delete map[uid]
+      this.ctx.storage.sql.exec(
+        'INSERT OR REPLACE INTO roundResults (round, payload) VALUES (?, ?)',
+        round,
+        JSON.stringify(map),
+      )
+    }
   }
 
   // ---------- ส่งข้อมูล ----------
@@ -905,15 +931,12 @@ export class GameRoom extends DurableObject<Env> {
   /** ผลรายข้อของทุกคนในครั้งเดียว — uid → { รอบ: ผล } */
   private allResults(): Map<string, Record<number, RoundResult>> {
     const out = new Map<string, Record<number, RoundResult>>()
-    const rows = this.ctx.storage.sql
-      .exec<{ uid: string; round: number; bin: string | null; correct: number }>(
-        'SELECT uid, round, bin, correct FROM results',
-      )
-      .toArray()
-    for (const r of rows) {
-      const rec = out.get(r.uid) ?? {}
-      rec[r.round] = { bin: (r.bin as BinId | null) ?? null, correct: r.correct === 1 }
-      out.set(r.uid, rec)
+    for (const { round, map } of this.roundResultBlobs()) {
+      for (const uid of Object.keys(map)) {
+        const rec = out.get(uid) ?? {}
+        rec[round] = map[uid]
+        out.set(uid, rec)
+      }
     }
     return out
   }

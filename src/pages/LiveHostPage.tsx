@@ -458,9 +458,12 @@ function HostExplain({ room }: { room: RoomSnapshot }) {
 function HostBoard({ room }: { room: RoomSnapshot }) {
   return (
     <div className="h-full max-w-3xl w-full mx-auto">
-      <div className="pop-card p-6 h-full overflow-y-auto">
-        <p className="font-display text-2xl text-ink mb-4">อันดับตอนนี้</p>
-        <Leaderboard entries={room.board} size="lg" />
+      {/* จอกลางห้ามมีสกรอลล์ — 10 อันดับต้องเห็นครบพร้อมกันจากหลังห้อง */}
+      <div className="pop-card p-4 sm:p-6 h-full flex flex-col overflow-hidden">
+        <p className="font-display text-xl sm:text-2xl text-ink mb-3 shrink-0">อันดับตอนนี้</p>
+        <div className="flex-1 min-h-0">
+          <Leaderboard entries={room.board} size="lg" fill />
+        </div>
       </div>
     </div>
   )
@@ -476,16 +479,21 @@ function HostFinale({ room }: { room: RoomSnapshot }) {
     <div className="h-full flex flex-col">
       {done && <Confetti count={90} seed="final" />}
 
-      <p className="font-display text-3xl sm:text-4xl text-ink text-center mb-1 shrink-0">
+      <p className="font-display text-2xl sm:text-4xl text-ink text-center mb-0.5 shrink-0">
         {done ? 'ผู้ชนะเกมแยกขยะ' : 'ประกาศผล 10 อันดับ'}
       </p>
-      <p className="text-ink/55 text-center mb-5 shrink-0">
+      <p className="text-ink/55 text-center text-sm sm:text-base mb-3 shrink-0">
         {done
           ? `${champion?.name ?? '-'} · ${champion?.score.toLocaleString('th-TH') ?? 0} คะแนน`
           : 'เฉลยจากอันดับท้ายขึ้นไปหาที่หนึ่ง'}
       </p>
 
-      <div className="flex-1 min-h-0 overflow-y-auto max-w-3xl w-full mx-auto space-y-2.5">
+      {/* แบ่งความสูงที่เหลือให้ทุกอันดับเท่าๆ กัน — การเฉลยไล่จากอันดับท้ายขึ้นมา
+          ถ้าปล่อยให้ล้นแล้วเลื่อนเอา แถวที่เฉลยก่อนคือแถวที่ตกใต้ขอบจอพอดี */}
+      <div
+        className="flex-1 min-h-0 max-w-3xl w-full mx-auto grid gap-1.5 sm:gap-2"
+        style={{ gridTemplateRows: `repeat(${Math.max(room.board.length, 1)}, minmax(0, 1fr))` }}
+      >
         {room.board.map((entry) => {
           const revealed = entry.rank > revealedFrom
           const isLatest = entry.rank === revealedFrom + 1 && !done
@@ -496,7 +504,7 @@ function HostFinale({ room }: { room: RoomSnapshot }) {
                 isLatest ? { scale: [0.9, 1.04, 1], opacity: 1 } : { scale: 1, opacity: 1 }
               }
               transition={{ duration: 0.5 }}
-              className={`flex items-center gap-4 rounded-3xl px-5 py-3.5 ${
+              className={`flex items-center gap-3 sm:gap-4 min-h-0 overflow-hidden rounded-3xl px-4 sm:px-5 ${
                 revealed
                   ? entry.rank === 1
                     ? 'bg-amber-100 ring-2 ring-amber-400'
@@ -504,21 +512,23 @@ function HostFinale({ room }: { room: RoomSnapshot }) {
                   : 'bg-ink/[0.02] border border-dashed border-line'
               }`}
             >
-              <span className="tabular w-12 text-center text-2xl font-semibold text-ink/70">
+              <span className="tabular w-10 sm:w-12 shrink-0 text-center text-xl sm:text-2xl font-semibold text-ink/70">
                 {entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : entry.rank}
               </span>
               {revealed ? (
                 <>
-                  <PlayerAvatar look={entry.look} size={44} />
+                  <PlayerAvatar look={entry.look} size={38} />
                   <span className="flex-1 min-w-0">
-                    <span className="block truncate text-ink text-xl font-medium">{entry.name}</span>
+                    <span className="block truncate text-ink text-lg sm:text-xl font-medium">
+                      {entry.name}
+                    </span>
                   </span>
-                  <span className="tabular text-ink text-2xl font-semibold">
+                  <span className="tabular text-ink text-xl sm:text-2xl font-semibold">
                     {entry.score.toLocaleString('th-TH')}
                   </span>
                 </>
               ) : (
-                <span className="flex-1 text-ink/30 text-xl tracking-[0.4em]">? ? ?</span>
+                <span className="flex-1 text-ink/30 text-lg sm:text-xl tracking-[0.4em]">? ? ?</span>
               )}
             </motion.div>
           )

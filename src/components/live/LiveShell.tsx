@@ -16,7 +16,7 @@ export default function LiveShell({ children, fill = false, topRight }: LiveShel
 
   return (
     <div className={`game-bg ${fill ? 'h-dvh overflow-hidden' : 'min-h-dvh'} flex flex-col`}>
-      <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-3 shrink-0">
+      <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-2 sm:py-3 shrink-0">
         <a
           href="#"
           className="inline-flex items-center gap-1.5 text-ink/60 hover:text-ink text-sm transition-colors"
@@ -41,7 +41,7 @@ export default function LiveShell({ children, fill = false, topRight }: LiveShel
         </div>
       </div>
 
-      <div className={`flex-1 ${fill ? 'min-h-0' : ''} px-4 sm:px-6 pb-6`}>{children}</div>
+      <div className={`flex-1 ${fill ? 'min-h-0' : ''} px-3 sm:px-6 pb-3 sm:pb-6`}>{children}</div>
     </div>
   )
 }

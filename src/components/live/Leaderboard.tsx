@@ -9,6 +9,11 @@ interface LeaderboardProps {
   /** จอกลางใช้ตัวใหญ่ มือถือใช้ตัวเล็ก */
   size?: 'sm' | 'lg'
   limit?: number
+  /**
+   * แบ่งความสูงที่มีให้ทุกแถวเท่าๆ กันแทนการไล่เรียงลงไปเรื่อยๆ
+   * ใช้บนจอโปรเจกเตอร์: 10 อันดับต้องเห็นครบในจอเดียว ห้ามมีแถวตกใต้ขอบให้ต้องเลื่อนหา
+   */
+  fill?: boolean
 }
 
 const MEDAL = ['🥇', '🥈', '🥉']
@@ -18,6 +23,7 @@ export default function Leaderboard({
   highlightUid,
   size = 'sm',
   limit,
+  fill = false,
 }: LeaderboardProps) {
   const rows = limit ? entries.slice(0, limit) : entries
   const lg = size === 'lg'
@@ -27,7 +33,16 @@ export default function Leaderboard({
   }
 
   return (
-    <ol className={lg ? 'space-y-2.5' : 'space-y-2'}>
+    <ol
+      className={
+        fill
+          ? `grid h-full min-h-0 ${lg ? 'gap-2' : 'gap-1.5'}`
+          : lg
+            ? 'space-y-2.5'
+            : 'space-y-2'
+      }
+      style={fill ? { gridTemplateRows: `repeat(${rows.length}, minmax(0, 1fr))` } : undefined}
+    >
       {rows.map((entry) => {
         const me = entry.uid === highlightUid
         return (
@@ -35,9 +50,9 @@ export default function Leaderboard({
             key={entry.uid}
             layout
             transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-            className={`flex items-center gap-3 rounded-2xl ${lg ? 'px-5 py-3' : 'px-3 py-2'} ${
-              me ? 'bg-accent/15 ring-2 ring-accent' : 'bg-ink/[0.04]'
-            }`}
+            className={`flex items-center gap-3 overflow-hidden rounded-2xl ${
+              fill ? (lg ? 'min-h-0 px-5' : 'min-h-0 px-3') : lg ? 'px-5 py-3' : 'px-3 py-2'
+            } ${me ? 'bg-accent/15 ring-2 ring-accent' : 'bg-ink/[0.04]'}`}
           >
             <span
               className={`tabular shrink-0 text-center ${lg ? 'w-12 text-2xl' : 'w-8 text-base'} font-semibold text-ink/70`}

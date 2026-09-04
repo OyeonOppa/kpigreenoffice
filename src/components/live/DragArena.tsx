@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { motion, type PanInfo } from 'framer-motion'
+import { Check } from 'lucide-react'
 import { WASTE } from '../../content'
 import type { BinId } from '../../game'
 import { sfx } from '../../game/sfx'
@@ -19,6 +20,8 @@ interface DragArenaProps {
   correctBin?: BinId | null
   /** วงแหวนนับถอยหลังรอบตัวขยะ — ตัววงแหวนเดินนาฬิกาเอง */
   countdown?: { endsAt: number; totalMs: number }
+  /** คลาสเสริมของกล่องนอกสุด — หน้าผู้เล่นใช้สั่งให้ยืดเต็มความสูงจอ */
+  className?: string
 }
 
 // สนามลากขยะลงถัง
@@ -33,6 +36,7 @@ export default function DragArena({
   onAnswer,
   correctBin,
   countdown,
+  className = '',
 }: DragArenaProps) {
   const binRefs = useRef(new Map<BinId, HTMLButtonElement>())
   const rects = useRef<{ id: BinId; rect: DOMRect }[]>([])
@@ -77,13 +81,21 @@ export default function DragArena({
 
   const item =
     answered || revealing ? (
-      <motion.p
+      // ข้อความสั้นที่สุดเท่าที่จะสื่อได้ — ช่องว่างในวงแหวนแคบ ถ้ายาวกว่านี้จะตัดคำจนอ่านยาก
+      <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="text-ink/70 text-center text-sm sm:text-base px-2"
+        className="flex flex-col items-center gap-1 text-center"
       >
-        {revealing ? 'มาดูเฉลยกัน' : 'ส่งคำตอบแล้ว รออีกนิด'}
-      </motion.p>
+        {!revealing && (
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-white">
+            <Check size={22} strokeWidth={3} />
+          </span>
+        )}
+        <span className="text-ink/70 text-xs sm:text-sm leading-tight">
+          {revealing ? 'มาดูเฉลยกัน' : 'ส่งคำตอบแล้ว'}
+        </span>
+      </motion.div>
     ) : (
       <motion.div
         drag
@@ -110,27 +122,34 @@ export default function DragArena({
     )
 
   return (
-    <div className="flex flex-col items-center gap-5 w-full">
-      {/* ขยะที่ต้องทิ้ง — ลากออกจากวงแหวนเวลาได้เลย */}
-      <div className="relative z-30">
-        {countdown ? (
-          <CountdownRing
-            endsAt={countdown.endsAt}
-            totalMs={countdown.totalMs}
-            className="w-44 h-44 sm:w-52 sm:h-52"
-          >
-            {item}
-          </CountdownRing>
-        ) : (
-          <div className="h-36 flex items-center justify-center">{item}</div>
-        )}
-      </div>
+    // ทุกขนาดวัดจากความสูงจอ (dvh) ไม่ใช่ค่าคงที่ — ช่วงตอบมีแค่ 10 วินาที
+    // ถ้าถังแถวล่างตกใต้ขอบจอ ผู้เล่นบนมือถือจอเล็กต้องเลื่อนหาก่อนถึงจะกดได้ = เสียเปรียบ
+    // clamp ไว้ด้วย min() เพื่อไม่ให้จอสูงๆ ขยายเกินขนาดที่ออกแบบไว้
+    <div className={`flex flex-col items-center gap-2.5 sm:gap-5 w-full ${className}`}>
+      {/* ขยะ + ชื่อไอเท็ม อยู่กลางพื้นที่ว่าง ส่วนถังปักไว้ล่างสุดเสมอ (นิ้วโป้งถึงง่ายที่สุด) */}
+      <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-2 sm:gap-4">
+        <div className="relative z-30">
+          {countdown ? (
+            <CountdownRing
+              endsAt={countdown.endsAt}
+              totalMs={countdown.totalMs}
+              className="w-[min(13.5rem,21.5dvh)] h-[min(13.5rem,21.5dvh)] sm:w-[min(13rem,26dvh)] sm:h-[min(13rem,26dvh)]"
+            >
+              {item}
+            </CountdownRing>
+          ) : (
+            <div className="h-[min(9rem,20dvh)] flex items-center justify-center">{item}</div>
+          )}
+        </div>
 
-      <div className="text-center -mt-1">
-        <p className="text-ink text-lg sm:text-2xl font-medium">{itemName}</p>
-        {!locked && (
-          <p className="text-ink/55 text-xs sm:text-sm mt-1">ลากลงถัง หรือแตะถังที่คิดว่าถูก</p>
-        )}
+        <div className="text-center">
+          <p className="text-ink text-base sm:text-2xl font-medium leading-tight">{itemName}</p>
+          {!locked && (
+            <p className="text-ink/55 text-[11px] sm:text-sm mt-0.5">
+              ลากลงถัง หรือแตะถังที่คิดว่าถูก
+            </p>
+          )}
+        </div>
       </div>
 
       {/* ถังคำตอบ */}
@@ -148,18 +167,22 @@ export default function DragArena({
               onClick={() => commit(bin.id)}
               disabled={locked}
               aria-label={`ทิ้งลง${bin.name} ${bin.type}`}
-              className={`pop-card flex flex-col items-center gap-1 px-2 pt-3 pb-2 transition-transform ${
+              className={`pop-card flex flex-col items-center gap-0.5 px-2 pt-2 pb-1.5 sm:gap-1 sm:pt-3 sm:pb-2 transition-transform ${
                 locked ? '' : 'hover:-translate-y-1 active:translate-y-0.5'
               } ${chosen ? 'ring-4 ring-accent' : ''} ${
                 revealing && bin.id === correctBin ? 'ring-4 ring-emerald-500' : ''
               } focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent`}
               style={{ borderColor: hovered === bin.id && dragging ? bin.color : undefined }}
             >
-              <MascotBin color={bin.color} mood={moodFor(bin.id)} className="w-16 sm:w-20" />
-              <span className="text-ink text-sm sm:text-base font-medium leading-tight">
+              <MascotBin
+                color={bin.color}
+                mood={moodFor(bin.id)}
+                className="w-[min(5rem,8.8dvh)] sm:w-20"
+              />
+              <span className="text-ink text-[13px] sm:text-base font-medium leading-tight">
                 {bin.type}
               </span>
-              <span className="text-ink/50 text-[11px] sm:text-xs">{bin.name}</span>
+              <span className="text-ink/50 text-[10px] sm:text-xs leading-tight">{bin.name}</span>
             </button>
           )
         })}

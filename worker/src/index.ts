@@ -46,10 +46,24 @@ export default {
     }
 
     // สร้างห้องใหม่ — คืน PIN ให้เครื่องสตาฟ
+    //
+    // รับ uid ของเครื่องที่สร้างมาตั้งเป็นเจ้าของห้องตั้งแต่วินาทีแรก
+    // ไม่งั้นสิทธิ์สตาฟจะตกกับ "คนแรกที่ต่อ WebSocket เข้ามา" ซึ่งอาจเป็นคนอื่น
+    // ถ้าเครื่องสตาฟต่อช้ากว่าคนที่เดา PIN ได้ (แล้วจะกดปุ่มคุมเกมไม่ได้ทั้งงาน)
     if (url.pathname === '/api/room' && request.method === 'POST') {
+      let hostUid = ''
+      try {
+        const body = (await request.json()) as { uid?: string } | null
+        const raw = (body?.uid ?? '').trim()
+        if (/^g-[a-z0-9]{8,40}$/i.test(raw)) hostUid = raw
+      } catch {
+        // ไม่ส่ง body มาก็ได้ — ถอยไปใช้กติกาเดิม (คนแรกที่ต่อเข้ามาเป็นสตาฟ)
+      }
       const pin = randomPin()
       const stub = env.GAME_ROOM.getByName(pin)
-      await stub.fetch(new Request(`https://room/create?pin=${pin}`))
+      await stub.fetch(
+        new Request(`https://room/create?pin=${pin}&host=${encodeURIComponent(hostUid)}`),
+      )
       return Response.json({ pin }, { headers: cors })
     }
 
