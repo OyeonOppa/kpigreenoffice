@@ -508,16 +508,18 @@ export class GameRoom extends DurableObject<Env> {
         await this.setPhase('explain', now)
         break
       case 'explain':
-        await this.setPhase('board', now)
-        break
-      case 'board':
+        // ข้อสุดท้ายข้าม "อันดับตอนนี้" ไปที่ "ประกาศผล" เลย — ไม่งั้นจะเห็นกระดานคะแนน
+        // สองรอบซ้อนกัน (board ของข้อ 10 ตามด้วย finale ที่ไล่เฉลยอันดับอีกที)
         if (this.meta.roundIndex + 1 < this.meta.questionIds.length) {
-          this.meta.roundIndex += 1
-          await this.setPhase('countdown', now)
+          await this.setPhase('board', now)
         } else {
           this.meta.finaleStep = 0
           await this.setPhase('finale', now)
         }
+        break
+      case 'board':
+        this.meta.roundIndex += 1
+        await this.setPhase('countdown', now)
         break
       case 'finale':
         await this.advanceFinale(now)
