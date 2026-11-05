@@ -214,6 +214,7 @@ function WasteCard({
   onClick,
   small,
   grid,
+  large,
 }: {
   card: Card
   hint: boolean
@@ -222,17 +223,19 @@ function WasteCard({
   small?: boolean
   /** เต็มความกว้างของช่องตาราง (ใช้ในแผงไพ่ในมือ) */
   grid?: boolean
+  /** ไพ่ใบใหญ่ ใช้ตอนเฉลย */
+  large?: boolean
 }) {
   const bin = BINS[card.item.bin]
   const body = (
     <>
-      <ItemArt card={card} className={grid ? 'w-11 h-11 sm:w-12 sm:h-12' : small ? 'w-14 h-14' : 'w-16 h-16 sm:w-20 sm:h-20'} />
-      <span className={`font-medium text-ink text-center leading-tight ${grid ? 'text-xs' : small ? 'text-sm' : 'text-[13px] sm:text-sm'}`}>
+      <ItemArt card={card} className={large ? 'w-28 h-28' : grid ? 'w-11 h-11 sm:w-12 sm:h-12' : small ? 'w-14 h-14' : 'w-16 h-16 sm:w-20 sm:h-20'} />
+      <span className={`font-medium text-ink text-center leading-tight ${large ? 'text-lg' : grid ? 'text-xs' : small ? 'text-sm' : 'text-[13px] sm:text-sm'}`}>
         {card.item.name}
       </span>
       {hint && (
         <span
-          className={`mt-auto rounded-full px-2 py-0.5 font-medium ${grid ? 'text-[10px]' : 'text-[11px]'}`}
+          className={`mt-auto rounded-full font-medium ${large ? 'px-3 py-1 text-sm' : grid ? 'px-2 py-0.5 text-[10px]' : 'px-2 py-0.5 text-[11px]'}`}
           style={{ background: bin.tint, color: bin.color, border: `1px solid ${bin.color}55` }}
         >
           {bin.shape} {bin.name}
@@ -240,8 +243,8 @@ function WasteCard({
       )}
     </>
   )
-  const cls = `shrink-0 flex flex-col items-center gap-1 rounded-2xl border-2 bg-surface ${grid ? 'p-1.5' : 'p-2'} ${
-    grid ? 'w-full h-[7.4rem]' : small ? 'w-28 h-32' : 'w-[6.4rem] sm:w-28 h-36 sm:h-40'
+  const cls = `shrink-0 flex flex-col items-center gap-1 rounded-2xl border-2 bg-surface ${grid ? 'p-1.5' : large ? 'p-3' : 'p-2'} ${
+    large ? 'w-44 h-60 gap-2' : grid ? 'w-full h-[7.4rem]' : small ? 'w-28 h-32' : 'w-[6.4rem] sm:w-28 h-36 sm:h-40'
   } transition-all ${selected ? '-translate-y-1 border-accent shadow-lg ring-4 ring-accent/25' : 'border-line shadow-sm'}`
   return onClick ? (
     <button type="button" onClick={onClick} className={`${cls} hover:-translate-y-1`} aria-pressed={selected}>
@@ -252,10 +255,10 @@ function WasteCard({
   )
 }
 
-function CardBack({ className = '' }: { className?: string }) {
+function CardBack({ className = '', big }: { className?: string; big?: boolean }) {
   return (
     <div
-      className={`rounded-2xl border-2 flex items-center justify-center text-4xl shadow-md ${className}`}
+      className={`rounded-2xl border-2 flex items-center justify-center shadow-md ${big ? 'text-7xl' : 'text-4xl'} ${className}`}
       style={{ background: 'linear-gradient(160deg,#38bdf8,#0369a1)', borderColor: '#075985' }}
       aria-label="ไพ่คว่ำ"
     >
@@ -540,48 +543,59 @@ function Decide({ game, me, hints, setGame }: { game: State; me: number; hints: 
   const peekOk = canPeek(game)
   const unseen = unseenCounts(game, me)
   return (
-    <div className="flex flex-col items-center text-center gap-3">
-      <div className="text-ink/60 text-sm">
-        {o.seen.length > 1 ? 'ไพ่ถูกส่งต่อมาถึงคุณ' : 'ถึงตาคุณตัดสินใจ'}
+    <div className="flex flex-col sm:flex-row items-center sm:items-stretch gap-5 sm:gap-8">
+      {/* ซ้าย: ไพ่คว่ำใบใหญ่ + ใครส่งมา */}
+      <div className="flex flex-col items-center justify-center text-center gap-3 sm:w-64 shrink-0">
+        <div className="text-ink/60 text-sm">{o.seen.length > 1 ? 'ไพ่ถูกส่งต่อมาถึงคุณ' : 'ถึงตาคุณตัดสินใจ'}</div>
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+          <CardBack big className="w-40 h-56" />
+        </motion.div>
+        <p className="text-ink text-lg leading-snug">
+          <b>{game.players[o.from].name}</b>
+          <br />
+          ส่งไพ่คว่ำมาให้คุณ
+        </p>
       </div>
-      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-        <CardBack className="w-20 h-28" />
-      </motion.div>
-      <p className="text-ink text-lg">
-        <b>{game.players[o.from].name}</b> ส่งไพ่คว่ำมาให้คุณ
-      </p>
-      <ClaimBubble claim={o.claim} />
-      <p className="text-ink font-medium">คุณคิดว่า…</p>
-      <div className="grid sm:grid-cols-3 gap-2 w-full max-w-xl">
-        <button
-          type="button"
-          onClick={() => setGame((g) => g && respond(g, 'true'))}
-          className="pop-btn bg-accent text-white py-3 px-4 font-medium"
-        >
-          ✅ จริง
-          <span className="block text-xs font-normal opacity-90">เชื่อว่าไพ่นี้ใช่ {BINS[o.claim].name}</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setGame((g) => g && respond(g, 'false'))}
-          className="pop-btn py-3 px-4 font-medium text-white"
-          style={{ background: '#dc2626', ['--pop-shadow' as string]: '#991b1b' }}
-        >
-          ❌ โกหก
-          <span className="block text-xs font-normal opacity-90">ไม่ใช่ {BINS[o.claim].name} แน่</span>
-        </button>
-        <button
-          type="button"
-          disabled={!peekOk}
-          onClick={() => setGame((g) => g && respond(g, 'peek'))}
-          className="pop-btn py-3 px-4 font-medium bg-surface text-ink border-2 border-line disabled:opacity-40"
-          style={{ ['--pop-shadow' as string]: 'oklch(85% 0.02 152)' }}
-        >
-          <Eye className="inline -mt-0.5" size={16} /> ดูแล้วส่งต่อ
-          <span className="block text-xs font-normal text-ink/60">{peekOk ? 'แล้วต้องส่งให้คนอื่นทายแทน' : 'ไม่มีใครเหลือให้ส่งต่อแล้ว'}</span>
-        </button>
+
+      {/* ขวา: คำที่เขาบอก + ปุ่มตัดสินใจ */}
+      <div className="flex-1 min-w-0 flex flex-col justify-center gap-3 w-full">
+        <ClaimBubble claim={o.claim} />
+        <p className="text-ink font-medium text-lg">คุณคิดว่า…</p>
+        <div className="grid gap-2.5">
+          <button
+            type="button"
+            onClick={() => setGame((g) => g && respond(g, 'true'))}
+            className="pop-btn bg-accent text-white py-3 px-5 font-medium text-left"
+          >
+            <span className="text-lg">✅ จริง</span>
+            <span className="block text-sm font-normal opacity-90">เชื่อว่าไพ่นี้ใช่ {BINS[o.claim].name}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setGame((g) => g && respond(g, 'false'))}
+            className="pop-btn py-3 px-5 font-medium text-white text-left"
+            style={{ background: '#dc2626', ['--pop-shadow' as string]: '#991b1b' }}
+          >
+            <span className="text-lg">❌ โกหก</span>
+            <span className="block text-sm font-normal opacity-90">ไม่ใช่ {BINS[o.claim].name} แน่</span>
+          </button>
+          <button
+            type="button"
+            disabled={!peekOk}
+            onClick={() => setGame((g) => g && respond(g, 'peek'))}
+            className="pop-btn py-3 px-5 font-medium bg-surface text-ink border-2 border-line disabled:opacity-40 text-left"
+            style={{ ['--pop-shadow' as string]: 'oklch(85% 0.02 152)' }}
+          >
+            <span className="text-lg">
+              <Eye className="inline -mt-1" size={18} /> ดูแล้วส่งต่อ
+            </span>
+            <span className="block text-sm font-normal text-ink/60">
+              {peekOk ? 'แอบดูไพ่ แล้วส่งให้คนอื่นทายแทน (ถ้าเขาทายถูก คุณเก็บไพ่)' : 'ไม่มีใครเหลือให้ส่งต่อแล้ว'}
+            </span>
+          </button>
+        </div>
+        {hints && <UnseenPanel unseen={unseen} />}
       </div>
-      {hints && <UnseenPanel unseen={unseen} />}
     </div>
   )
 }
@@ -591,7 +605,7 @@ function UnseenPanel({ unseen }: { unseen: Record<BinId, number> }) {
   return (
     <div className="mt-1 text-xs text-ink/65">
       <div className="mb-1">ช่วยนับไพ่ — ที่ยังไม่โผล่ (รวมไพ่ในมือคนอื่นและใบนี้):</div>
-      <div className="flex gap-1.5 justify-center flex-wrap">
+      <div className="flex gap-1.5 flex-wrap">
         {BIN_IDS.map((b) => (
           <span key={b} className="rounded-full px-2 py-0.5 border" style={{ background: BINS[b].tint, color: BINS[b].color, borderColor: `${BINS[b].color}55` }}>
             {BINS[b].shape} {BINS[b].name} {unseen[b]}
@@ -748,42 +762,49 @@ function Reveal({ game, me, setGame }: { game: State; me: number; setGame: (f: (
   const takerLoses = game.loser !== null && game.loser === r.taker
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center text-center gap-3">
-      <motion.div initial={{ rotateY: 90 }} animate={{ rotateY: 0 }} transition={{ duration: 0.4 }}>
-        <WasteCard card={r.card} hint />
-      </motion.div>
-      <p className="text-ink">
-        {nm(r.from)} บอกว่า <b style={{ color: claimBin.color }}>{binName(r.claim)}</b> →{' '}
-        {r.claimTrue ? (
-          <b className="text-accent-deep">พูดจริง ✅</b>
-        ) : (
-          <b className="text-red-600">โกหก ❌ ไพ่นี้คือ {binName(r.card.item.bin)}</b>
-        )}
-      </p>
-      <p className="text-ink">
-        {nm(r.to)} ทายว่า<b>{r.guess === 'true' ? 'จริง' : 'โกหก'}</b> → {r.correct ? 'ถูก 🎉' : 'ผิด 😅'}
-      </p>
-      <div
-        className="rounded-2xl px-4 py-2 border-2 font-medium"
-        style={{ background: actual.tint, color: actual.color, borderColor: `${actual.color}66` }}
-      >
-        {nm(r.taker)}เก็บไพ่ใบนี้ ({binName(r.card.item.bin)})
-        {takerLoses && ` — ครบ ${game.limit} ใบ แพ้!`}
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row items-center sm:items-stretch gap-5 sm:gap-8">
+      {/* ซ้าย: ไพ่หงายใบใหญ่ */}
+      <div className="flex items-center justify-center sm:w-64 shrink-0">
+        <motion.div initial={{ rotateY: 90 }} animate={{ rotateY: 0 }} transition={{ duration: 0.4 }}>
+          <WasteCard card={r.card} hint large />
+        </motion.div>
       </div>
-      <p className="text-sm text-ink/70 max-w-md leading-relaxed">
-        <b>รู้ไหม:</b> {r.card.item.why}
-      </p>
-      {[r.from, r.to, r.taker].some((i) => i === me) ? (
-        <button
-          type="button"
-          onClick={() => setGame((g) => g && next(g))}
-          className="pop-btn bg-accent text-white px-8 py-3 font-medium"
+
+      {/* ขวา: ผลการทาย */}
+      <div className="flex-1 min-w-0 flex flex-col justify-center gap-3 w-full text-left">
+        <p className="text-ink text-lg leading-relaxed">
+          {nm(r.from)} บอกว่า <b style={{ color: claimBin.color }}>{binName(r.claim)}</b> →{' '}
+          {r.claimTrue ? (
+            <b className="text-accent-deep">พูดจริง ✅</b>
+          ) : (
+            <b className="text-red-600">โกหก ❌ ไพ่นี้คือ {binName(r.card.item.bin)}</b>
+          )}
+        </p>
+        <p className="text-ink text-lg">
+          {nm(r.to)} ทายว่า<b>{r.guess === 'true' ? 'จริง' : 'โกหก'}</b> → {r.correct ? 'ถูก 🎉' : 'ผิด 😅'}
+        </p>
+        <div
+          className="rounded-2xl px-4 py-2.5 border-2 font-medium"
+          style={{ background: actual.tint, color: actual.color, borderColor: `${actual.color}66` }}
         >
-          {game.loser !== null ? 'ดูผล' : 'ต่อไป'}
-        </button>
-      ) : (
-        <p className="text-xs text-ink/50">กำลังไปตาถัดไป…</p>
-      )}
+          {nm(r.taker)}เก็บไพ่ใบนี้ ({binName(r.card.item.bin)})
+          {takerLoses && ` — ครบ ${game.limit} ใบ แพ้!`}
+        </div>
+        <p className="text-ink/75 leading-relaxed">
+          <b>รู้ไหม:</b> {r.card.item.why}
+        </p>
+        {[r.from, r.to, r.taker].some((i) => i === me) ? (
+          <button
+            type="button"
+            onClick={() => setGame((g) => g && next(g))}
+            className="pop-btn bg-accent text-white px-8 py-3 font-medium self-start"
+          >
+            {game.loser !== null ? 'ดูผล' : 'ต่อไป'}
+          </button>
+        ) : (
+          <p className="text-xs text-ink/50">กำลังไปตาถัดไป…</p>
+        )}
+      </div>
     </motion.div>
   )
 }
