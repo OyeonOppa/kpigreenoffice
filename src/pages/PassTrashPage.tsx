@@ -213,23 +213,26 @@ function WasteCard({
   selected,
   onClick,
   small,
+  grid,
 }: {
   card: Card
   hint: boolean
   selected?: boolean
   onClick?: () => void
   small?: boolean
+  /** เต็มความกว้างของช่องตาราง (ใช้ในแผงไพ่ในมือ) */
+  grid?: boolean
 }) {
   const bin = BINS[card.item.bin]
   const body = (
     <>
-      <ItemArt card={card} className={small ? 'w-14 h-14' : 'w-16 h-16 sm:w-20 sm:h-20'} />
-      <span className={`font-medium text-ink text-center leading-tight ${small ? 'text-sm' : 'text-[13px] sm:text-sm'}`}>
+      <ItemArt card={card} className={grid ? 'w-11 h-11 sm:w-12 sm:h-12' : small ? 'w-14 h-14' : 'w-16 h-16 sm:w-20 sm:h-20'} />
+      <span className={`font-medium text-ink text-center leading-tight ${grid ? 'text-xs' : small ? 'text-sm' : 'text-[13px] sm:text-sm'}`}>
         {card.item.name}
       </span>
       {hint && (
         <span
-          className="mt-auto rounded-full px-2 py-0.5 text-[11px] font-medium"
+          className={`mt-auto rounded-full px-2 py-0.5 font-medium ${grid ? 'text-[10px]' : 'text-[11px]'}`}
           style={{ background: bin.tint, color: bin.color, border: `1px solid ${bin.color}55` }}
         >
           {bin.shape} {bin.name}
@@ -237,9 +240,9 @@ function WasteCard({
       )}
     </>
   )
-  const cls = `shrink-0 flex flex-col items-center gap-1 rounded-2xl border-2 bg-surface p-2 ${
-    small ? 'w-28 h-32' : 'w-[6.4rem] sm:w-28 h-36 sm:h-40'
-  } transition-all ${selected ? '-translate-y-2 border-accent shadow-lg ring-4 ring-accent/25' : 'border-line shadow-sm'}`
+  const cls = `shrink-0 flex flex-col items-center gap-1 rounded-2xl border-2 bg-surface ${grid ? 'p-1.5' : 'p-2'} ${
+    grid ? 'w-full h-[7.4rem]' : small ? 'w-28 h-32' : 'w-[6.4rem] sm:w-28 h-36 sm:h-40'
+  } transition-all ${selected ? '-translate-y-1 border-accent shadow-lg ring-4 ring-accent/25' : 'border-line shadow-sm'}`
   return onClick ? (
     <button type="button" onClick={onClick} className={`${cls} hover:-translate-y-1`} aria-pressed={selected}>
       {body}
@@ -337,52 +340,112 @@ function Board({
 }) {
   const me = game.players.findIndex((p) => p.human)
   const a = actor(game)
+  const picking = game.phase === 'pick' && a === me
+
+  // ไพ่ที่เลือกไว้ส่ง — ผูกกับ round จึงล้างเองเมื่อขึ้นตาใหม่ ไม่ต้องใช้ effect
+  const [sel, setSel] = useState<{ round: number; id: number } | null>(null)
+  const selectedId = sel && sel.round === game.round ? sel.id : null
+  const onSelect = (id: number) => setSel({ round: game.round, id })
 
   return (
-    <div className="max-w-4xl mx-auto space-y-3">
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        {game.players.map((p, i) =>
-          i === me ? null : <PlayerChip key={p.name} game={game} who={i} active={a === i && game.phase !== 'over'} />,
+    <div className="max-w-6xl mx-auto lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-4 lg:items-start">
+      <div className="space-y-3 min-w-0">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {game.players.map((p, i) =>
+            i === me ? null : <PlayerChip key={p.name} game={game} who={i} active={a === i && game.phase !== 'over'} />,
+          )}
+        </div>
+
+        <div className="pop-card p-4 sm:p-6 min-h-[17rem]">
+          <Stage game={game} me={me} hints={hints} selectedId={selectedId} onSelect={onSelect} setGame={setGame} onAgain={onAgain} />
+        </div>
+
+        <div className="rounded-2xl bg-surface/80 border border-line px-4 py-2.5 text-sm text-ink/70 leading-relaxed" aria-live="polite">
+          {game.log.slice(-3).map((l, i, arr) => (
+            <div key={game.log.length - arr.length + i} className={i === arr.length - 1 ? 'text-ink font-medium' : ''}>
+              {l}
+            </div>
+          ))}
+        </div>
+
+        {/* จอแคบ: มือของเราอยู่ใต้เวที (ตอนเลือกไพ่ จะอยู่ในขั้นที่ 1 ของเวทีแล้ว จึงไม่แสดงซ้ำ) */}
+        {!picking && (
+          <div className="lg:hidden">
+            <HandPanel game={game} me={me} hints={hints} />
+          </div>
         )}
       </div>
 
-      <div className="pop-card p-4 sm:p-6 min-h-[17rem]">
-        <Stage game={game} me={me} hints={hints} setGame={setGame} onAgain={onAgain} />
-      </div>
-
-      <div className="rounded-2xl bg-surface/80 border border-line px-4 py-2.5 text-sm text-ink/70 leading-relaxed" aria-live="polite">
-        {game.log.slice(-3).map((l, i, arr) => (
-          <div key={game.log.length - arr.length + i} className={i === arr.length - 1 ? 'text-ink font-medium' : ''}>
-            {l}
-          </div>
-        ))}
-      </div>
-
-      <div className="pop-card p-3 sm:p-4">
-        <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
-          <div className="flex items-center gap-2">
-            <span className="text-xl" aria-hidden>
-              {game.players[me].avatar}
-            </span>
-            <span className="font-medium text-ink">ไพ่ในมือคุณ ({game.players[me].hand.length})</span>
-          </div>
-          <PileBadges game={game} who={me} />
-        </div>
-        {/* ตอนถึงตาเลือกไพ่ แผงกลางแสดงมือให้เลือกอยู่แล้ว ไม่ต้องแสดงซ้ำ */}
-        {!(game.phase === 'pick' && a === me) && <HandRow game={game} me={me} hints={hints} />}
-      </div>
+      {/* จอกว้าง: มือของเราเป็นแผงด้านข้าง เห็นครบทุกใบโดยไม่ต้องเลื่อน */}
+      <aside className="hidden lg:block sticky top-3 max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-[2rem]">
+        <HandPanel game={game} me={me} hints={hints} selectedId={selectedId} onSelect={picking ? onSelect : undefined} highlight={picking} />
+      </aside>
     </div>
   )
 }
 
-/** มือของเรา (ตอนถึงตาเลือกไพ่ จะเลือกในแผงกลางแทน) */
-function HandRow({ game, me, hints }: { game: State; me: number; hints: boolean }) {
+/** แผงไพ่ในมือ: หัวข้อ + ตัวนับขยะที่เก็บ + ไพ่ทั้งหมดแบบตาราง (ห่อบรรทัด ไม่ต้องเลื่อน) */
+function HandPanel({
+  game,
+  me,
+  hints,
+  selectedId,
+  onSelect,
+  highlight,
+}: {
+  game: State
+  me: number
+  hints: boolean
+  selectedId?: number | null
+  onSelect?: (id: number) => void
+  highlight?: boolean
+}) {
   return (
-    <div className="flex gap-2 overflow-x-auto pb-2 pt-2 -mx-1 px-1">
-      {game.players[me].hand.map((c) => (
-        <WasteCard key={c.id} card={c} hint={hints} />
+    <div className={`pop-card p-3 sm:p-4 ${highlight ? 'ring-4 ring-accent/30' : ''}`}>
+      <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
+        <div className="flex items-center gap-2">
+          <span className="text-xl" aria-hidden>
+            {game.players[me].avatar}
+          </span>
+          <span className="font-medium text-ink">ไพ่ในมือคุณ ({game.players[me].hand.length})</span>
+        </div>
+        <PileBadges game={game} who={me} />
+      </div>
+      {highlight && <p className="text-sm text-accent-deep font-medium mb-1">👇 แตะไพ่ 1 ใบที่จะส่ง</p>}
+      <HandGrid game={game} me={me} hints={hints} selectedId={selectedId ?? null} onSelect={onSelect} />
+    </div>
+  )
+}
+
+/** ไพ่ในมือเป็นตาราง — โหมดช่วยจำจัดเรียงตามถัง เพื่อเห็นภาพรวมว่ามีของถังไหนกี่ใบ */
+function HandGrid({
+  game,
+  me,
+  hints,
+  selectedId,
+  onSelect,
+}: {
+  game: State
+  me: number
+  hints: boolean
+  selectedId: number | null
+  onSelect?: (id: number) => void
+}) {
+  const hand = game.players[me].hand
+  const cards = hints ? [...hand].sort((x, y) => BIN_IDS.indexOf(x.item.bin) - BIN_IDS.indexOf(y.item.bin)) : hand
+  if (cards.length === 0) return <div className="text-ink/50 text-sm py-6 text-center">ไม่มีไพ่ในมือแล้ว</div>
+  return (
+    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2 pt-2">
+      {cards.map((c) => (
+        <WasteCard
+          key={c.id}
+          card={c}
+          hint={hints}
+          grid
+          selected={selectedId === c.id}
+          onClick={onSelect ? () => onSelect(c.id) : undefined}
+        />
       ))}
-      {game.players[me].hand.length === 0 && <div className="text-ink/50 text-sm py-8 px-2">ไม่มีไพ่ในมือแล้ว</div>}
     </div>
   )
 }
@@ -393,12 +456,16 @@ function Stage({
   game,
   me,
   hints,
+  selectedId,
+  onSelect,
   setGame,
   onAgain,
 }: {
   game: State
   me: number
   hints: boolean
+  selectedId: number | null
+  onSelect: (id: number) => void
   setGame: (f: (g: State | null) => State | null) => void
   onAgain: () => void
 }) {
@@ -413,7 +480,7 @@ function Stage({
 
   // ตาของเราเลือกไพ่ที่จะส่ง
   if (game.phase === 'pick' && a === me) {
-    return <Compose key={`pick-${game.round}`} game={game} me={me} hints={hints} mode="pick" setGame={setGame} />
+    return <Compose key={`pick-${game.round}`} game={game} me={me} hints={hints} mode="pick" selectedId={selectedId} onSelect={onSelect} setGame={setGame} />
   }
 
   // เรากำลังตัดสินใจ
@@ -423,7 +490,7 @@ function Stage({
 
   // เราแอบดูไพ่แล้ว กำลังจะส่งต่อ
   if (game.phase === 'repick' && a === me) {
-    return <Compose key={`repick-${game.round}-${game.offer!.seen.length}`} game={game} me={me} hints={hints} mode="repick" setGame={setGame} />
+    return <Compose key={`repick-${game.round}-${game.offer!.seen.length}`} game={game} me={me} hints={hints} mode="repick" selectedId={null} onSelect={onSelect} setGame={setGame} />
   }
 
   // คนอื่นกำลังเล่น
@@ -541,15 +608,19 @@ function Compose({
   me,
   hints,
   mode,
+  selectedId,
+  onSelect,
   setGame,
 }: {
   game: State
   me: number
   hints: boolean
   mode: 'pick' | 'repick'
+  selectedId: number | null
+  onSelect: (id: number) => void
   setGame: (f: (g: State | null) => State | null) => void
 }) {
-  const [cardId, setCardId] = useState<number | null>(mode === 'repick' ? game.offer!.card.id : null)
+  const cardId = mode === 'repick' ? game.offer!.card.id : selectedId
   const [to, setTo] = useState<number | null>(null)
   const [claim, setClaim] = useState<BinId | null>(null)
   const targets = targetsFor(game)
@@ -582,10 +653,18 @@ function Compose({
           <Step n={1} done={cardId !== null}>
             เลือกไพ่ในมือที่จะส่ง
           </Step>
-          <div className="flex gap-2 overflow-x-auto pb-2 pt-2 -mx-1 px-1">
-            {game.players[me].hand.map((c) => (
-              <WasteCard key={c.id} card={c} hint={hints} selected={cardId === c.id} onClick={() => setCardId(c.id)} />
-            ))}
+          {/* จอกว้าง: เลือกจากแผงไพ่ด้านขวา · จอแคบ: เลือกจากตารางตรงนี้ */}
+          <p className="hidden lg:block text-sm text-ink/60 mt-1">
+            {card ? (
+              <>
+                เลือกแล้ว: <b className="text-ink">{card.item.emoji} {card.item.name}</b> (เปลี่ยนได้ที่แผงไพ่ด้านขวา)
+              </>
+            ) : (
+              'แตะไพ่ในแผง “ไพ่ในมือคุณ” ทางขวา →'
+            )}
+          </p>
+          <div className="lg:hidden">
+            <HandGrid game={game} me={me} hints={hints} selectedId={cardId} onSelect={onSelect} />
           </div>
         </div>
       )}
