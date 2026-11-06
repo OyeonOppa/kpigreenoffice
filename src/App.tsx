@@ -11,6 +11,7 @@ const TreeLabPage = lazy(() => import('./pages/TreeLabPage'))
 const ForestStaffPage = lazy(() => import('./pages/ForestStaffPage'))
 const PassTrashPage = lazy(() => import('./pages/PassTrashPage'))
 const BarrierPage = lazy(() => import('./pages/BarrierPage'))
+const DecomposePage = lazy(() => import('./pages/DecomposePage'))
 
 // เส้นทางแบบ hash — โฮสต์แบบ static ไฟล์เดียวใช้ได้เลย ไม่ต้องตั้ง rewrite ที่เซิร์ฟเวอร์
 // `#/live` = หน้าเกม ส่วน `#waste` `#calculator` เดิมยังเป็น anchor ในหน้าแรกเหมือนเดิม
@@ -28,6 +29,13 @@ export default function App() {
     return (
       <Suspense fallback={<div className="min-h-dvh bg-canvas" />}>
         <PassTrashPage />
+      </Suspense>
+    )
+  }
+  if (route === '/decompose') {
+    return (
+      <Suspense fallback={<div className="min-h-dvh bg-canvas" />}>
+        <DecomposePage />
       </Suspense>
     )
   }
