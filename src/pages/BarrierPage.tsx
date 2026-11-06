@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Home, RotateCcw, Volume2, VolumeX } from 'lucide-react'
 import {
   B_ITEM_IDS,
@@ -197,39 +197,55 @@ function GameCard({
   const d = describe(card)
   const body = (
     <>
-      <span className="text-[10px] font-medium rounded-full px-1.5 py-px text-white leading-tight" style={{ background: d.color }}>
+      <span className={`font-medium rounded-full text-white leading-tight ${big ? 'text-xs px-2 py-0.5' : 'text-[10px] px-1.5 py-px'}`} style={{ background: d.color }}>
         {d.tag}
       </span>
-      <span className={big ? 'text-5xl leading-none mt-1' : 'text-3xl leading-none mt-0.5'}>{d.emoji}</span>
-      <span className={`font-medium text-ink text-center leading-tight ${big ? 'text-base' : 'text-[11px] sm:text-xs'}`}>{d.name}</span>
+      <span className={big ? 'text-6xl leading-none mt-1.5' : 'text-4xl leading-none mt-1'}>{d.emoji}</span>
+      <span className={`font-medium text-ink text-center leading-tight ${big ? 'text-lg' : 'text-xs sm:text-sm'}`}>{d.name}</span>
       {(d.pts !== undefined || (d.icons && card.kind === 'measure')) && (
         <span className="mt-auto flex items-center gap-1 flex-wrap justify-center">
           {d.pts !== undefined && (
-            <span className="text-[11px] font-medium rounded-full px-1.5" style={{ background: d.tint, color: d.color }}>
+            <span className={`font-medium rounded-full ${big ? 'text-sm px-2' : 'text-[11px] px-1.5'}`} style={{ background: d.tint, color: d.color }}>
               {d.pts} แต้ม
             </span>
           )}
-          {card.kind === 'measure' && card.icons.map((i) => <IconChip key={i} i={i} size="sm" />)}
+          {card.kind === 'measure' && card.icons.map((i) => <IconChip key={i} i={i} size={big ? 'md' : 'sm'} />)}
         </span>
       )}
     </>
   )
-  const cls = `flex flex-col items-center gap-0.5 rounded-2xl border-2 p-1.5 transition-all ${big ? 'w-44 h-60 p-3 gap-1.5' : 'w-full h-[7.8rem]'} ${
-    selected ? '-translate-y-1 shadow-lg ring-4' : 'shadow-sm'
+  const cls = `flex flex-col items-center gap-0.5 rounded-3xl border-[3px] p-1.5 ${big ? 'w-48 h-64 p-3 gap-2' : 'w-full h-36 sm:h-40'} ${
+    selected ? 'shadow-lg ring-4' : 'shadow-sm'
   } ${disabled ? 'opacity-45' : ''}`
   const style = {
     background: d.tint,
     borderColor: selected ? d.color : `${d.color}55`,
     ['--tw-ring-color' as string]: `${d.color}33`,
   }
+  const motionProps = {
+    layout: true,
+    initial: { opacity: 0, scale: 0.85, y: 10 },
+    animate: { opacity: 1, scale: 1, y: selected ? -6 : 0 },
+    exit: { opacity: 0, scale: 0.8, y: -8 },
+    transition: { type: 'spring', stiffness: 420, damping: 30 } as const,
+  }
   return onClick ? (
-    <button type="button" onClick={onClick} className={`${cls} ${disabled ? '' : 'hover:-translate-y-1'}`} style={style} aria-pressed={selected}>
+    <motion.button
+      type="button"
+      onClick={onClick}
+      className={cls}
+      style={style}
+      aria-pressed={selected}
+      whileHover={disabled ? undefined : { y: -6, scale: 1.04 }}
+      whileTap={disabled ? undefined : { scale: 0.97 }}
+      {...motionProps}
+    >
       {body}
-    </button>
+    </motion.button>
   ) : (
-    <div className={cls} style={style}>
+    <motion.div className={cls} style={style} {...motionProps}>
       {body}
-    </div>
+    </motion.div>
   )
 }
 
@@ -400,16 +416,34 @@ function Board({ game, setGame, hints, onAgain }: { game: State; setGame: SetGam
         {/* จอแคบ: ถ้าถึงตาเลือกการ์ด ให้มือขึ้นมาอยู่เหนือแผงการกระทำ */}
         {choosing && <div className="lg:hidden">{handPanel(true)}</div>}
 
-        <div className="pop-card p-4 sm:p-6 min-h-[12rem]">
-          <Stage game={game} me={me} hints={hints} selectedId={selectedId} setGame={setGame} onAgain={onAgain} />
+        <div className="pop-card p-4 sm:p-6 min-h-[12rem] overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${game.phase}-${actor(game)}-${game.turn}-${game.pending?.kind ?? ''}-${game.frozen ? 1 : 0}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+            >
+              <Stage game={game} me={me} hints={hints} selectedId={selectedId} setGame={setGame} onAgain={onAgain} />
+            </motion.div>
+          </AnimatePresence>
         </div>
 
-        <div className="rounded-2xl bg-surface/80 border border-line px-4 py-2.5 text-sm text-ink/70 leading-relaxed" aria-live="polite">
-          {game.log.slice(-4).map((l, i, arr) => (
-            <div key={game.log.length - arr.length + i} className={i === arr.length - 1 ? 'text-ink font-medium' : ''}>
-              {l}
-            </div>
-          ))}
+        <div className="rounded-2xl bg-surface/80 border border-line px-4 py-2.5 text-sm text-ink/70 leading-relaxed overflow-hidden" aria-live="polite">
+          <AnimatePresence initial={false}>
+            {game.log.slice(-4).map((l, i, arr) => (
+              <motion.div
+                key={game.log.length - arr.length + i}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.2 }}
+                className={i === arr.length - 1 ? 'text-ink font-medium' : ''}
+              >
+                {l}
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
 
         {!choosing && <div className="lg:hidden">{handPanel(false)}</div>}
@@ -429,7 +463,18 @@ function StatusBar({ game, me }: { game: State; me: Side }) {
         <div>
           <div className="text-xs text-ink/60">คะแนนรวมของฝ่ายผลักดัน · เป้า {game.target}</div>
           <div className="font-display text-4xl text-ink tabular leading-none mt-1">
-            {game.score}
+            <AnimatePresence mode="popLayout">
+              <motion.span
+                key={game.score}
+                initial={{ y: -14, opacity: 0, scale: 1.2 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: 14, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 350, damping: 24 }}
+                className="inline-block"
+              >
+                {game.score}
+              </motion.span>
+            </AnimatePresence>
             <span className="text-lg text-ink/45"> / {game.target}</span>
           </div>
         </div>
@@ -488,10 +533,12 @@ function TableView({ game }: { game: State }) {
       {game.table.length === 0 ? (
         <div className="text-ink/50 text-sm py-6 text-center">ยังไม่มีมาตรการบนโต๊ะ — มาตรการที่รอดจะได้แต้มทุกตา</div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-          {game.table.map((e) => (
-            <EntryTile key={e.id} e={e} isNew={e.id === game.ctx} inCombo={combos.includes(e.card.cat)} />
-          ))}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          <AnimatePresence initial={false}>
+            {game.table.map((e) => (
+              <EntryTile key={e.id} e={e} isNew={e.id === game.ctx} inCombo={combos.includes(e.card.cat)} />
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </div>
@@ -504,13 +551,15 @@ function EntryTile({ e, isNew, inCombo }: { e: Entry; isNew: boolean; inCombo: b
   return (
     <motion.div
       layout
-      initial={{ scale: 0.9, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      className="rounded-2xl border-2 p-2 text-center flex flex-col items-center gap-1"
+      initial={{ scale: 0.8, opacity: 0, y: -12 }}
+      animate={{ scale: 1, opacity: 1, y: 0 }}
+      exit={{ scale: 0.85, opacity: 0 }}
+      transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+      className="rounded-2xl border-2 p-2.5 text-center flex flex-col items-center gap-1"
       style={{ background: cat.tint, borderColor: isNew ? cat.color : `${cat.color}55`, boxShadow: isNew ? `0 0 0 3px ${cat.color}33` : undefined }}
     >
-      <div className="text-3xl leading-none">{e.card.emoji}</div>
-      <div className="text-xs font-medium text-ink leading-tight">{e.card.name}</div>
+      <div className="text-4xl leading-none">{e.card.emoji}</div>
+      <div className="text-sm font-medium text-ink leading-tight">{e.card.name}</div>
       <div className="flex items-center gap-1 flex-wrap justify-center">
         <span className="text-[11px] font-medium rounded-full px-1.5" style={{ background: '#fff', color: cat.color }}>
           {e.card.pts}
@@ -559,10 +608,12 @@ function HandPanel({
       {hand.length === 0 ? (
         <div className="text-ink/50 text-sm py-6 text-center">ไม่มีไพ่ในมือ</div>
       ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2 pt-2">
-          {hand.map((c) => (
-            <GameCard key={c.id} card={c} selected={selectedId === c.id} onClick={onSelect ? () => onSelect(c.id) : undefined} />
-          ))}
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-2 gap-2.5 pt-2">
+          <AnimatePresence initial={false}>
+            {hand.map((c) => (
+              <GameCard key={c.id} card={c} selected={selectedId === c.id} onClick={onSelect ? () => onSelect(c.id) : undefined} />
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </div>
@@ -675,8 +726,8 @@ function PCardPanel({ game, card, hints, setGame }: { game: State; card: Card; h
   const canAttach = (card.kind === 'media' || (card.kind === 'key' && card.k === 'S')) && game.table.length > 0
   return (
     <div className="flex flex-col sm:flex-row gap-4 items-start">
-      <div className="w-32 shrink-0 mx-auto sm:mx-0">
-        <GameCard card={card} />
+      <div className="shrink-0 mx-auto sm:mx-0">
+        <GameCard card={card} big />
       </div>
       <div className="flex-1 min-w-0 w-full">
         <div className="text-lg font-medium text-ink">
@@ -751,8 +802,8 @@ function BActions({ game, card, setGame }: { game: State; card: Card | null; set
         <p className="text-ink/65 leading-relaxed text-sm">แตะการ์ดในมือเพื่อดูรายละเอียดและเลือกเล่น หรือกด “ผ่าน” ถ้าไม่อยากเล่นการ์ดในตานี้</p>
       ) : (
         <div className="flex flex-col sm:flex-row gap-4 items-start">
-          <div className="w-32 shrink-0 mx-auto sm:mx-0">
-            <GameCard card={card} />
+          <div className="shrink-0 mx-auto sm:mx-0">
+            <GameCard card={card} big />
           </div>
           <div className="flex-1 min-w-0 w-full">
             <div className="text-lg font-medium text-ink">
@@ -824,11 +875,11 @@ function CounterPrompt({ game, setGame }: { game: State; setGame: SetGame }) {
       <Heading>⛔ ฝ่ายต่อต้านวางด่านใส่มาตรการของคุณ</Heading>
       <div className="flex flex-col sm:flex-row gap-4 items-start">
         <div className="flex gap-3 items-start mx-auto sm:mx-0">
-          <div className="w-28">
+          <div className="w-36">
             <GameCard card={p.block} />
           </div>
           <div className="text-3xl self-center">→</div>
-          <div className="w-28">
+          <div className="w-36">
             <GameCard card={entry.card} />
           </div>
         </div>
