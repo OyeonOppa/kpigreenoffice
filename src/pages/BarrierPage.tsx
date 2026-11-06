@@ -417,17 +417,14 @@ function Board({ game, setGame, hints, onAgain }: { game: State; setGame: SetGam
         {choosing && <div className="lg:hidden">{handPanel(true)}</div>}
 
         <div className="pop-card p-4 sm:p-6 min-h-[12rem] overflow-hidden">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${game.phase}-${actor(game)}-${game.turn}-${game.pending?.kind ?? ''}-${game.frozen ? 1 : 0}`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-            >
-              <Stage game={game} me={me} hints={hints} selectedId={selectedId} setGame={setGame} onAgain={onAgain} />
-            </motion.div>
-          </AnimatePresence>
+          <motion.div
+            key={`${game.phase}-${actor(game)}-${game.turn}-${game.pending?.kind ?? ''}-${game.frozen ? 1 : 0}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+          >
+            <Stage game={game} me={me} hints={hints} selectedId={selectedId} setGame={setGame} onAgain={onAgain} />
+          </motion.div>
         </div>
 
         <div className="rounded-2xl bg-surface/80 border border-line px-4 py-2.5 text-sm text-ink/70 leading-relaxed overflow-hidden" aria-live="polite">
