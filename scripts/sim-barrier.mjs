@@ -1,5 +1,5 @@
 // จำลองเกม "ฝ่าด่านลดคาร์บอน" ให้บอทเล่นกันเองทั้งสองฝั่ง เพื่อตรวจว่าเกมจบได้จริง ไม่ค้าง
-// และคะแนนใกล้เคียงกับที่ออกแบบไว้ (คะแนนกลางราว 150, เป้า 100/150/200 → ฝ่ายผลักดันชนะราว 75/50/26%)
+// และคะแนนใกล้เคียงกับที่ออกแบบไว้ (คะแนนกลางราว 163, เป้า 125/175/225 → ฝ่ายผลักดันชนะราว 69/45/24%)
 //
 //   node scripts/sim-barrier.mjs        (ต้องใช้ Node 22.18+ ที่รันไฟล์ .ts ได้ตรงๆ)
 
@@ -10,7 +10,7 @@ const scores = []
 let turns = 0
 let stuck = 0
 for (let g = 0; g < games; g++) {
-  let s = newGame({ human: null, target: 150, pStart: 'edu', bStart: 'ad' })
+  let s = newGame({ human: null, target: 175, pStart: 'edu', bStart: 'ad' })
   s = advance(s)
   if (s.phase !== 'over') {
     stuck++
@@ -23,7 +23,7 @@ scores.sort((a, b) => a - b)
 const q = (p) => scores[Math.floor(p * (scores.length - 1))]
 const win = (t) => ((100 * scores.filter((x) => x >= t).length) / scores.length).toFixed(0) + '%'
 console.log(JSON.stringify({ games, stuck, avgTurns: +(turns / scores.length).toFixed(1), p25: q(0.25), median: q(0.5), p75: q(0.75) }))
-console.log('ฝ่ายผลักดันชนะเมื่อเป้า:', [100, 150, 200].map((t) => `${t} → ${win(t)}`).join('   '))
+console.log('ฝ่ายผลักดันชนะเมื่อเป้า:', [125, 175, 225].map((t) => `${t} → ${win(t)}`).join('   '))
 
 // ทุกคู่ไอเท็มเริ่มต้น (คะแนนกลาง)
 const P = ['edu', 'board', 'net']
