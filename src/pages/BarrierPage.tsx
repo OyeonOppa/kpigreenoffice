@@ -41,6 +41,7 @@ import {
   type Entry,
   type State,
 } from '../barrier/engine'
+import { cardFace, type Face } from '../barrier/cardFace'
 import { sfx } from '../game/sfx'
 
 /* ฝ่าด่านลดคาร์บอน — เกมไพ่สองฝ่าย ผลักดัน vs ต่อต้าน เล่นกับบอท (#/barrier) */
@@ -222,6 +223,127 @@ function describe(c: Card): Described {
   }
 }
 
+/* ----------------------------------------------------------------- หน้าการ์ด (เหมือนการ์ดพิมพ์) */
+
+/** ขนาดตัวอักษรตามปริมาณข้อความ — สูตรเดียวกับตัวสร้างการ์ดพิมพ์ */
+function sizeClass(f: Face): string {
+  const L = (f.desc ?? '').length + (f.foot ?? '').length * 0.6 + f.name.length * 0.8
+  return L > 125 ? 'pc-tight' : L > 80 ? 'pc-mid' : 'pc-roomy'
+}
+
+function FaceChips({ icons }: { icons: Icon[] }) {
+  return (
+    <>
+      {icons.map((i) => (
+        <span key={i} className="pc-chip">
+          {ICONS[i].emoji}
+          <small>{ICONS[i].name}</small>
+        </span>
+      ))}
+    </>
+  )
+}
+
+/** หน้าการ์ดตามแบบพิมพ์ — ใช้ทุกที่ที่โชว์การ์ด (ในมือ บนโต๊ะ หน้ารายละเอียด) */
+function PrintFace({ card }: { card: Card }) {
+  const f = cardFace(card)
+  const style = { ['--c' as string]: f.c, ['--t' as string]: f.t }
+  let body: ReactNode
+  if (f.variant === 'measure') {
+    body = (
+      <>
+        <span className="pc-tag">{f.tag}</span>
+        <div className="pc-emoji">{f.emoji}</div>
+        <div className="pc-name">{f.name}</div>
+        <div className="pc-big">{f.big}</div>
+        <div className="pc-small">ด่านที่ปิดได้</div>
+        <div className="pc-chips">
+          <FaceChips icons={f.icons ?? []} />
+        </div>
+        <div className="pc-desc">
+          <b>รู้ไหม:</b> {f.desc}
+        </div>
+      </>
+    )
+  } else if (f.variant === 'key') {
+    body = (
+      <>
+        <span className="pc-tag">{f.tag}</span>
+        <div className="pc-pair">
+          {f.from ? (
+            <span className="pc-chip">
+              {ICONS[f.from].emoji}
+              <small>{ICONS[f.from].name}</small>
+            </span>
+          ) : (
+            <span className="pc-chip pc-chip-all">ทุกด่าน</span>
+          )}
+          <span className="pc-arrow">→</span>
+          <span className="pc-key">{f.emoji}</span>
+        </div>
+        <div className="pc-keyname">{f.name}</div>
+        <div className="pc-how">
+          <b>วิธีใช้:</b> {f.how}
+        </div>
+        <div className="pc-ex">{f.ex}</div>
+      </>
+    )
+  } else if (f.variant === 'block') {
+    body = (
+      <>
+        <span className="pc-tag">{f.tag}</span>
+        <div className="pc-chips pc-chips-big">
+          <FaceChips icons={f.icons ?? []} />
+        </div>
+        <div className="pc-blockname">{f.name}</div>
+        <div className="pc-blockhow">
+          <b>วิธีใช้:</b> {f.how}
+        </div>
+        <div className="pc-blockex">
+          <b>รู้ไหม:</b> {f.ex}
+        </div>
+      </>
+    )
+  } else {
+    body = (
+      <>
+        <span className="pc-tag">{f.tag}</span>
+        <div className="pc-emoji">{f.emoji}</div>
+        <div className="pc-name">{f.name}</div>
+        {f.big && <div className="pc-big">{f.big}</div>}
+        <div className="pc-desc">{f.desc}</div>
+        {f.foot && <div className="pc-foot">{f.foot}</div>}
+      </>
+    )
+  }
+  return (
+    <div className="pc" style={style}>
+      <div className={`pc-in ${f.variant === 'simple' ? sizeClass(f) : ''}`}>{body}</div>
+    </div>
+  )
+}
+
+/** หลังการ์ดตามแบบพิมพ์ (ใช้กับไพ่ที่ไม่เห็นหน้า) */
+function CardBack({ side, width = '5rem', label }: { side: Side; width?: string; label?: string }) {
+  const p = side === 'P'
+  const style = {
+    ['--b1' as string]: p ? '#4ade80' : '#94a3b8',
+    ['--b2' as string]: p ? '#15803d' : '#475569',
+    ['--b3' as string]: p ? '#14532d' : '#1e293b',
+    width,
+  }
+  return (
+    <div className="pc pc-back shrink-0 shadow-sm rounded-[5.73cqw]" style={style} aria-hidden={!label}>
+      <div className="pc-in">
+        <div className="pc-logo">{p ? '🌱' : '⛔'}</div>
+        <div className="pc-bname">{label ?? (p ? 'ฝ่ายผลักดัน' : 'ฝ่ายต่อต้าน')}</div>
+        <div className="pc-bsub">{p ? 'ลงมือทำให้รอด' : 'อุปสรรคที่ต้องฝ่า'}</div>
+        <div className="pc-borg">ฝ่าด่านลดคาร์บอน · KPI Green Office</div>
+      </div>
+    </div>
+  )
+}
+
 function GameCard({
   card,
   selected,
@@ -236,33 +358,8 @@ function GameCard({
   big?: boolean
 }) {
   const d = describe(card)
-  const body = (
-    <>
-      <span className={`font-medium rounded-full text-white leading-tight ${big ? 'text-xs px-2 py-0.5' : 'text-[10px] px-1.5 py-px'}`} style={{ background: d.color }}>
-        {d.tag}
-      </span>
-      <span className={big ? 'text-6xl leading-none mt-1.5' : 'text-4xl leading-none mt-1'}>{d.emoji}</span>
-      <span className={`font-medium text-ink text-center leading-tight ${big ? 'text-lg' : 'text-xs sm:text-sm'}`}>{d.name}</span>
-      {(d.pts !== undefined || (d.icons && card.kind === 'measure')) && (
-        <span className="mt-auto flex items-center gap-1 flex-wrap justify-center">
-          {d.pts !== undefined && (
-            <span className={`font-medium rounded-full ${big ? 'text-sm px-2' : 'text-[11px] px-1.5'}`} style={{ background: d.tint, color: d.color }}>
-              {d.pts} แต้ม
-            </span>
-          )}
-          {card.kind === 'measure' && card.icons.map((i) => <IconChip key={i} i={i} size={big ? 'md' : 'sm'} />)}
-        </span>
-      )}
-    </>
-  )
-  const cls = `flex flex-col items-center gap-0.5 rounded-3xl border-[3px] p-1.5 ${big ? 'w-48 h-64 p-3 gap-2' : 'w-full h-36 sm:h-40'} ${
-    selected ? 'shadow-lg ring-4' : 'shadow-sm'
-  } ${disabled ? 'opacity-45' : ''}`
-  const style = {
-    background: d.tint,
-    borderColor: selected ? d.color : `${d.color}55`,
-    ['--tw-ring-color' as string]: `${d.color}33`,
-  }
+  const cls = `block rounded-[5.73cqw] ${big ? 'w-72 max-w-full' : 'w-full'} ${selected ? 'shadow-lg ring-4' : 'shadow-sm'} ${disabled ? 'opacity-45' : ''}`
+  const style = { ['--tw-ring-color' as string]: `${d.color}55` }
   const motionProps = {
     layout: true,
     initial: { opacity: 0, scale: 0.85, y: 10 },
@@ -274,18 +371,19 @@ function GameCard({
     <motion.button
       type="button"
       onClick={onClick}
-      className={cls}
+      className={`${cls} text-left`}
       style={style}
       aria-pressed={selected}
+      aria-label={d.name}
       whileHover={disabled ? undefined : { y: -6, scale: 1.04 }}
       whileTap={disabled ? undefined : { scale: 0.97 }}
       {...motionProps}
     >
-      {body}
+      <PrintFace card={card} />
     </motion.button>
   ) : (
     <motion.div className={cls} style={style} {...motionProps}>
-      {body}
+      <PrintFace card={card} />
     </motion.div>
   )
 }
@@ -553,20 +651,6 @@ function StatusBar({ game, me }: { game: State; me: Side }) {
 }
 
 /** แผงของคู่ต่อสู้ (บอท): ไพ่ในมือ (เห็นแค่หลังการ์ด) · ไอเท็มถาวร · ด่านคว่ำ · สิ่งที่เพิ่งทำ */
-function CardBack({ side, small, label }: { side: Side; small?: boolean; label?: string }) {
-  const green = side === 'P'
-  return (
-    <div
-      className={`shrink-0 rounded-xl border-2 flex flex-col items-center justify-center text-white shadow-sm ${small ? 'w-9 h-12 text-base' : 'w-20 h-28 text-3xl gap-1'}`}
-      style={{ background: green ? 'linear-gradient(160deg,#4ade80,#15803d)' : 'linear-gradient(160deg,#94a3b8,#475569)', borderColor: green ? '#14532d' : '#1e293b' }}
-      aria-hidden={!label}
-    >
-      <span>{green ? '🌱' : '⛔'}</span>
-      {label && <span className="text-[10px] font-medium leading-tight px-1 text-center">{label}</span>}
-    </div>
-  )
-}
-
 function OpponentPanel({ game, me, feed }: { game: State; me: Side; feed: BotMove[] }) {
   const opp: Side = me === 'P' ? 'B' : 'P'
   const hand = opp === 'P' ? game.pHand : game.bHand
@@ -613,7 +697,7 @@ function OpponentPanel({ game, me, feed }: { game: State; me: Side; feed: BotMov
                   exit={{ opacity: 0, y: 16 }}
                   style={{ marginLeft: i === 0 ? 0 : -18, zIndex: i, rotate: (i - (shown - 1) / 2) * 3 }}
                 >
-                  <CardBack side={opp} />
+                  <CardBack side={opp} width="5rem" />
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -633,7 +717,7 @@ function OpponentPanel({ game, me, feed }: { game: State; me: Side; feed: BotMov
             ))}
             {opp === 'B' && game.trap && (
               <div className="flex items-center gap-1.5 rounded-xl border-2 border-dashed border-amber-400 bg-amber-50 px-2 py-1">
-                <CardBack side="B" small />
+                <CardBack side="B" width="2.25rem" />
                 <div className="text-xs text-amber-900 leading-tight">
                   <b>ด่านคว่ำ 1 ใบ</b>
                   <br />
@@ -658,8 +742,8 @@ function OpponentPanel({ game, me, feed }: { game: State; me: Side; feed: BotMov
                   </div>
                 )}
                 {last.cards.map(({ card, hidden }) => (
-                  <div key={card.id} className="w-24">
-                    {hidden ? <CardBack side={last.side} label="วางคว่ำ" /> : <GameCard card={card} />}
+                  <div key={card.id} className="w-32">
+                    {hidden ? <CardBack side={last.side} width="100%" label="วางคว่ำ" /> : <GameCard card={card} />}
                   </div>
                 ))}
               </div>
@@ -783,7 +867,7 @@ function HandPanel({
       {hand.length === 0 ? (
         <div className="text-ink/50 text-sm py-6 text-center">ไม่มีไพ่ในมือ</div>
       ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-2 gap-2.5 pt-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2.5 pt-2">
           <AnimatePresence initial={false}>
             {hand.map((c) => (
               <GameCard key={c.id} card={c} selected={selectedId === c.id} onClick={onSelect ? () => onSelect(c.id) : undefined} />
@@ -1049,12 +1133,12 @@ function CounterPrompt({ game, setGame }: { game: State; setGame: SetGame }) {
     <div>
       <Heading>⛔ ฝ่ายต่อต้านวางด่านใส่มาตรการของคุณ</Heading>
       <div className="flex flex-col sm:flex-row gap-4 items-start">
-        <div className="flex gap-3 items-start mx-auto sm:mx-0">
-          <div className="w-36">
+        <div className="flex flex-wrap gap-3 items-start mx-auto sm:mx-0">
+          <div className="w-40 sm:w-56">
             <GameCard card={p.block} />
           </div>
           <div className="text-3xl self-center">→</div>
-          <div className="w-36">
+          <div className="w-40 sm:w-56">
             <GameCard card={entry.card} />
           </div>
         </div>

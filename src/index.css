@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;800&display=swap');
 @import 'tailwindcss';
 
 @theme {
@@ -115,4 +116,116 @@ body {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   การ์ดเกม "ฝ่าด่านลดคาร์บอน" — หน้าตาเหมือนการ์ดพิมพ์ (docs/game-prototypes/cards/carbon-duel-cards.html)
+   ทุกขนาดคิดเทียบกับความกว้างการ์ด (cqw) จึงย่อ/ขยายได้โดยสัดส่วนไม่เพี้ยน
+   1 มม. บนการ์ดพิมพ์ = 1.433cqw · 1 pt = 0.5055cqw
+--------------------------------------------------------------------------- */
+.pc {
+  container-type: inline-size;
+  width: 100%;
+  aspect-ratio: 698 / 952;
+  font-family: 'Noto Sans Thai', 'Kanit', sans-serif;
+}
+.pc-in {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  border-radius: 5.73cqw;
+  border: 1.15cqw solid var(--c);
+  background: var(--t);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 4.3cqw;
+  color: #14261c;
+  overflow: hidden;
+  line-height: 1.3;
+}
+.pc-tag {
+  font-size: 4.55cqw;
+  font-weight: 800;
+  color: #fff;
+  background: var(--c);
+  border-radius: 99px;
+  padding: 0.3cqw 3.7cqw;
+  white-space: nowrap;
+}
+.pc-emoji { font-size: 20.2cqw; line-height: 1.1; margin: 3.4cqw 0 1.4cqw; }
+.pc-name { font-size: 8.1cqw; font-weight: 800; line-height: 1.18; }
+.pc-big { font-size: 10.1cqw; font-weight: 800; color: var(--c); margin-top: 2.1cqw; line-height: 1.05; }
+.pc-desc { font-size: 5.56cqw; line-height: 1.38; margin-top: 3.1cqw; color: #1f2f26; }
+.pc-foot { font-size: 4.3cqw; line-height: 1.3; margin-top: 5cqw; color: #4b5b50; }
+.pc-small { font-size: 4.3cqw; color: #4b5b50; margin-top: 1.7cqw; }
+.pc-chips { display: flex; gap: 2.9cqw; justify-content: center; margin-top: 1.7cqw; flex-wrap: wrap; }
+.pc-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 9.1cqw;
+  line-height: 1.5;
+  background: #fff;
+  border: 0.72cqw solid var(--c);
+  border-radius: 3.4cqw;
+  padding: 0 2.9cqw;
+}
+.pc-chip small { font-size: 3.8cqw; font-weight: 700; line-height: 1.1; padding-bottom: 1.1cqw; color: #3a4a3f; white-space: nowrap; }
+.pc-chips-big .pc-chip { font-size: 15.2cqw; padding: 0 5cqw; }
+.pc-chips-big { margin-top: 7cqw; }
+.pc-pair { display: flex; align-items: center; justify-content: center; gap: 4.3cqw; margin: 4.3cqw 0 2.9cqw; }
+.pc-pair .pc-chip { font-size: 16.2cqw; padding: 0 4.3cqw; }
+.pc-pair .pc-chip-all { font-size: 10.1cqw; padding: 1.4cqw 4.3cqw; }
+.pc-arrow { font-size: 12.1cqw; color: #7c3aed; font-weight: 800; }
+.pc-key { font-size: 26.3cqw; line-height: 1.1; }
+.pc-keyname { font-size: 9.6cqw; font-weight: 800; line-height: 1.18; }
+.pc-how { font-size: 6.6cqw; line-height: 1.42; margin-top: 4.3cqw; color: #1f2f26; }
+.pc-how b { color: var(--c); }
+.pc-ex { font-size: 5.8cqw; line-height: 1.35; margin-top: 3.6cqw; color: #3a4a3f; background: rgba(255, 255, 255, 0.7); border-radius: 3.6cqw; padding: 2.1cqw 3.6cqw; }
+.pc-blockname { font-size: 9.1cqw; font-weight: 800; line-height: 1.18; margin-top: 5.7cqw; }
+.pc-blockhow { font-size: 6cqw; line-height: 1.42; margin-top: 3.6cqw; }
+.pc-blockex { font-size: 5.5cqw; line-height: 1.35; margin-top: 3.6cqw; color: #3a4a3f; background: rgba(255, 255, 255, 0.7); border-radius: 3.6cqw; padding: 2.1cqw 3.6cqw; }
+.pc-mid .pc-emoji { font-size: 24.3cqw; }
+.pc-mid .pc-name { font-size: 9.6cqw; }
+.pc-mid .pc-big { font-size: 10.6cqw; }
+.pc-mid .pc-desc { font-size: 6.6cqw; line-height: 1.42; }
+.pc-mid .pc-foot { font-size: 4.8cqw; }
+.pc-roomy .pc-emoji { font-size: 29.3cqw; margin: 4.3cqw 0 2.9cqw; }
+.pc-roomy .pc-name { font-size: 11.1cqw; }
+.pc-roomy .pc-big { font-size: 12.1cqw; }
+.pc-roomy .pc-desc { font-size: 7.3cqw; line-height: 1.45; margin-top: 5cqw; }
+.pc-roomy .pc-foot { font-size: 5.05cqw; }
+
+/* การ์ดเล็ก (ในมือ): เหลือแค่ป้าย รูป ชื่อ แต้ม และไอคอน ให้อ่านออกในพื้นที่แคบ */
+@container (max-width: 210px) {
+  .pc-desc, .pc-foot, .pc-small, .pc-how, .pc-ex, .pc-blockhow, .pc-blockex { display: none; }
+  .pc-emoji, .pc-mid .pc-emoji, .pc-roomy .pc-emoji { font-size: 27cqw; margin: 3cqw 0 1cqw; }
+  .pc-name, .pc-mid .pc-name, .pc-roomy .pc-name { font-size: 10.5cqw; }
+  .pc-big, .pc-mid .pc-big, .pc-roomy .pc-big { font-size: 10.5cqw; }
+  .pc-tag { font-size: 6cqw; }
+  .pc-blockname { font-size: 11cqw; }
+  .pc-keyname { font-size: 11cqw; }
+  .pc-pair .pc-chip { font-size: 15cqw; }
+  .pc-chip small { font-size: 5cqw; }
+}
+
+/* หลังการ์ด (เหมือนหลังการ์ดพิมพ์) */
+.pc-back .pc-in {
+  background:
+    radial-gradient(circle at 15% 12%, rgba(255, 255, 255, 0.22) 0 12.9cqw, transparent 13.2cqw),
+    radial-gradient(circle at 88% 90%, rgba(255, 255, 255, 0.16) 0 18.6cqw, transparent 18.9cqw),
+    linear-gradient(160deg, var(--b1), var(--b2));
+  border-color: var(--b3);
+  color: #fff;
+}
+.pc-logo { width: 43cqw; height: 43cqw; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 19cqw; box-shadow: 0 1.4cqw 4.3cqw rgba(0, 0, 0, 0.25); }
+.pc-bname { font-size: 10.6cqw; font-weight: 800; line-height: 1.1; margin-top: 3.6cqw; }
+.pc-bsub { font-size: 5.56cqw; opacity: 0.95; margin-top: 1.4cqw; }
+.pc-borg { font-size: 4.3cqw; opacity: 0.8; margin-top: 4.3cqw; }
+@container (max-width: 130px) {
+  .pc-bsub, .pc-borg { display: none; }
+  .pc-bname { font-size: 12cqw; }
 }

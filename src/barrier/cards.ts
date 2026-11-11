@@ -33,10 +33,10 @@ export const KEYS: Record<KeyKind, { emoji: string; name: string; hint: string }
 }
 
 export const CATS: Record<Cat, { emoji: string; name: string; color: string; tint: string; size: number }> = {
-  energy: { emoji: '⚡', name: 'พลังงาน', color: '#b45309', tint: '#fff4d6', size: 4 },
-  waste: { emoji: '♻️', name: 'ขยะ', color: '#15803d', tint: '#e8f8ec', size: 4 },
-  travel: { emoji: '🚲', name: 'เดินทาง', color: '#0369a1', tint: '#e3f2fc', size: 3 },
-  nature: { emoji: '🌳', name: 'ธรรมชาติ', color: '#0f766e', tint: '#e2f6f2', size: 3 },
+  energy: { emoji: '⚡', name: 'พลังงาน', color: '#d99a00', tint: '#fff8e1', size: 4 },
+  waste: { emoji: '♻️', name: 'ขยะ', color: '#16a34a', tint: '#eafbee', size: 4 },
+  travel: { emoji: '🚲', name: 'เดินทาง', color: '#0284c7', tint: '#e6f6fe', size: 3 },
+  nature: { emoji: '🌳', name: 'ธรรมชาติ', color: '#0f766e', tint: '#e6f7f4', size: 3 },
 }
 
 export const ITEM_META: Record<PItem | BItem, { emoji: string; name: string; side: Side; desc: string }> = {
