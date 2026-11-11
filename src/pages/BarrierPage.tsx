@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Home, RotateCcw, Volume2, VolumeX } from 'lucide-react'
 import {
@@ -58,6 +58,19 @@ type SetGame = (f: (g: State | null) => State | null) => void
 
 const pick = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)]
 
+/** จอกว้าง (คอมพิวเตอร์): วางเป็นกระดานสองฝั่ง ซ้าย-ขวา ไม่ต้องเลื่อนหน้า */
+function useWide() {
+  return useSyncExternalStore(
+    (cb) => {
+      const m = window.matchMedia('(min-width: 1280px)')
+      m.addEventListener('change', cb)
+      return () => m.removeEventListener('change', cb)
+    },
+    () => window.matchMedia('(min-width: 1280px)').matches,
+    () => false,
+  )
+}
+
 /** สิ่งที่ฝ่ายบอททำล่าสุด — ไว้โชว์ให้เห็นว่าบอท "เล่น" อะไร (ด่านคว่ำจะเห็นแค่หลังการ์ด) */
 interface BotMove {
   id: number
@@ -92,6 +105,8 @@ export default function BarrierPage() {
   const [game, setGame] = useState<State | null>(null)
   const [muted, setMuted] = useState(sfx.muted)
   const [feed, setFeed] = useState<BotMove[]>([])
+  const wide = useWide()
+  const fit = wide && !!game
   const [prevGame, setPrevGame] = useState<State | null>(null)
   if (game !== prevGame) {
     setPrevGame(game)
@@ -133,7 +148,7 @@ export default function BarrierPage() {
     )
 
   return (
-    <div className="game-bg min-h-dvh flex flex-col">
+    <div className={`game-bg flex flex-col ${fit ? 'h-dvh overflow-hidden' : 'min-h-dvh'}`}>
       <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-2 sm:py-3 shrink-0">
         <a href="#" className="inline-flex items-center gap-1.5 text-ink/60 hover:text-ink text-sm transition-colors">
           <Home size={16} /> หน้าแรก
@@ -159,8 +174,8 @@ export default function BarrierPage() {
         </div>
       </div>
 
-      <div className="flex-1 px-3 sm:px-6 pb-6">
-        {game ? <Board game={game} setGame={setGame} hints={cfg.hints} onAgain={start} feed={feed} /> : <Setup cfg={cfg} setCfg={setCfg} onStart={start} />}
+      <div className={`flex-1 px-3 sm:px-6 ${fit ? 'min-h-0 pb-3' : 'pb-6'}`}>
+        {game ? <Board game={game} setGame={setGame} hints={cfg.hints} onAgain={start} feed={feed} wide={wide} /> : <Setup cfg={cfg} setCfg={setCfg} onStart={start} />}
       </div>
     </div>
   )
@@ -358,7 +373,7 @@ function GameCard({
   big?: boolean
 }) {
   const d = describe(card)
-  const cls = `block rounded-[5.73cqw] ${big ? 'w-72 max-w-full' : 'w-full'} ${selected ? 'shadow-lg ring-4' : 'shadow-sm'} ${disabled ? 'opacity-45' : ''}`
+  const cls = `block rounded-[5.73cqw] ${big ? 'w-72 max-w-full lg:w-56 [@media(max-height:800px)]:lg:w-44' : 'w-full'} ${selected ? 'shadow-lg ring-4' : 'shadow-sm'} ${disabled ? 'opacity-45' : ''}`
   const style = { ['--tw-ring-color' as string]: `${d.color}55` }
   const motionProps = {
     layout: true,
@@ -528,7 +543,7 @@ function Setup({ cfg, setCfg, onStart }: { cfg: Config; setCfg: (c: Config) => v
 
 /* ----------------------------------------------------------------- กระดานเกม */
 
-function Board({ game, setGame, hints, onAgain, feed }: { game: State; setGame: SetGame; hints: boolean; onAgain: () => void; feed: BotMove[] }) {
+function Board({ game, setGame, hints, onAgain, feed, wide }: { game: State; setGame: SetGame; hints: boolean; onAgain: () => void; feed: BotMove[]; wide: boolean }) {
   const me = game.human as Side
   const a = actor(game)
   const mine = a === me && game.phase !== 'over'
@@ -545,6 +560,46 @@ function Board({ game, setGame, hints, onAgain, feed }: { game: State; setGame: 
   const handPanel = (selectable: boolean) => (
     <HandPanel game={game} hand={hand} me={me} selectedId={selectable ? selectedId : null} onSelect={selectable ? onSelect : undefined} highlight={selectable} />
   )
+
+  const stageBlock = (
+    <motion.div
+      key={`${game.phase}-${actor(game)}-${game.turn}-${game.pending?.kind ?? ''}-${game.frozen ? 1 : 0}`}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+    >
+      <Stage game={game} me={me} hints={hints} selectedId={selectedId} setGame={setGame} onAgain={onAgain} />
+    </motion.div>
+  )
+
+  // จอกว้าง: กระดานสองฝั่ง — ซ้าย = ฝ่ายผลักดัน · ขวา = ฝ่ายต่อต้าน · กลาง = คะแนน โต๊ะ และแผงการกระทำ
+  if (wide) {
+    const sidePanel = (s: Side) => (
+      <aside className="min-h-0 overflow-y-auto rounded-[2rem] pb-1" aria-label={s === 'P' ? 'ฝั่งฝ่ายผลักดัน' : 'ฝั่งฝ่ายต่อต้าน'}>
+        {s === me ? handPanel(choosing) : <OpponentPanel game={game} me={me} feed={feed} narrow />}
+      </aside>
+    )
+    return (
+      <div className="h-full max-w-[1700px] mx-auto grid grid-cols-[24rem_minmax(0,1fr)_24rem] gap-3">
+        {sidePanel('P')}
+        <div className="min-h-0 min-w-0 flex flex-col gap-3">
+          <StatusBar game={game} me={me} />
+          <div className="flex-1 min-h-[7rem] overflow-y-auto rounded-[2rem]">
+            <TableView game={game} />
+          </div>
+          <div className="pop-card p-4 max-h-[55%] overflow-y-auto shrink-0">{stageBlock}</div>
+          <div className="rounded-2xl bg-surface/80 border border-line px-4 py-2 text-sm text-ink/70 leading-snug shrink-0" aria-live="polite">
+            {game.log.slice(-2).map((l, i, arr) => (
+              <div key={game.log.length - arr.length + i} className={i === arr.length - 1 ? 'text-ink font-medium' : ''}>
+                {l}
+              </div>
+            ))}
+          </div>
+        </div>
+        {sidePanel('B')}
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-6xl mx-auto lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-4 lg:items-start">
@@ -651,7 +706,7 @@ function StatusBar({ game, me }: { game: State; me: Side }) {
 }
 
 /** แผงของคู่ต่อสู้ (บอท): ไพ่ในมือ (เห็นแค่หลังการ์ด) · ไอเท็มถาวร · ด่านคว่ำ · สิ่งที่เพิ่งทำ */
-function OpponentPanel({ game, me, feed }: { game: State; me: Side; feed: BotMove[] }) {
+function OpponentPanel({ game, me, feed, narrow }: { game: State; me: Side; feed: BotMove[]; narrow?: boolean }) {
   const opp: Side = me === 'P' ? 'B' : 'P'
   const hand = opp === 'P' ? game.pHand : game.bHand
   const deck = opp === 'P' ? game.pDeck : game.bDeck
@@ -682,7 +737,7 @@ function OpponentPanel({ game, me, feed }: { game: State; me: Side; feed: BotMov
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-3 items-start">
+      <div className={`mt-3 flex gap-x-5 gap-y-3 items-start ${narrow ? 'flex-col' : 'flex-wrap'}`}>
         <div>
           <div className="text-[11px] text-ink/50 mb-1">ไพ่ในมือ (ไม่เห็นหน้า)</div>
           <div className="flex pl-1">
@@ -697,7 +752,7 @@ function OpponentPanel({ game, me, feed }: { game: State; me: Side; feed: BotMov
                   exit={{ opacity: 0, y: 16 }}
                   style={{ marginLeft: i === 0 ? 0 : -18, zIndex: i, rotate: (i - (shown - 1) / 2) * 3 }}
                 >
-                  <CardBack side={opp} width="5rem" />
+                  <CardBack side={opp} width={narrow ? '4.25rem' : '5rem'} />
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -742,7 +797,7 @@ function OpponentPanel({ game, me, feed }: { game: State; me: Side; feed: BotMov
                   </div>
                 )}
                 {last.cards.map(({ card, hidden }) => (
-                  <div key={card.id} className="w-32">
+                  <div key={card.id} className={narrow ? 'w-28' : 'w-32'}>
                     {hidden ? <CardBack side={last.side} width="100%" label="วางคว่ำ" /> : <GameCard card={card} />}
                   </div>
                 ))}
@@ -867,7 +922,7 @@ function HandPanel({
       {hand.length === 0 ? (
         <div className="text-ink/50 text-sm py-6 text-center">ไม่มีไพ่ในมือ</div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2.5 pt-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-2.5 pt-2">
           <AnimatePresence initial={false}>
             {hand.map((c) => (
               <GameCard key={c.id} card={c} selected={selectedId === c.id} onClick={onSelect ? () => onSelect(c.id) : undefined} />
