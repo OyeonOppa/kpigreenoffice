@@ -49,27 +49,46 @@ function sizeClass(descLen: number, footLen: number, nameLen: number): string {
   return L > 125 ? 'pc-tight' : L > 80 ? 'pc-mid' : 'pc-roomy'
 }
 
-/** หน้าการ์ดตามแบบพิมพ์ของเกม "ย่อยนานแค่ไหน?" — ใช้ทุกที่ที่โชว์การ์ด (ในมือ บนแถว หน้าจั่ว) */
-function PrintCard({ item, ringOk }: { item: Item; ringOk?: boolean }) {
+/**
+ * หน้าการ์ดตามแบบพิมพ์ของเกม "ย่อยนานแค่ไหน?"
+ * reveal=false (ในมือ/การ์ดที่จั่วยังไม่วาง) — ซ่อนระดับ-เวลา-เฉลย เพราะนั่นคือคำตอบของเกม โชว์แค่รูป+ชื่อให้เดา
+ * reveal=true (วางลงแถวแล้ว) — เฉลยเต็ม ใช้ตัดสินว่าวางถูกไหม
+ */
+function PrintCard({ item, ringOk, reveal = true }: { item: Item; ringOk?: boolean; reveal?: boolean }) {
   const t = tierOf(item.tier)
   const desc = item.note ? `${item.why} (${item.note})` : item.why
   const foot = `จัดการ: ${item.tip} · ที่มา: ${item.src}`
-  const style = { ['--c' as string]: t.color, ['--t' as string]: `${t.color}1a` }
+  const style = reveal
+    ? { ['--c' as string]: t.color, ['--t' as string]: `${t.color}1a` }
+    : { ['--c' as string]: '#94a3b8', ['--t' as string]: '#f8fafc' }
   return (
     <div className={`pc ${ringOk ? 'ring-4 ring-green-400 rounded-[5.73cqw]' : ''}`} style={style}>
-      <div className={`pc-in ${sizeClass(desc.length, foot.length, item.name.length)}`}>
-        <span className="pc-tag">
-          ระดับ {item.tier} · {t.name}
-        </span>
-        <div className="pc-emoji">
-          <Pic item={item} size="1em" />
-        </div>
-        <div className="pc-name">{item.name}</div>
-        <div className="pc-big">{item.time}</div>
-        <div className="pc-desc">
-          <b>รู้ไหม:</b> {desc}
-        </div>
-        <div className="pc-foot">{foot}</div>
+      <div className={`pc-in ${reveal ? sizeClass(desc.length, foot.length, item.name.length) : 'pc-roomy'}`}>
+        {reveal ? (
+          <>
+            <span className="pc-tag">
+              ระดับ {item.tier} · {t.name}
+            </span>
+            <div className="pc-emoji">
+              <Pic item={item} size="1em" />
+            </div>
+            <div className="pc-name">{item.name}</div>
+            <div className="pc-big">{item.time}</div>
+            <div className="pc-desc">
+              <b>รู้ไหม:</b> {desc}
+            </div>
+            <div className="pc-foot">{foot}</div>
+          </>
+        ) : (
+          <>
+            <span className="pc-tag">? ระดับย่อยสลาย</span>
+            <div className="pc-emoji">
+              <Pic item={item} size="1em" />
+            </div>
+            <div className="pc-name">{item.name}</div>
+            <div className="pc-foot">วางในแถวก่อนถึงจะเฉลยระดับ</div>
+          </>
+        )}
       </div>
     </div>
   )
@@ -286,7 +305,7 @@ function Board({ game, setGame, onAgain }: { game: State; setGame: (f: (g: State
                       onClick={() => setPicked(picked === id ? null : id)}
                       className={`w-40 sm:w-44 rounded-[5.73cqw] transition-all ${picked === id ? '-translate-y-1 ring-4 ring-accent/40' : 'hover:-translate-y-0.5'}`}
                     >
-                      <PrintCard item={it} />
+                      <PrintCard item={it} reveal={false} />
                     </button>
                   )
                 })}
@@ -337,7 +356,7 @@ function Hold({ item, title }: { item: Item; title: string }) {
     <div className="flex flex-col items-center gap-3">
       <div className="text-sm text-ink/60">{title}</div>
       <div className="w-40 sm:w-48">
-        <PrintCard item={item} />
+        <PrintCard item={item} reveal={false} />
       </div>
     </div>
   )
