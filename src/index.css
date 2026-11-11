@@ -200,7 +200,7 @@ body {
 .pc-roomy .pc-foot { font-size: 5.05cqw; }
 
 /* การ์ดเล็ก (ในมือ): เหลือแค่ป้าย รูป ชื่อ แต้ม และไอคอน ให้อ่านออกในพื้นที่แคบ */
-@container (max-width: 210px) {
+@container (max-width: 170px) {
   .pc-desc, .pc-foot, .pc-small, .pc-how, .pc-ex, .pc-blockhow, .pc-blockex { display: none; }
   .pc-emoji, .pc-mid .pc-emoji, .pc-roomy .pc-emoji { font-size: 27cqw; margin: 3cqw 0 1cqw; }
   .pc-name, .pc-mid .pc-name, .pc-roomy .pc-name { font-size: 10.5cqw; }

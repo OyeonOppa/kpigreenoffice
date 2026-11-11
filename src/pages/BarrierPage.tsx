@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Home, RotateCcw, Volume2, VolumeX } from 'lucide-react'
 import {
@@ -57,6 +57,20 @@ interface Config {
 type SetGame = (f: (g: State | null) => State | null) => void
 
 const pick = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)]
+
+/** วัดขนาดกล่องที่ใส่ ref — ใช้คำนวณขนาดการ์ดในมือให้เต็มพื้นที่ที่เหลือ */
+function useBox(active: boolean) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !active) return
+    const ro = new ResizeObserver(([e]) => setBox({ w: e.contentRect.width, h: e.contentRect.height }))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [active])
+  return [ref, box] as const
+}
 
 /** จอกว้าง (คอมพิวเตอร์): วางเป็นกระดานสองฝั่ง ซ้าย-ขวา ไม่ต้องเลื่อนหน้า */
 function useWide() {
@@ -557,8 +571,8 @@ function Board({ game, setGame, hints, onAgain, feed, wide }: { game: State; set
 
   const hand = me === 'P' ? game.pHand : game.bHand
 
-  const handPanel = (selectable: boolean) => (
-    <HandPanel game={game} hand={hand} me={me} selectedId={selectable ? selectedId : null} onSelect={selectable ? onSelect : undefined} highlight={selectable} />
+  const handPanel = (selectable: boolean, fit = false) => (
+    <HandPanel game={game} hand={hand} me={me} selectedId={selectable ? selectedId : null} onSelect={selectable ? onSelect : undefined} highlight={selectable} fit={fit} />
   )
 
   const stageBlock = (
@@ -576,11 +590,11 @@ function Board({ game, setGame, hints, onAgain, feed, wide }: { game: State; set
   if (wide) {
     const sidePanel = (s: Side) => (
       <aside className="min-h-0 overflow-y-auto rounded-[2rem] pb-1" aria-label={s === 'P' ? 'ฝั่งฝ่ายผลักดัน' : 'ฝั่งฝ่ายต่อต้าน'}>
-        {s === me ? handPanel(choosing) : <OpponentPanel game={game} me={me} feed={feed} narrow />}
+        {s === me ? handPanel(choosing, true) : <OpponentPanel game={game} me={me} feed={feed} narrow />}
       </aside>
     )
     return (
-      <div className="h-full max-w-[1700px] mx-auto grid grid-cols-[24rem_minmax(0,1fr)_24rem] gap-3">
+      <div className="h-full max-w-[1700px] mx-auto grid grid-cols-[clamp(22rem,27vw,30rem)_minmax(0,1fr)_clamp(22rem,27vw,30rem)] gap-3">
         {sidePanel('P')}
         <div className="min-h-0 min-w-0 flex flex-col gap-3">
           <StatusBar game={game} me={me} />
@@ -902,6 +916,7 @@ function HandPanel({
   selectedId,
   onSelect,
   highlight,
+  fit,
 }: {
   game: State
   hand: Card[]
@@ -909,10 +924,22 @@ function HandPanel({
   selectedId: number | null
   onSelect?: (id: number) => void
   highlight: boolean
+  /** จอกว้าง: ขยายการ์ดให้เต็มพื้นที่แผงข้าง */
+  fit?: boolean
 }) {
   const max = me === 'P' ? handMax(game) : 4
+  const [boxRef, box] = useBox(!!fit && hand.length > 0)
+  const GAP = 10
+  let gridStyle: React.CSSProperties | undefined
+  if (fit && box && box.w > 0 && box.h > 0) {
+    const rows = Math.max(1, Math.ceil(hand.length / 2))
+    const byW = (box.w - GAP) / 2
+    const byH = ((box.h - GAP * (rows - 1)) / rows) * (698 / 952)
+    const cw = Math.max(90, Math.min(byW, byH, 270))
+    gridStyle = { gridTemplateColumns: `repeat(2, ${Math.floor(cw)}px)`, justifyContent: 'center', alignContent: 'center', gap: GAP, height: '100%' }
+  }
   return (
-    <div className={`pop-card p-3 sm:p-4 ${highlight ? 'ring-4 ring-accent/30' : ''}`}>
+    <div className={`pop-card p-3 sm:p-4 ${fit ? 'h-full flex flex-col' : ''} ${highlight ? 'ring-4 ring-accent/30' : ''}`}>
       <div className="flex items-center justify-between gap-2 mb-1">
         <span className="font-medium text-ink">
           {me === 'P' ? '🌱' : '⛔'} ไพ่ในมือคุณ ({hand.length}/{max})
@@ -922,12 +949,14 @@ function HandPanel({
       {hand.length === 0 ? (
         <div className="text-ink/50 text-sm py-6 text-center">ไม่มีไพ่ในมือ</div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-2.5 pt-2">
+        <div ref={boxRef} className={fit ? 'flex-1 min-h-0 pt-2' : undefined}>
+        <div className={fit ? 'grid' : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2.5 pt-2'} style={gridStyle}>
           <AnimatePresence initial={false}>
             {hand.map((c) => (
               <GameCard key={c.id} card={c} selected={selectedId === c.id} onClick={onSelect ? () => onSelect(c.id) : undefined} />
             ))}
           </AnimatePresence>
+        </div>
         </div>
       )}
     </div>
