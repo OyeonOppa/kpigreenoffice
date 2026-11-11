@@ -41,6 +41,40 @@ function TierChip({ n, className = '' }: { n: number; className?: string }) {
   )
 }
 
+/* ----------------------------------------------------------------- หน้าการ์ด (เหมือนการ์ดพิมพ์) — ใช้ระบบ .pc เดียวกับเกมฝ่าด่านลดคาร์บอน (ดู src/index.css) */
+
+/** ขนาดตัวอักษรตามปริมาณข้อความ — สูตรเดียวกับตัวสร้างการ์ดพิมพ์ */
+function sizeClass(descLen: number, footLen: number, nameLen: number): string {
+  const L = descLen + footLen * 0.6 + nameLen * 0.8
+  return L > 125 ? 'pc-tight' : L > 80 ? 'pc-mid' : 'pc-roomy'
+}
+
+/** หน้าการ์ดตามแบบพิมพ์ของเกม "ย่อยนานแค่ไหน?" — ใช้ทุกที่ที่โชว์การ์ด (ในมือ บนแถว หน้าจั่ว) */
+function PrintCard({ item, ringOk }: { item: Item; ringOk?: boolean }) {
+  const t = tierOf(item.tier)
+  const desc = item.note ? `${item.why} (${item.note})` : item.why
+  const foot = `จัดการ: ${item.tip} · ที่มา: ${item.src}`
+  const style = { ['--c' as string]: t.color, ['--t' as string]: `${t.color}1a` }
+  return (
+    <div className={`pc ${ringOk ? 'ring-4 ring-green-400 rounded-[5.73cqw]' : ''}`} style={style}>
+      <div className={`pc-in ${sizeClass(desc.length, foot.length, item.name.length)}`}>
+        <span className="pc-tag">
+          ระดับ {item.tier} · {t.name}
+        </span>
+        <div className="pc-emoji">
+          <Pic item={item} size="1em" />
+        </div>
+        <div className="pc-name">{item.name}</div>
+        <div className="pc-big">{item.time}</div>
+        <div className="pc-desc">
+          <b>รู้ไหม:</b> {desc}
+        </div>
+        <div className="pc-foot">{foot}</div>
+      </div>
+    </div>
+  )
+}
+
 export default function DecomposePage() {
   const [mode, setMode] = useState<Mode>('coop')
   const [bots, setBots] = useState(2)
@@ -242,7 +276,7 @@ function Board({ game, setGame, onAgain }: { game: State; setGame: (f: (g: State
           ) : myTurn ? (
             <>
               <div className="text-center text-ink font-medium mb-3">ตาคุณ — เลือกการ์ดในมือ 1 ใบ แล้ววางลงแถว</div>
-              <div className="flex flex-wrap justify-center gap-2.5">
+              <div className="flex flex-wrap justify-center gap-3">
                 {me.hand.map((id) => {
                   const it = itemOf(id)
                   return (
@@ -250,10 +284,9 @@ function Board({ game, setGame, onAgain }: { game: State; setGame: (f: (g: State
                       key={id}
                       type="button"
                       onClick={() => setPicked(picked === id ? null : id)}
-                      className={`w-28 rounded-2xl border-2 p-2 text-center transition-all ${picked === id ? 'border-accent bg-accent/10 -translate-y-1 shadow-md' : 'border-line bg-surface hover:border-accent/50'}`}
+                      className={`w-40 sm:w-44 rounded-[5.73cqw] transition-all ${picked === id ? '-translate-y-1 ring-4 ring-accent/40' : 'hover:-translate-y-0.5'}`}
                     >
-                      <Pic item={it} size="44px" />
-                      <div className="text-sm font-medium text-ink leading-tight mt-1">{it.name}</div>
+                      <PrintCard item={it} />
                     </button>
                   )
                 })}
@@ -289,17 +322,9 @@ function Row({ game, canPlace, onSlot }: { game: State; canPlace: boolean; onSlo
   const out: React.ReactNode[] = [slot(0)]
   game.row.forEach((id, i) => {
     const it = itemOf(id)
-    const t = tierOf(it.tier)
     out.push(
-      <div
-        key={id}
-        className={`w-24 sm:w-28 shrink-0 rounded-2xl border-2 p-2 text-center bg-surface ${r && r.ok && r.card === id ? 'ring-4 ring-green-400' : ''}`}
-        style={{ borderColor: t.color }}
-      >
-        <TierChip n={it.tier} />
-        <div className="mt-1"><Pic item={it} size="40px" /></div>
-        <div className="text-xs sm:text-sm font-medium text-ink leading-tight mt-1">{it.name}</div>
-        <div className="text-[11px] text-ink/60 leading-tight mt-0.5">{it.time}</div>
+      <div key={id} className="w-32 sm:w-40 shrink-0">
+        <PrintCard item={it} ringOk={!!(r && r.ok && r.card === id)} />
       </div>,
     )
     out.push(slot(i + 1))
@@ -309,11 +334,10 @@ function Row({ game, canPlace, onSlot }: { game: State; canPlace: boolean; onSlo
 
 function Hold({ item, title }: { item: Item; title: string }) {
   return (
-    <div className="flex items-center justify-center gap-4">
-      <Pic item={item} size="72px" />
-      <div>
-        <div className="text-xs text-ink/60">{title}</div>
-        <div className="font-display text-2xl text-ink">{item.name}</div>
+    <div className="flex flex-col items-center gap-3">
+      <div className="text-sm text-ink/60">{title}</div>
+      <div className="w-40 sm:w-48">
+        <PrintCard item={item} />
       </div>
     </div>
   )
