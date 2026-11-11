@@ -44,7 +44,7 @@ import {
 import { cardFace, type Face } from '../barrier/cardFace'
 import { sfx } from '../game/sfx'
 
-/* ฝ่าด่านลดคาร์บอน — เกมไพ่สองฝ่าย ผลักดัน vs ต่อต้าน เล่นกับบอท (#/barrier) */
+/* ฝ่าด่านลดคาร์บอน — เกมการ์ดสองฝ่าย ผลักดัน vs ต่อต้าน เล่นกับบอท (#/barrier) */
 
 interface Config {
   side: Side
@@ -352,7 +352,7 @@ function PrintFace({ card }: { card: Card }) {
   )
 }
 
-/** หลังการ์ดตามแบบพิมพ์ (ใช้กับไพ่ที่ไม่เห็นหน้า) */
+/** หลังการ์ดตามแบบพิมพ์ (ใช้กับการ์ดที่ไม่เห็นหน้า) */
 function CardBack({ side, width = '5rem', label }: { side: Side; width?: string; label?: string }) {
   const p = side === 'P'
   const style = {
@@ -417,7 +417,7 @@ function GameCard({
   )
 }
 
-function Chip({ children, tone = 'plain', title }: { children: ReactNode; tone?: 'plain' | 'green' | 'red' | 'amber'; title?: string }) {
+function Chip({ children, tone = 'plain', title, big }: { children: ReactNode; tone?: 'plain' | 'green' | 'red' | 'amber'; title?: string; big?: boolean }) {
   const t =
     tone === 'green'
       ? 'bg-green-50 border-green-300 text-green-800'
@@ -427,7 +427,7 @@ function Chip({ children, tone = 'plain', title }: { children: ReactNode; tone?:
           ? 'bg-amber-50 border-amber-300 text-amber-900'
           : 'bg-surface border-line text-ink/80'
   return (
-    <span title={title} className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs ${t}`}>
+    <span title={title} className={`inline-flex items-center gap-1 rounded-full border font-medium ${big ? 'px-3.5 py-1.5 text-base border-2' : 'px-2.5 py-0.5 text-xs'} ${t}`}>
       {children}
     </span>
   )
@@ -447,7 +447,7 @@ function Setup({ cfg, setCfg, onStart }: { cfg: Config; setCfg: (c: Config) => v
           🔑⛔
         </div>
         <h1 className="font-display text-3xl sm:text-4xl text-ink tracking-tight">ฝ่าด่านลดคาร์บอน</h1>
-        <p className="text-ink/65 mt-2">เกมไพ่สองฝ่าย ผลักดัน vs ต่อต้าน — เล่นกับบอท</p>
+        <p className="text-ink/65 mt-2">เกมการ์ดสองฝ่าย ผลักดัน vs ต่อต้าน — เล่นกับบอท</p>
       </div>
 
       <div className="mt-6 grid sm:grid-cols-2 gap-3 text-ink/85 leading-relaxed">
@@ -684,42 +684,46 @@ function StatusBar({ game, me }: { game: State; me: Side }) {
             <span className="text-lg text-ink/45"> / {game.target}</span>
           </div>
         </div>
-        <div className="text-right text-sm text-ink/70 leading-relaxed">
+        <div className="text-right text-base text-ink/75 leading-relaxed">
           <div>
             ตาที่ {game.turn} · กองฝ่ายผลักดันเหลือ {game.pDeck.length} ใบ
           </div>
-          <div>ตานี้จะได้ +{preview} (ถ้านับตอนนี้)</div>
+          <div className="font-medium text-ink/85">ตานี้จะได้ +{preview} (ถ้านับตอนนี้)</div>
         </div>
       </div>
       <div className="mt-3 h-3 rounded-full bg-ink/10 overflow-hidden" role="progressbar" aria-valuenow={game.score} aria-valuemax={game.target}>
         <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: pct >= 100 ? '#16a34a' : 'oklch(53% 0.15 152)' }} />
       </div>
-      <div className="mt-3 flex flex-wrap gap-1.5 items-center text-xs">
-        <span className="text-ink/55">ไอเท็มของคุณ:</span>
+      <div className="mt-3 flex flex-wrap gap-2 items-center text-sm">
+        <span className="text-ink/60">ไอเท็มของคุณ:</span>
         {me === 'P' &&
           game.pItems.map((i, k) => (
-            <Chip key={`p${k}`} tone="green" title={ITEM_META[i].desc}>
+            <Chip key={`p${k}`} tone="green" big title={ITEM_META[i].desc}>
               🌱 {ITEM_META[i].emoji} {ITEM_META[i].name}
             </Chip>
           ))}
         {me === 'B' &&
           game.bItems.map((i, k) => (
-            <Chip key={`b${k}`} tone="red" title={ITEM_META[i].desc}>
+            <Chip key={`b${k}`} tone="red" big title={ITEM_META[i].desc}>
               ⛔ {ITEM_META[i].emoji} {ITEM_META[i].name}
             </Chip>
           ))}
         {me === 'B' && game.trap && (
-          <Chip tone="amber" title="ด่านคว่ำของคุณ จะเปิดเมื่อฝ่ายผลักดันวางมาตรการใบต่อไป">
+          <Chip tone="amber" big title="ด่านคว่ำของคุณ จะเปิดเมื่อฝ่ายผลักดันวางมาตรการใบต่อไป">
             🂠 ด่านคว่ำของคุณ: {game.trap.name}
           </Chip>
         )}
-        {game.frozen && <Chip tone="red">✂️ ตาหน้าถูกตัดงบ</Chip>}
+        {game.frozen && (
+          <Chip tone="red" big>
+            ✂️ ตาหน้าถูกตัดงบ
+          </Chip>
+        )}
       </div>
     </div>
   )
 }
 
-/** แผงของคู่ต่อสู้ (บอท): ไพ่ในมือ (เห็นแค่หลังการ์ด) · ไอเท็มถาวร · ด่านคว่ำ · สิ่งที่เพิ่งทำ */
+/** แผงของคู่ต่อสู้ (บอท): การ์ดในมือ (เห็นแค่หลังการ์ด) · ไอเท็มถาวร · ด่านคว่ำ · สิ่งที่เพิ่งทำ */
 function OpponentPanel({ game, me, feed, narrow, collapsible }: { game: State; me: Side; feed: BotMove[]; narrow?: boolean; collapsible?: boolean }) {
   const opp: Side = me === 'P' ? 'B' : 'P'
   const hand = opp === 'P' ? game.pHand : game.bHand
@@ -776,11 +780,11 @@ function OpponentPanel({ game, me, feed, narrow, collapsible }: { game: State; m
   function renderOpponentBody() {
     return (
       <>
-      <div className={`mt-3 flex gap-x-5 gap-y-3 items-start ${narrow ? 'flex-col' : 'flex-wrap'}`}>
+      <div className={`mt-3 flex gap-x-5 gap-y-4 items-start ${narrow ? 'flex-col' : 'flex-wrap'}`}>
         <div>
-          <div className="text-[11px] text-ink/50 mb-1">ไพ่ในมือ (ไม่เห็นหน้า)</div>
+          <div className={narrow ? 'text-sm text-ink/55 mb-2' : 'text-[11px] text-ink/50 mb-1'}>การ์ดในมือ (ไม่เห็นหน้า)</div>
           <div className="flex pl-1">
-            {hand.length === 0 && <span className="text-sm text-ink/45">ไม่มีไพ่ในมือ</span>}
+            {hand.length === 0 && <span className="text-sm text-ink/45">ไม่มีการ์ดในมือ</span>}
             <AnimatePresence initial={false}>
               {hand.slice(0, shown).map((c, i) => (
                 <motion.div
@@ -789,30 +793,35 @@ function OpponentPanel({ game, me, feed, narrow, collapsible }: { game: State; m
                   initial={{ opacity: 0, y: -16 }}
                   animate={{ opacity: 1, y: thinking ? -3 : 0 }}
                   exit={{ opacity: 0, y: 16 }}
-                  style={{ marginLeft: i === 0 ? 0 : -18, zIndex: i, rotate: (i - (shown - 1) / 2) * 3 }}
+                  style={{ marginLeft: i === 0 ? 0 : narrow ? -32 : -18, zIndex: i, rotate: (i - (shown - 1) / 2) * 3 }}
                 >
-                  <CardBack side={opp} width={narrow ? '4.25rem' : '5rem'} />
+                  <CardBack side={opp} width={narrow ? '7.5rem' : '5rem'} />
                 </motion.div>
               ))}
             </AnimatePresence>
           </div>
         </div>
 
-        <div className="min-w-[8rem]">
-          <div className="text-[11px] text-ink/50 mb-1">ไอเท็มถาวร · ด่านคว่ำ</div>
-          <div className="flex flex-wrap gap-1.5">
+        <div className={narrow ? 'min-w-[12rem] w-full' : 'min-w-[8rem]'}>
+          <div className={narrow ? 'text-sm text-ink/55 mb-2' : 'text-[11px] text-ink/50 mb-1'}>ไอเท็มถาวร · ด่านคว่ำ</div>
+          <div className={`flex flex-wrap ${narrow ? 'gap-2.5' : 'gap-1.5'}`}>
             {items.map((i, k) => (
-              <div key={k} className="rounded-xl border-2 px-2 py-1 max-w-[11rem]" style={{ background: '#fff3e0', borderColor: '#b4530955' }} title={ITEM_META[i].desc}>
-                <div className="text-sm font-medium text-ink leading-tight">
+              <div
+                key={k}
+                className={`rounded-xl border-2 ${narrow ? 'px-3.5 py-2.5 max-w-full' : 'px-2 py-1 max-w-[11rem]'}`}
+                style={{ background: '#fff3e0', borderColor: '#b4530955' }}
+                title={ITEM_META[i].desc}
+              >
+                <div className={`font-medium text-ink leading-tight ${narrow ? 'text-lg' : 'text-sm'}`}>
                   {ITEM_META[i].emoji} {ITEM_META[i].name}
                 </div>
-                <div className="text-[11px] text-ink/65 leading-snug">{ITEM_META[i].desc}</div>
+                <div className={`text-ink/65 leading-snug ${narrow ? 'text-sm mt-0.5' : 'text-[11px]'}`}>{ITEM_META[i].desc}</div>
               </div>
             ))}
             {opp === 'B' && game.trap && (
-              <div className="flex items-center gap-1.5 rounded-xl border-2 border-dashed border-amber-400 bg-amber-50 px-2 py-1">
-                <CardBack side="B" width="2.25rem" />
-                <div className="text-xs text-amber-900 leading-tight">
+              <div className={`flex items-center rounded-xl border-2 border-dashed border-amber-400 bg-amber-50 ${narrow ? 'gap-3 px-3.5 py-2.5' : 'gap-1.5 px-2 py-1'}`}>
+                <CardBack side="B" width={narrow ? '3.25rem' : '2.25rem'} />
+                <div className={`text-amber-900 leading-tight ${narrow ? 'text-base' : 'text-xs'}`}>
                   <b>ด่านคว่ำ 1 ใบ</b>
                   <br />
                   เปิดเมื่อคุณวางมาตรการใบหน้า
@@ -824,29 +833,36 @@ function OpponentPanel({ game, me, feed, narrow, collapsible }: { game: State; m
         </div>
       </div>
 
-      <div className="mt-3 border-t border-line pt-2.5">
-        <div className="text-[11px] text-ink/50 mb-1">{name}เพิ่งทำ</div>
+      <div className="mt-4 border-t border-line pt-3">
+        <div className={narrow ? 'text-sm text-ink/55 mb-2' : 'text-[11px] text-ink/50 mb-1'}>{name}เพิ่งทำ</div>
         <AnimatePresence mode="wait" initial={false}>
           {last ? (
-            <motion.div key={last.id} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} className="flex gap-3 items-start">
-              <div className="flex gap-2 shrink-0">
+            <motion.div
+              key={last.id}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className={narrow ? 'flex flex-col gap-3 items-start' : 'flex gap-3 items-start'}
+            >
+              <div className="flex gap-2 shrink-0 flex-wrap">
                 {last.cards.length === 0 && (
                   <div className="text-2xl self-center" aria-hidden>
                     🤚
                   </div>
                 )}
                 {last.cards.map(({ card, hidden }) => (
-                  <div key={card.id} className={narrow ? 'w-28' : 'w-32'}>
+                  <div key={card.id} className={narrow ? 'w-40' : 'w-32'}>
                     {hidden ? <CardBack side={last.side} width="100%" label="วางคว่ำ" /> : <GameCard card={card} />}
                   </div>
                 ))}
               </div>
-              <div className="text-sm text-ink leading-relaxed min-w-0">
-                <div className="text-[11px] text-ink/50">ตาที่ {last.turn}</div>
+              <div className={`text-ink leading-relaxed min-w-0 ${narrow ? 'text-base' : 'text-sm'}`}>
+                <div className={narrow ? 'text-sm text-ink/55' : 'text-[11px] text-ink/50'}>ตาที่ {last.turn}</div>
                 {last.lines.map((l, i) => (
                   <div key={i}>{l}</div>
                 ))}
-                {last.cards.some((c) => c.hidden) && <div className="text-amber-800 text-xs mt-0.5">ไพ่ที่วางคว่ำ คุณจะเห็นหน้าการ์ดเมื่อถูกเปิดเท่านั้น</div>}
+                {last.cards.some((c) => c.hidden) && <div className="text-amber-800 text-xs mt-0.5">การ์ดที่วางคว่ำ คุณจะเห็นหน้าการ์ดเมื่อถูกเปิดเท่านั้น</div>}
               </div>
             </motion.div>
           ) : (
@@ -854,7 +870,7 @@ function OpponentPanel({ game, me, feed, narrow, collapsible }: { game: State; m
           )}
         </AnimatePresence>
         {older.length > 0 && (
-          <div className="mt-2 text-xs text-ink/50 space-y-0.5">
+          <div className={`mt-2 text-ink/50 space-y-0.5 ${narrow ? 'text-sm' : 'text-xs'}`}>
             {older.map((m) => (
               <div key={m.id}>
                 ตาที่ {m.turn}: {m.lines[0] ?? ''}
@@ -968,12 +984,12 @@ function HandPanel({
     <div className={`pop-card p-3 sm:p-4 ${fit ? 'h-full flex flex-col' : ''} ${highlight ? 'ring-4 ring-accent/30' : ''}`}>
       <div className="flex items-center justify-between gap-2 mb-1">
         <span className="font-medium text-ink">
-          {me === 'P' ? '🌱' : '⛔'} ไพ่ในมือคุณ ({hand.length}/{max})
+          {me === 'P' ? '🌱' : '⛔'} การ์ดในมือคุณ ({hand.length}/{max})
         </span>
       </div>
       {highlight && <p className="text-sm text-accent-deep font-medium mb-1">👇 แตะการ์ดเพื่อดูรายละเอียดและเลือกว่าจะทำอะไร</p>}
       {hand.length === 0 ? (
-        <div className="text-ink/50 text-sm py-6 text-center">ไม่มีไพ่ในมือ</div>
+        <div className="text-ink/50 text-sm py-6 text-center">ไม่มีการ์ดในมือ</div>
       ) : (
         <div ref={boxRef} className={fit ? 'flex-1 min-h-0 pt-2' : undefined}>
         <div className={fit ? 'grid' : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2.5 pt-2'} style={gridStyle}>
