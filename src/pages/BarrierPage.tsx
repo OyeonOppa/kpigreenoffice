@@ -57,10 +57,50 @@ type SetGame = (f: (g: State | null) => State | null) => void
 
 const pick = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)]
 
+/** สิ่งที่ฝ่ายบอททำล่าสุด — ไว้โชว์ให้เห็นว่าบอท "เล่น" อะไร (ด่านคว่ำจะเห็นแค่หลังการ์ด) */
+interface BotMove {
+  id: number
+  side: Side
+  turn: number
+  lines: string[]
+  cards: { card: Card; hidden: boolean }[]
+}
+
+/** บรรทัด log ที่เพิ่มขึ้นมาใหม่ (log เก็บแค่ 60 บรรทัดสุดท้าย จึงต้องหาจุดที่ซ้อนกัน) */
+function newLines(a: string[], b: string[]): string[] {
+  for (let s = 0; s <= Math.min(10, a.length); s++) {
+    const kept = a.slice(s)
+    if (kept.every((l, i) => b[i] === l)) return b.slice(kept.length)
+  }
+  return b.slice(-3)
+}
+
+function describeMove(prev: State, next: State, bot: Side): Omit<BotMove, 'id'> | null {
+  const hk = bot === 'P' ? 'pHand' : 'bHand'
+  const gone = prev[hk].filter((c) => !next[hk].some((x) => x.id === c.id))
+  const trapId = bot === 'B' && next.trap && next.trap.id !== prev.trap?.id ? next.trap.id : null
+  const revealed = bot === 'B' && prev.trap && !next.trap && !gone.some((c) => c.id === prev.trap!.id) ? prev.trap : null
+  if (!gone.length && !revealed && actor(prev) !== bot) return null
+  const cards = gone.map((c) => ({ card: c as Card, hidden: c.id === trapId }))
+  if (revealed) cards.push({ card: revealed, hidden: false })
+  return { side: bot, turn: prev.turn, lines: newLines(prev.log, next.log), cards }
+}
+
 export default function BarrierPage() {
   const [cfg, setCfg] = useState<Config>({ side: 'P', target: 125, pItem: 'edu', bItem: 'ad', hints: true })
   const [game, setGame] = useState<State | null>(null)
   const [muted, setMuted] = useState(sfx.muted)
+  const [feed, setFeed] = useState<BotMove[]>([])
+  const [prevGame, setPrevGame] = useState<State | null>(null)
+  if (game !== prevGame) {
+    setPrevGame(game)
+    if (!game || !prevGame || prevGame.phase === 'over' || game.turn < prevGame.turn) {
+      if (feed.length) setFeed([])
+    } else if (game.human) {
+      const m = describeMove(prevGame, game, game.human === 'P' ? 'B' : 'P')
+      if (m) setFeed([...feed.slice(-5), { ...m, id: (feed[feed.length - 1]?.id ?? 0) + 1 }])
+    }
+  }
 
   // บอทเล่นเอง (หน่วงเวลาให้ตามทัน)
   useEffect(() => {
@@ -119,7 +159,7 @@ export default function BarrierPage() {
       </div>
 
       <div className="flex-1 px-3 sm:px-6 pb-6">
-        {game ? <Board game={game} setGame={setGame} hints={cfg.hints} onAgain={start} /> : <Setup cfg={cfg} setCfg={setCfg} onStart={start} />}
+        {game ? <Board game={game} setGame={setGame} hints={cfg.hints} onAgain={start} feed={feed} /> : <Setup cfg={cfg} setCfg={setCfg} onStart={start} />}
       </div>
     </div>
   )
@@ -390,7 +430,7 @@ function Setup({ cfg, setCfg, onStart }: { cfg: Config; setCfg: (c: Config) => v
 
 /* ----------------------------------------------------------------- กระดานเกม */
 
-function Board({ game, setGame, hints, onAgain }: { game: State; setGame: SetGame; hints: boolean; onAgain: () => void }) {
+function Board({ game, setGame, hints, onAgain, feed }: { game: State; setGame: SetGame; hints: boolean; onAgain: () => void; feed: BotMove[] }) {
   const me = game.human as Side
   const a = actor(game)
   const mine = a === me && game.phase !== 'over'
@@ -411,6 +451,7 @@ function Board({ game, setGame, hints, onAgain }: { game: State; setGame: SetGam
   return (
     <div className="max-w-6xl mx-auto lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-4 lg:items-start">
       <div className="space-y-3 min-w-0">
+        <OpponentPanel game={game} me={me} feed={feed} />
         <StatusBar game={game} me={me} />
         <TableView game={game} />
 
@@ -487,26 +528,162 @@ function StatusBar({ game, me }: { game: State; me: Side }) {
         <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: pct >= 100 ? '#16a34a' : 'oklch(53% 0.15 152)' }} />
       </div>
       <div className="mt-3 flex flex-wrap gap-1.5 items-center text-xs">
-        <span className="text-ink/55">ไอเท็ม:</span>
-        {game.pItems.map((i, k) => (
-          <Chip key={`p${k}`} tone="green" title={ITEM_META[i].desc}>
-            🌱 {ITEM_META[i].emoji} {ITEM_META[i].name}
-          </Chip>
-        ))}
-        {game.bItems.map((i, k) => (
-          <Chip key={`b${k}`} tone="red" title={ITEM_META[i].desc}>
-            ⛔ {ITEM_META[i].emoji} {ITEM_META[i].name}
-          </Chip>
-        ))}
-        {game.trap && (
-          <Chip tone="amber" title="ด่านคว่ำ จะเปิดเมื่อฝ่ายผลักดันวางมาตรการใบต่อไป">
-            🂠 ด่านคว่ำ 1 ใบ
+        <span className="text-ink/55">ไอเท็มของคุณ:</span>
+        {me === 'P' &&
+          game.pItems.map((i, k) => (
+            <Chip key={`p${k}`} tone="green" title={ITEM_META[i].desc}>
+              🌱 {ITEM_META[i].emoji} {ITEM_META[i].name}
+            </Chip>
+          ))}
+        {me === 'B' &&
+          game.bItems.map((i, k) => (
+            <Chip key={`b${k}`} tone="red" title={ITEM_META[i].desc}>
+              ⛔ {ITEM_META[i].emoji} {ITEM_META[i].name}
+            </Chip>
+          ))}
+        {me === 'B' && game.trap && (
+          <Chip tone="amber" title="ด่านคว่ำของคุณ จะเปิดเมื่อฝ่ายผลักดันวางมาตรการใบต่อไป">
+            🂠 ด่านคว่ำของคุณ: {game.trap.name}
           </Chip>
         )}
         {game.frozen && <Chip tone="red">✂️ ตาหน้าถูกตัดงบ</Chip>}
-        <span className="ml-auto text-ink/55">
-          {me === 'P' ? `ฝ่ายต่อต้านถือ ${game.bHand.length} ใบ` : `ฝ่ายผลักดันถือ ${game.pHand.length} ใบ`}
-        </span>
+      </div>
+    </div>
+  )
+}
+
+/** แผงของคู่ต่อสู้ (บอท): ไพ่ในมือ (เห็นแค่หลังการ์ด) · ไอเท็มถาวร · ด่านคว่ำ · สิ่งที่เพิ่งทำ */
+function CardBack({ side, small, label }: { side: Side; small?: boolean; label?: string }) {
+  const green = side === 'P'
+  return (
+    <div
+      className={`shrink-0 rounded-xl border-2 flex flex-col items-center justify-center text-white shadow-sm ${small ? 'w-9 h-12 text-base' : 'w-20 h-28 text-3xl gap-1'}`}
+      style={{ background: green ? 'linear-gradient(160deg,#4ade80,#15803d)' : 'linear-gradient(160deg,#94a3b8,#475569)', borderColor: green ? '#14532d' : '#1e293b' }}
+      aria-hidden={!label}
+    >
+      <span>{green ? '🌱' : '⛔'}</span>
+      {label && <span className="text-[10px] font-medium leading-tight px-1 text-center">{label}</span>}
+    </div>
+  )
+}
+
+function OpponentPanel({ game, me, feed }: { game: State; me: Side; feed: BotMove[] }) {
+  const opp: Side = me === 'P' ? 'B' : 'P'
+  const hand = opp === 'P' ? game.pHand : game.bHand
+  const deck = opp === 'P' ? game.pDeck : game.bDeck
+  const items = opp === 'P' ? game.pItems : game.bItems
+  const thinking = actor(game) === opp && game.phase !== 'over'
+  const last = feed[feed.length - 1]
+  const older = feed.slice(-3, -1).reverse()
+  const name = opp === 'P' ? 'ฝ่ายผลักดัน' : 'ฝ่ายต่อต้าน'
+  const shown = Math.min(hand.length, 6)
+  return (
+    <div className={`pop-card p-3 sm:p-4 ${thinking ? 'ring-4 ring-amber-300/60' : ''}`}>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="font-medium text-ink flex items-center gap-2">
+          <span className="text-2xl" aria-hidden>
+            🤖
+          </span>
+          {opp === 'P' ? '🌱' : '⛔'} {name} (บอท)
+        </div>
+        <div className="text-xs text-ink/60">
+          {thinking ? (
+            <span className="inline-flex items-center gap-1 text-amber-800 font-medium">
+              กำลังคิด<span className="animate-pulse">…</span>
+            </span>
+          ) : (
+            'รอคุณ'
+          )}
+          {' · '}ถือ {hand.length} ใบ · กองจั่วเหลือ {deck.length}
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-3 items-start">
+        <div>
+          <div className="text-[11px] text-ink/50 mb-1">ไพ่ในมือ (ไม่เห็นหน้า)</div>
+          <div className="flex pl-1">
+            {hand.length === 0 && <span className="text-sm text-ink/45">ไม่มีไพ่ในมือ</span>}
+            <AnimatePresence initial={false}>
+              {hand.slice(0, shown).map((c, i) => (
+                <motion.div
+                  key={c.id}
+                  layout
+                  initial={{ opacity: 0, y: -16 }}
+                  animate={{ opacity: 1, y: thinking ? -3 : 0 }}
+                  exit={{ opacity: 0, y: 16 }}
+                  style={{ marginLeft: i === 0 ? 0 : -18, zIndex: i, rotate: (i - (shown - 1) / 2) * 3 }}
+                >
+                  <CardBack side={opp} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        <div className="min-w-[8rem]">
+          <div className="text-[11px] text-ink/50 mb-1">ไอเท็มถาวร · ด่านคว่ำ</div>
+          <div className="flex flex-wrap gap-1.5">
+            {items.map((i, k) => (
+              <div key={k} className="rounded-xl border-2 px-2 py-1 max-w-[11rem]" style={{ background: '#fff3e0', borderColor: '#b4530955' }} title={ITEM_META[i].desc}>
+                <div className="text-sm font-medium text-ink leading-tight">
+                  {ITEM_META[i].emoji} {ITEM_META[i].name}
+                </div>
+                <div className="text-[11px] text-ink/65 leading-snug">{ITEM_META[i].desc}</div>
+              </div>
+            ))}
+            {opp === 'B' && game.trap && (
+              <div className="flex items-center gap-1.5 rounded-xl border-2 border-dashed border-amber-400 bg-amber-50 px-2 py-1">
+                <CardBack side="B" small />
+                <div className="text-xs text-amber-900 leading-tight">
+                  <b>ด่านคว่ำ 1 ใบ</b>
+                  <br />
+                  เปิดเมื่อคุณวางมาตรการใบหน้า
+                </div>
+              </div>
+            )}
+            {items.length === 0 && !(opp === 'B' && game.trap) && <span className="text-sm text-ink/45">ยังไม่มี</span>}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 border-t border-line pt-2.5">
+        <div className="text-[11px] text-ink/50 mb-1">{name}เพิ่งทำ</div>
+        <AnimatePresence mode="wait" initial={false}>
+          {last ? (
+            <motion.div key={last.id} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} className="flex gap-3 items-start">
+              <div className="flex gap-2 shrink-0">
+                {last.cards.length === 0 && (
+                  <div className="text-2xl self-center" aria-hidden>
+                    🤚
+                  </div>
+                )}
+                {last.cards.map(({ card, hidden }) => (
+                  <div key={card.id} className="w-24">
+                    {hidden ? <CardBack side={last.side} label="วางคว่ำ" /> : <GameCard card={card} />}
+                  </div>
+                ))}
+              </div>
+              <div className="text-sm text-ink leading-relaxed min-w-0">
+                <div className="text-[11px] text-ink/50">ตาที่ {last.turn}</div>
+                {last.lines.map((l, i) => (
+                  <div key={i}>{l}</div>
+                ))}
+                {last.cards.some((c) => c.hidden) && <div className="text-amber-800 text-xs mt-0.5">ไพ่ที่วางคว่ำ คุณจะเห็นหน้าการ์ดเมื่อถูกเปิดเท่านั้น</div>}
+              </div>
+            </motion.div>
+          ) : (
+            <div className="text-sm text-ink/45">ยังไม่ได้เล่น</div>
+          )}
+        </AnimatePresence>
+        {older.length > 0 && (
+          <div className="mt-2 text-xs text-ink/50 space-y-0.5">
+            {older.map((m) => (
+              <div key={m.id}>
+                ตาที่ {m.turn}: {m.lines[0] ?? ''}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
