@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>ฝ่าด่านลดคาร์บอน — ต้นแบบการ์ด (พิมพ์สองหน้า)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 10mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Noto Sans Thai", sans-serif; color: #14261c; background: #eee; }
+  .toolbar { position: sticky; top: 0; background: #14261c; color: #fff; padding: 10px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; z-index: 9; }
+  .toolbar button { background: #22c55e; color: #fff; border: 0; border-radius: 99px; padding: 8px 18px; font: 700 14px inherit; font-family: inherit; cursor: pointer; }
+  .page { width: 190mm; min-height: 277mm; margin: 10px auto; background: #fff; page-break-after: always; break-after: page; }
+  .grid { width: 152.4mm; margin: 0 auto; display: grid; grid-template-columns: repeat(2, 76.2mm); grid-auto-rows: 101.6mm; }
+  .sect { font-size: 9pt; color: #6b7a70; margin: 0 0 2mm; }
+
+  .card { width: 76.2mm; height: 101.6mm; border: 0.3mm dashed #999; padding: 3.2mm; position: relative; display: flex; overflow: hidden; }
+  .card.empty { border: 0; }
+  .inner { flex: 1; border-radius: 4mm; border: 0.8mm solid var(--c); background: var(--t); display: flex; flex-direction: column; align-items: center; padding: 3mm 3mm; text-align: center; position: relative; }
+  .tag { font-size: 9pt; font-weight: 800; color: #fff; background: var(--c); border-radius: 99px; padding: 0.2mm 2.6mm; white-space: nowrap; }
+  .emoji { font-size: 40pt; line-height: 1.1; margin: 2.4mm 0 1mm; }
+  .name { font-size: 16pt; font-weight: 800; line-height: 1.18; }
+  .big { font-size: 20pt; font-weight: 800; color: var(--c); margin-top: 1.5mm; line-height: 1.05; }
+  .desc { font-size: 11pt; line-height: 1.38; margin-top: 2.2mm; color: #1f2f26; }
+  .icons { display: flex; gap: 2mm; justify-content: center; margin-top: 1.2mm; flex-wrap: wrap; }
+  .chip { font-size: 18pt; background: #fff; border: 0.5mm solid var(--c); border-radius: 2.4mm; padding: 0 2mm; line-height: 1.5; }
+  .small { font-size: 8.5pt; color: #4b5b50; margin-top: 1.2mm; }
+  .foot { margin-top: auto; font-size: 8.5pt; color: #4b5b50; line-height: 1.3; }
+  .chip small { display: block; font-size: 7.5pt; font-weight: 700; line-height: 1.1; padding-bottom: 0.8mm; color: #3a4a3f; }
+  .icons.big .chip { font-size: 30pt; padding: 0 3.5mm; }
+
+  .back .inner { background: radial-gradient(circle at 15% 12%, rgba(255,255,255,.22) 0 9mm, transparent 9.2mm), radial-gradient(circle at 88% 90%, rgba(255,255,255,.16) 0 13mm, transparent 13.2mm), linear-gradient(160deg, var(--b1), var(--b2)); border: 0.8mm solid var(--b3); color: #fff; justify-content: center; }
+  .back .logo { width: 30mm; height: 30mm; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 38pt; box-shadow: 0 1mm 3mm rgba(0,0,0,.25); }
+  .back .bname { font-size: 21pt; font-weight: 800; line-height: 1.1; margin-top: 2.5mm; }
+  .back .bsub { font-size: 11pt; opacity: .95; margin-top: 1mm; }
+  .back .borg { font-size: 8.5pt; opacity: .8; margin-top: 3mm; letter-spacing: .3mm; }
+
+  .page.blank::before { content: "(หน้าหลังของแผ่นนี้ — เว้นว่างไว้ ใช้ให้การพิมพ์สองหน้าเรียงถูก)"; display: block; padding: 10mm; color: #aaa; font-size: 9pt; }
+  .rules { padding: 11mm 14mm; font-size: 9.6pt; line-height: 1.48; }
+  .rules h1 { margin: 0 0 1mm; font-size: 22pt; }
+  .rules h2 { margin: 3mm 0 1mm; font-size: 12pt; color: #16a34a; }
+  .rules ul, .rules ol { margin: 1mm 0; padding-left: 5mm; }
+  .rules table { border-collapse: collapse; width: 100%; font-size: 8.8pt; margin: 1.5mm 0; }
+  .rules td, .rules th { border: 0.3mm solid #cfd8d1; padding: 0.7mm 1.8mm; text-align: left; vertical-align: top; }
+  .rules th { background: #eafbee; }
+  .note { background: #fff8e1; border-radius: 3mm; padding: 2mm 3mm; font-size: 8.8pt; margin-top: 2.5mm; }
+
+
+  .rules2 { padding: 11mm 14mm; font-size: 12pt; line-height: 1.42; height: 275mm; overflow: hidden; }
+  .rules2 h1 { margin: 0 0 1mm; font-size: 26pt; }
+  .rules2 h2 { margin: 4mm 0 1.5mm; font-size: 16pt; color: #16a34a; }
+  .rules2 h3 { margin: 3mm 0 1mm; font-size: 13.5pt; }
+  .rules2 p { margin: 1.2mm 0; }
+  .rules2 ul, .rules2 ol { margin: 1.2mm 0; padding-left: 6mm; }
+  .rules2 li { margin: 0.8mm 0; }
+  .rules2 table { border-collapse: collapse; width: 100%; font-size: 11.5pt; margin: 1.5mm 0; }
+  .rules2 td, .rules2 th { border: 0.3mm solid #cfd8d1; padding: 1.1mm 2.2mm; text-align: left; vertical-align: top; }
+  .rules2 th { background: #eafbee; }
+  .rules2 .box { background: #fff8e1; border-radius: 3mm; padding: 2mm 3.5mm; margin: 2mm 0; }
+  .rules2 .key { background: #eafbee; border-radius: 3mm; padding: 2mm 3.5mm; margin: 2mm 0; font-weight: 700; }
+
+  /* ปรับตามปริมาณข้อความ: การ์ดที่มีที่ว่างเยอะใช้ตัวอักษรใหญ่ขึ้น และจัดกึ่งกลางแนวตั้ง */
+  .inner { justify-content: center; }
+  .inner .foot { margin-top: 3.5mm; }
+  .inner.roomy .emoji { font-size: 58pt; margin: 3mm 0 2mm; }
+  .inner.roomy .name { font-size: 22pt; }
+  .inner.roomy .big { font-size: 24pt; margin-top: 2mm; }
+  .inner.roomy .desc { font-size: 14.5pt; line-height: 1.45; margin-top: 3.5mm; }
+  .inner.roomy .foot { font-size: 10pt; }
+  .inner.mid .emoji { font-size: 48pt; margin: 2.5mm 0 1.5mm; }
+  .inner.mid .name { font-size: 19pt; }
+  .inner.mid .big { font-size: 21pt; }
+  .inner.mid .desc { font-size: 13pt; line-height: 1.42; margin-top: 3mm; }
+  .inner.mid .foot { font-size: 9.5pt; }
+  .pair { display: flex; align-items: center; justify-content: center; gap: 3mm; margin: 3mm 0 2mm; }
+  .pair .chip { font-size: 32pt; padding: 0 3mm; }
+  .pair .arrow { font-size: 24pt; color: #7c3aed; font-weight: 800; }
+  .pair .k { font-size: 52pt; line-height: 1.1; }
+  .how { font-size: 13pt; line-height: 1.42; margin-top: 3mm; color: #1f2f26; }
+  .how b { color: var(--c); }
+  .ex { font-size: 11.5pt; line-height: 1.35; margin-top: 2.5mm; color: #3a4a3f; background: rgba(255,255,255,.7); border-radius: 2.5mm; padding: 1.5mm 2.5mm; }
+  @media print {
+    body { background: #fff; } .toolbar { display: none; }
+    .page { margin: 0; width: auto; min-height: 0; }
+    .sect { display: none; } .page.blank::before { content: none; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <b>ฝ่าด่านลดคาร์บอน — ต้นแบบการ์ด</b>
+  <button onclick="window.print()">พิมพ์ / บันทึกเป็น PDF</button>
+  <span style="font-size:12px;opacity:.8">A4 · พิมพ์สองหน้า (Two-sided) แบบ <b>Flip on long edge / พลิกด้านยาว</b> · Scale 100% · เปิด Background graphics</span>
+</div>
+
+<div class="page rules2">
+<h1>ฝ่าด่านลดคาร์บอน 🔑</h1>
+<p>เกมการ์ดสองฝ่าย <b>ผลักดัน vs ต่อต้าน</b> · 2 คนหรือ 2 ทีม · อายุ 12+ · 20–30 นาที</p>
+<div class="box" style="font-size:11pt">ได้แรงบันดาลใจด้านโครงสร้างจากเกม <b>Bangkok's Big Brother: เราจะทำตามสัญญา</b> ของ iLaw (2559) · ต้นแบบนี้ยังไม่ผ่านการเล่นทดสอบ</div>
+<h2>เกมนี้คืออะไร</h2>
+<p><b>ฝ่ายผลักดัน 🌱</b> อยากลดคาร์บอน เขาจะ <b>วางการ์ดมาตรการ</b> ลงโต๊ะทีละใบ เช่น เปลี่ยนหลอดไฟ ปลูกป่าชายเลน</p>
+<p><b>ฝ่ายต่อต้าน ⛔</b> เป็นตัวแทนอุปสรรคที่ทำให้คนล้มเลิก เช่น "แพงเกินไป" "ไม่รู้จะเริ่มยังไง" เขาจะ <b>วางการ์ดด่านขวาง</b> มาตรการที่เพิ่งวาง</p>
+<p>มาตรการที่ <b>รอดจากด่าน</b> จะอยู่บนโต๊ะและ <b>ให้คะแนนทุกตา</b> ไปจนจบเกม ถ้า <b>ถูกด่านปิด</b> มันหายไป</p>
+<p>จบเกมแล้วดูคะแนนของฝ่ายผลักดัน <b>ถึงเป้าชนะ ไม่ถึงเป้าฝ่ายต่อต้านชนะ</b></p>
+<h2>ศัพท์ 6 คำที่ต้องรู้</h2>
+<table>
+<tr><th style="width:28%">คำ</th><th>ความหมาย</th></tr>
+<tr><td><b>มาตรการ</b></td><td>การ์ดที่ฝ่ายผลักดันวางลงโต๊ะ มี <b>แต้ม</b> (1–3) และ <b>ไอคอนด่าน</b> ติดอยู่</td></tr>
+<tr><td><b>ไอคอนด่าน</b></td><td>สัญลักษณ์ 5 แบบ 💸 ❓ 🙄 🌀 👀 บอกว่าด่านแบบไหนปิดมาตรการนั้นได้</td></tr>
+<tr><td><b>การ์ดด่าน</b></td><td>การ์ดของฝ่ายต่อต้าน ถ้าไอคอนตรงกับมาตรการ ก็ปิดมาตรการนั้นได้</td></tr>
+<tr><td><b>กุญแจ</b></td><td>การ์ดของฝ่ายผลักดัน ถือไว้ในมือ ทิ้ง 1 ใบเพื่อยกเลิกการปิด</td></tr>
+<tr><td><b>โต๊ะ</b></td><td>พื้นที่หน้าฝ่ายผลักดัน เก็บมาตรการที่ยังรอด</td></tr>
+<tr><td><b>กองทิ้ง</b></td><td>การ์ดที่ใช้แล้ว วางหงายข้างๆ</td></tr>
+</table>
+</div>
+<div class="page rules2">
+<h2>ด่านกับกุญแจ (สำคัญที่สุด)</h2>
+<p>ด่านแต่ละแบบแก้ด้วยกุญแจที่ <b>ตรงกัน</b> เท่านั้น</p>
+<table>
+<tr><th>ด่าน (ฝ่ายต่อต้านวาง)</th><th>แก้ด้วยกุญแจ (ฝ่ายผลักดันถือ)</th></tr>
+<tr><td>💸 <b>แพง</b> ลงทุนสูง ไม่มีงบ</td><td>💰 <b>คิดความคุ้ม</b></td></tr>
+<tr><td>❓ <b>ไม่รู้วิธี</b> ไม่รู้เริ่มตรงไหน</td><td>📚 <b>ความรู้</b></td></tr>
+<tr><td>🙄 <b>เคยชิน</b> ทำแบบเดิมก็ได้</td><td>👥 <b>ชวนกัน</b></td></tr>
+<tr><td>🌀 <b>ยุ่งยาก</b> ขั้นตอนเยอะ</td><td>🛠️ <b>ทำให้ง่าย</b></td></tr>
+<tr><td>👀 <b>มองไม่เห็นผล</b></td><td>📏 <b>วัดผลให้เห็น</b></td></tr>
+<tr><td>(ทุกด่าน)</td><td>⭐ <b>ตัวอย่างที่ดี</b> แก้ได้ทุกด่าน แต่มีใบเดียว</td></tr>
+</table>
+<div class="key">จำง่ายๆ: ดูไอคอนบนการ์ดด่าน → ดูตารางนี้ → ได้กุญแจที่ต้องใช้</div>
+<h2>เตรียมเกม</h2>
+<ol>
+<li><b>แยกการ์ดตามสีหลังการ์ด:</b> เขียว = ฝ่ายผลักดัน · เทา = ฝ่ายต่อต้าน · ส้ม = การ์ดสัญญา กับการ์ดสรุป</li>
+<li><b>เลือกการ์ดสัญญา 1 ใบ</b> วางกลางโต๊ะ (ครั้งแรกเลือก 125 แต้ม)</li>
+<li><b>แต่ละฝ่ายหยิบไอเท็ม 3 ใบของตัวเอง เลือก 1 ใบวางหงาย</b> ไม่เสียตา</li>
+<li><b>ไอเท็มอีก 2 ใบสับรวมกับการ์ดที่เหลือ</b> เป็นกองจั่วกองเดียว คว่ำหน้า (ไม่ต้องแยกประเภทการ์ด)</li>
+<li><b>จั่วขึ้นมือ</b> ฝ่ายละ 4 ใบ (ฝ่ายผลักดันที่เลือก 🏫 จั่ว 5 ใบ) <b>ฝ่ายผลักดันเล่นก่อน</b></li>
+</ol>
+<div class="box">กองจั่วฝ่ายผลักดัน 31 ใบ · กองจั่วฝ่ายต่อต้าน 26 ใบ</div>
+</div>
+<div class="page rules2">
+<h2>1 ตา เล่นอย่างไร</h2>
+<p><b>ฝ่ายผลักดันทำ 1 อย่าง → ฝ่ายต่อต้านตอบ 1 อย่าง → นับคะแนน → จั่วเติม</b></p>
+<h3>ขั้น 1 · ฝ่ายผลักดันเลือกทำ 1 อย่าง</h3>
+<table>
+<tr><th style="width:30%">ตัวเลือก</th><th>ทำอย่างไร</th></tr>
+<tr><td><b>A. วางมาตรการ</b></td><td>วางการ์ดมาตรการ 1 ใบหงายบนโต๊ะ (ตัวเลือกหลัก)</td></tr>
+<tr><td><b>B. ประกบตัวเสริม</b></td><td>วาง 📰 หรือ 📏 ทับมาตรการบนโต๊ะ 1 ใบ → ได้ +1 แต้มต่อตา</td></tr>
+<tr><td><b>C. วางไอเท็ม</b></td><td>ถ้าจั่วได้ ใช้ผลทันที</td></tr>
+<tr><td><b>D. ทิ้ง 1 ใบ</b></td><td>เมื่อไม่มีอะไรเล่น หรือมือเต็มไปด้วยกุญแจ</td></tr>
+</table>
+<ul>
+<li><b>กุญแจวางเองไม่ได้</b> ต้องถือไว้ในมือ รอใช้ตอบโต้</li>
+<li><b>การ์ด 🔍 เล่นฟรี</b> ไม่นับเป็น 1 ตา</li>
+</ul>
+<h3>ขั้น 2 · ฝ่ายต่อต้านตอบ 1 อย่าง</h3>
+<ul>
+<li><b>ปิดมาตรการ:</b> วางการ์ดด่านทับมาตรการที่ <b>เพิ่งวางในตานี้</b> โดยไอคอนต้อง <b>ตรงกันอย่างน้อย 1 อัน</b></li>
+<li><b>เล่นการ์ดพิเศษ</b> หรือ <b>วางไอเท็ม</b></li>
+<li><b>ตั้งด่านคว่ำ</b> (ดูหน้าถัดไป) · หรือ <b>ผ่าน</b></li>
+</ul>
+<div class="key">การ์ดด่านปิดได้เฉพาะมาตรการที่เพิ่งวางในตานั้น มาตรการที่รอดไปแล้วปิดไม่ได้อีก</div>
+<p>ถ้าฝ่ายผลักดันไม่ได้วางมาตรการในตานี้ ฝ่ายต่อต้านปิดอะไรไม่ได้ ทำได้แค่เล่นการ์ดพิเศษ ไอเท็ม หรือตั้งด่านคว่ำ</p>
+</div>
+<div class="page rules2">
+<h3>ขั้น 3 · ถ้ามาตรการถูกปิด ฝ่ายผลักดันตอบโต้ได้</h3>
+<ul>
+<li><b>มีกุญแจที่ตรงกับไอคอน</b> → ทิ้งกุญแจ 1 ใบ การปิดนั้นไม่มีผล ทิ้งการ์ดด่านด้วย มาตรการอยู่ต่อ</li>
+<li><b>มี ⭐</b> → ใช้แทนกุญแจได้ทุกชนิด</li>
+<li><b>ไม่มี หรือไม่อยากใช้</b> → มาตรการและตัวเสริมที่ประกบอยู่ลงกองทิ้ง</li>
+<li>ถ้าการ์ดด่านมี 2 ไอคอน ใช้กุญแจของไอคอนใดก็ได้ที่ตรงกับมาตรการ</li>
+</ul>
+<h3>ขั้น 4 · นับคะแนน (ทุกตา)</h3>
+<p>รวมคะแนนของ <b>ทุกอย่างที่ยังอยู่บนโต๊ะ</b> แล้วบวกเข้าคะแนนรวม</p>
+<table>
+<tr><th>นับอะไร</th><th style="width:22%">ได้</th></tr>
+<tr><td>มาตรการแต่ละใบ</td><td>1, 2 หรือ 3 แต้ม ตามการ์ด</td></tr>
+<tr><td>ตัวเสริมที่ประกบ (📰 📏) ใบละ</td><td>+1</td></tr>
+<tr><td><b>ระบบครบวงจร:</b> มาตรการหมวดเดียวกันรอด ตั้งแต่ 3 ใบ</td><td>+2 ต่อหมวด</td></tr>
+<tr><td>หัก: ไอเท็ม 📺 ของฝ่ายต่อต้าน (ถ้ามี)</td><td>−1</td></tr>
+</table>
+<p><b>นับทุกตา</b> มาตรการที่รอดได้แต้มซ้ำทุกตา คะแนนรวมจึงสูงถึงร้อย คะแนนไม่ต่ำกว่า 0</p>
+<h3>ขั้น 5 · จั่วเติม</h3>
+<p>ทั้งสองฝ่ายจั่วให้มือครบ 4 ใบ (ผลักดันที่มี 🏫 ครบ 5 ใบ)</p>
+<h2>ด่านคว่ำ (กับดัก)</h2>
+<p>ปกติฝ่ายต่อต้านปิดได้ใบเดียวต่อตา ด่านคว่ำทำให้ <b>ปิดได้ 2 ใบในตาเดียว</b></p>
+<ol>
+<li>ฝ่ายต่อต้านเลือก <b>"ตั้งด่านคว่ำ"</b> แทนการตอบ วางการ์ดด่านคว่ำหน้า 1 ใบ (มีได้ครั้งละ 1 ใบ) ตานั้นยังไม่ปิดอะไร</li>
+<li><b>ครั้งต่อไปที่ฝ่ายผลักดันวางมาตรการ</b> เปิดด่านคว่ำทันที (ฟรี) ถ้าไอคอนตรงกับมาตรการ = ปิด ตอบโต้ด้วยกุญแจได้ตามปกติ ไม่ตรง = ทิ้งไปเปล่าๆ</li>
+<li>จากนั้นฝ่ายต่อต้านยังตอบด้วยการ์ดด่านอีก 1 ใบได้ตามปกติ</li>
+</ol>
+<p>ฝ่ายผลักดันใช้ <b>🔍 สำรวจก่อนทำ</b> (เล่นฟรี) เปิดดูด่านคว่ำแล้วทิ้งได้</p>
+</div>
+<div class="page rules2">
+<h2>การ์ดพิเศษฝ่ายผลักดัน 🌱</h2>
+<table>
+<tr><th style="width:24%">การ์ด</th><th>เล่นอย่างไร และผล</th></tr>
+<tr><td>📰 <b>ออกสื่อ</b></td><td>เป็นการกระทำของตา (ตัวเลือก B) ประกบมาตรการ ได้ <b>+1 แต้มต่อตา</b> ถ้ามาตรการถูกปิด การ์ดนี้ทิ้งตามไปด้วย</td></tr>
+<tr><td>📏 <b>วัดผลให้เห็น</b></td><td><b>ใช้ได้ 2 แบบ</b> ① ถือในมือเป็นกุญแจ แก้ด่าน 👀 หรือยกเลิกข่าวลือ ② ประกบมาตรการ +1 แต้ม/ตา และ <b>กัน "เปลี่ยนคนทำ"</b> ต้องเลือกว่าจะเก็บหรือประกบ</td></tr>
+<tr><td>🔍 <b>สำรวจก่อนทำ</b></td><td><b>เล่นฟรี ไม่นับเป็นตา</b> ในตาของตัวเอง ก่อนเลือกการกระทำ เปิดดูด่านคว่ำของฝ่ายต่อต้านแล้วทิ้ง</td></tr>
+</table>
+<h3>ไอเท็มถาวร (วางแล้วอยู่ทั้งเกม ปิดไม่ได้)</h3>
+<ul>
+<li>🏫 <b>ศูนย์เรียนรู้:</b> ถือการ์ดในมือได้ 5 ใบ แทน 4</li>
+<li>📊 <b>กระดานผลงาน:</b> ไอคอน 👀 ไม่นับเป็นไอคอนที่ปิดมาตรการของเราได้ (ด่าน 👀 ไม่มีผล)</li>
+<li>🤝 <b>เครือข่ายอาสา:</b> ทุกครั้งที่มาตรการถูกปิดสำเร็จ จั่วการ์ด 1 ใบ</li>
+</ul>
+<h2>จบเกม และใครชนะ</h2>
+<p>เกมจบเมื่อ <b>กองจั่วของฝ่ายผลักดันหมด และในมือไม่เหลือการ์ดที่เล่นได้</b> (มาตรการ ไอเท็ม ตัวเสริมที่มีมาตรการให้ประกบ) กุญแจที่เหลือไม่นับ เล่นตาสุดท้ายให้จบ แล้วเทียบกับการ์ดสัญญา</p>
+<table>
+<tr><th>การ์ดสัญญา</th><th>เป้า</th><th>ฝ่ายผลักดันชนะ (จำลอง)</th></tr>
+<tr><td>🌱 ชุมชนเริ่มต้น</td><td>125</td><td>ราว 65%</td></tr>
+<tr><td>🌿 ชุมชนคาร์บอนต่ำ</td><td>175</td><td>ราว 45%</td></tr>
+<tr><td>🌳 ชุมชนต้นแบบ</td><td>225</td><td>ราว 25%</td></tr>
+</table>
+<p><b>ถึงเป้า = ฝ่ายผลักดันชนะ · ไม่ถึง = ฝ่ายต่อต้านชนะ</b> (เล่น 2 รอบสลับฝ่ายก็ได้)</p>
+</div>
+<div class="page rules2">
+<h2>การ์ดพิเศษฝ่ายต่อต้าน ⛔</h2>
+<table style="font-size:11.5pt">
+<tr><th style="width:27%">การ์ด</th><th>ผล</th><th style="width:20%">แก้ได้ไหม</th></tr>
+<tr><td>🎭 <b>ฟอกเขียว</b></td><td>หักคะแนนรวม <b>12</b> แต้มทันที</td><td>ทิ้ง 📏 จากมือ 1 ใบ</td></tr>
+<tr><td>📱 <b>ข่าวลือ</b></td><td>หัก <b>8</b> แต้ม</td><td>ทิ้ง 📏 ได้</td></tr>
+<tr><td>🤷 <b>ไม่เชื่อว่าได้ผล</b></td><td>หัก <b>4</b> แต้ม</td><td>ทิ้ง 📏 ได้</td></tr>
+<tr><td>📉 <b>เปลี่ยนคนทำ ไม่มีใครสานต่อ</b></td><td>ทิ้ง <b>ทุกมาตรการ</b> บนโต๊ะที่ <b>ไม่มี 📏 ประกบ</b> และ <b>ไม่อยู่ในหมวดที่ครบ 3 ใบ</b> (ตัวเสริมทิ้งตามไป)</td><td><b>แก้ไม่ได้</b> ต้องป้องกันล่วงหน้า</td></tr>
+<tr><td>✂️ <b>ตัดงบกลางปี</b></td><td>ตาถัดไปฝ่ายผลักดัน <b>วางการ์ดไม่ได้</b> และต้องทิ้งการ์ดในมือรวม 2 ใบ</td><td>แก้ไม่ได้</td></tr>
+<tr><td>🗂️ <b>ข้อมูลกระจัดกระจาย</b></td><td>ทิ้งตัวเสริม 1 ใบบนโต๊ะ (ฝ่ายต่อต้านเลือก)</td><td>แก้ไม่ได้</td></tr>
+</table>
+<h3>ไอเท็มถาวรฝ่ายต่อต้าน (วางแล้วอยู่ทั้งเกม)</h3>
+<ul>
+<li>📺 <b>โฆษณา: ซื้อใหม่ดีกว่า:</b> ทุกตา คะแนนของฝ่ายผลักดัน <b>−1</b> (ถ้ามีมาตรการบนโต๊ะ)</li>
+<li>🛋️ <b>ความสบายแบบเดิม:</b> ด่าน 🙄 ต้องใช้ <b>⭐ เท่านั้น</b> ถึงตอบโต้ได้ (👥 ใช้ไม่ได้)</li>
+<li>🧾 <b>รอขั้นตอนอนุมัติ:</b> มาตรการที่มี 🌀 ที่เพิ่งวางในตานี้ <b>ไม่ได้แต้มในตานั้น</b></li>
+</ul>
+<div class="box"><b>ฝ่ายต่อต้านตอบได้ 1 ใบต่อตา</b> ข้อยกเว้นเดียวคือด่านคว่ำที่เปิดฟรี</div>
+</div>
+<div class="page rules2">
+<h2>ตัวอย่างการเล่น (5 ตา)</h2>
+<p style="font-size:11.5pt">ตั้งค่า: การ์ดสัญญา 125 · ฝ่ายผลักดันเลือก 🏫 ถือ 5 ใบ · ฝ่ายต่อต้านเลือก 📺<br>มือฝ่ายผลักดัน: ☀️ โซลาร์ (3 แต้ม 💸❓🌀) · 💡 LED (2 แต้ม 💸❓) · 💰 · 📚 · 👥</p>
+<table style="font-size:11.5pt">
+<tr><th style="width:9%">ตา</th><th>เกิดอะไรขึ้น</th><th style="width:24%">คะแนนรวม</th></tr>
+<tr><td><b>1</b></td><td>ผลักดันวาง ☀️ · ต่อต้านวางด่าน 💸 (ตรงกัน) · ผลักดัน <b>ทิ้ง 💰</b> ยกเลิก ☀️ รอด</td><td>3 − 1 (📺) = 2<br><b>รวม 2</b></td></tr>
+<tr><td><b>2</b></td><td>ผลักดันวาง 💡 · ต่อต้านวางด่าน ❓ · ผลักดัน <b>ทิ้ง 📚</b> ยกเลิก</td><td>3+2−1 = 4<br><b>รวม 6</b></td></tr>
+<tr><td><b>3</b></td><td>ผลักดันวาง 🏦 ธนาคารขยะ (🙄👀) · ต่อต้านวางด่าน 🙄 · ผลักดัน <b>ไม่มี 👥 และไม่มี ⭐</b> → 🏦 ถูกปิดทิ้ง</td><td>3+2−1 = 4<br><b>รวม 10</b></td></tr>
+<tr><td><b>4</b></td><td>ผลักดันวาง 📰 <b>ประกบ</b> ☀️ (ไม่ได้วางมาตรการ) · ต่อต้านปิดอะไรไม่ได้ จึง <b>ตั้งด่านคว่ำ</b></td><td>3+1+2−1 = 5<br><b>รวม 15</b></td></tr>
+<tr><td><b>5</b></td><td>ผลักดันเล่น 🔍 (ฟรี) เปิดด่านคว่ำ ทิ้ง · แล้ววาง 🚶 (1 แต้ม 🌀) · ต่อต้านไม่มีด่านที่ตรง ผ่าน</td><td>3+1+2+1−1 = 6<br><b>รวม 21</b></td></tr>
+</table>
+<p style="font-size:11.5pt">เห็นไหม: ☀️ กับ 💡 ที่รอดไว้ ยังให้แต้ม <b>ซ้ำทุกตา</b> เล่นต่อแบบนี้จนกองหมด แล้วเทียบกับ 125</p>
+<h3>ตัวอย่างการ์ด "เปลี่ยนคนทำ"</h3>
+<p style="font-size:11.5pt">บนโต๊ะมี ☀️ (มี 📏 ประกบ) · 💡 · 🚶 · 🚌 ฝ่ายต่อต้านเล่น 📉 → ☀️ <b>รอด</b> เพราะมี 📏 ส่วน 💡 🚶 🚌 <b>ถูกทิ้ง</b> (🚶🚌 เป็นหมวด 🚲 แค่ 2 ใบ ไม่ถึง 3)</p>
+</div>
+<div class="page rules2">
+<h2>คำถามที่พบบ่อย</h2>
+<p><b>กุญแจต้องวางลงโต๊ะไหม?</b><br>ไม่ต้อง ถือไว้ในมือ ใช้เมื่อถูกปิดเท่านั้น</p>
+<p><b>มือเต็มไปด้วยกุญแจ ไม่มีมาตรการ ทำอย่างไร?</b><br>เลือกตัวเลือก D ทิ้ง 1 ใบ แล้วจั่วใหม่ (ทิ้งกุญแจที่ซ้ำกันก่อน)</p>
+<p><b>ฝ่ายต่อต้านปิดมาตรการที่วางตาก่อนได้ไหม?</b><br>ไม่ได้ ปิดได้เฉพาะมาตรการที่เพิ่งวางในตานี้ (ยกเว้นด่านคว่ำที่เปิดตอนมีมาตรการใหม่)</p>
+<p><b>การ์ดด่านที่ไอคอนไม่ตรงกับมาตรการ วางได้ไหม?</b><br>ไม่ได้ ต้องมีไอคอนตรงกันอย่างน้อย 1 อัน</p>
+<p><b>กุญแจที่ไม่ตรงไอคอน ใช้ตอบโต้ได้ไหม?</b><br>ไม่ได้ ยกเว้น ⭐ ที่ใช้แทนได้ทุกชนิด</p>
+<p><b>คะแนนรวมติดลบได้ไหม?</b><br>ไม่ ต่ำสุดคือ 0</p>
+<p><b>คะแนนร้อยกว่า นับอย่างไร?</b><br>ทุกตาบวกเลขเล็กๆ (3–15) ใช้กระดาษจดหรือเครื่องคิดเลข</p>
+<div class="box" style="font-size:11.5pt">ต้นแบบนี้ยังไม่ผ่านการเล่นทดสอบกับคนจริง ถ้าเล่นแล้วรู้สึกว่าฝ่ายใดได้เปรียบเกินไป หรือกติกาข้อไหนไม่ชัด ให้จดไว้แล้วแจ้งทีมออกแบบ</div>
+</div>
+
+<div id="sheets"></div>
+
+<script>
+const ICON = { M:'💸', K:'❓', P:'🙄', E:'🌀', S:'👀' };
+const ICONNAME = { M:'แพง', K:'ไม่รู้วิธี', P:'เคยชิน', E:'ยุ่งยาก', S:'มองไม่เห็นผล' };
+const KEY = { M:'💰', K:'📚', P:'👥', E:'🛠️', S:'📏', W:'⭐' };
+const KEYNAME = { M:'คิดความคุ้ม', K:'ความรู้', P:'ชวนกัน', E:'ทำให้ง่าย', S:'วัดผลให้เห็น', W:'ตัวอย่างที่ดี' };
+const KEYFIX = { M:'แก้ด่าน 💸 แพง', K:'แก้ด่าน ❓ ไม่รู้วิธี', P:'แก้ด่าน 🙄 เคยชิน', E:'แก้ด่าน 🌀 ยุ่งยาก', S:'แก้ด่าน 👀 มองไม่เห็นผล', W:'แก้ได้ทุกด่าน' };
+const CATS = { energy:['⚡','พลังงาน','#d99a00','#fff8e1'], waste:['♻️','ขยะ','#16a34a','#eafbee'], travel:['🚲','เดินทาง','#0284c7','#e6f6fe'], nature:['🌳','ธรรมชาติ','#0f766e','#e6f7f4'] };
+
+const MEASURES = [
+  ['energy','🔌','ปิดไฟ ถอดปลั๊ก',1,'P','ทีวี คอมพิวเตอร์ และที่ชาร์จหลายชนิดยังกินไฟเล็กน้อยแม้ปิดเครื่อง ถ้ายังเสียบปลั๊กค้างไว้'],
+  ['energy','❄️','แอร์ 26 องศา + พัดลม',1,'PE','ตั้งแอร์สูงขึ้น 1 องศาประหยัดไฟได้ราว 5–10% พัดลมช่วยให้รู้สึกเย็นโดยใช้ไฟน้อยกว่าแอร์มาก'],
+  ['energy','💡','เปลี่ยนหลอด LED',2,'MK','หลอด LED ใช้ไฟน้อยกว่าหลอดไส้อย่างน้อย 75% และใช้งานได้นานกว่าราว 25 เท่า'],
+  ['energy','☀️','โซลาร์รูฟท็อป',3,'MKE','แผงโซลาร์ผลิตไฟมากช่วงกลางวัน คุ้มที่สุดในที่ที่ใช้ไฟตอนกลางวันมาก เช่น สำนักงาน โรงเรียน'],
+  ['waste','🗑️','จุดแยกขยะ',1,'KE','ถ้าจุดทิ้งมีถังแยกครบและป้ายชัด คนจะแยกถูกมากขึ้นโดยไม่ต้องคิด'],
+  ['waste','🪱','หมักขยะอาหาร',2,'KEP','ขยะอาหารที่เน่าโดยไม่มีอากาศเกิดก๊าซมีเทน กักความร้อนแรงกว่า CO₂ ราว 30 เท่าใน 100 ปี'],
+  ['waste','🏦','ธนาคารขยะ',2,'PS','ขยะรีไซเคิลที่สะอาดและแยกแล้วมีมูลค่า เปลี่ยนขยะเป็นเงินออมและดึงคนมาร่วมกัน'],
+  ['waste','🔧','ซ่อมก่อนซื้อใหม่',2,'KP','การผลิตของใหม่ใช้พลังงานและวัตถุดิบ ยืดอายุของใช้คือการลดคาร์บอนที่ประหยัดที่สุดวิธีหนึ่ง'],
+  ['travel','🚶','เดิน / ปั่นระยะใกล้',1,'E','ระยะไม่กี่กิโลเมตร การเดินหรือปั่นไม่ปล่อยไอเสีย และได้ออกกำลังกาย'],
+  ['travel','🚌','ขนส่งสาธารณะ',2,'EP','รถโดยสารหนึ่งคันพาคนได้หลายสิบคน คาร์บอนต่อคนต่ำกว่ารถส่วนตัวมาก'],
+  ['travel','🔋','รถยนต์ไฟฟ้า',3,'MES','ไม่มีไอเสียจากท่อ และยิ่งไฟฟ้ามาจากพลังงานหมุนเวียนมาก คาร์บอนรวมยิ่งต่ำ'],
+  ['nature','🌾','ทำนาเปียกสลับแห้ง',3,'KSE','นาที่ขังน้ำตลอดฤดูเกิดก๊าซมีเทน ปล่อยให้แห้งเป็นช่วงๆ ลดมีเทนได้มากและประหยัดน้ำ'],
+  ['nature','🏞️','ดูแลป่าชุมชน',3,'PSK','ป่าที่สมบูรณ์เก็บคาร์บอนไว้ทั้งในต้นไม้และดิน การดูแลป่าเดิมสำคัญพอๆ กับการปลูกใหม่'],
+  ['travel','💻','ประชุมออนไลน์แทนเดินทาง',2,'KE','ไม่ต้องเดินทางไปประชุม ก็ไม่ปล่อยไอเสียจากการเดินทางครั้งนั้น และประหยัดเวลา'],
+  ['nature','🌳','ปลูกต้นไม้ในชุมชน',2,'PK','ต้นไม้ดูดคาร์บอนไว้ในลำต้นและราก และให้ร่มเงา ยิ่งมีคนช่วยกันดูแล ยิ่งรอด'],
+  ['energy','🪟','เปิดหน้าต่างรับลม',1,'P','ถ้าอากาศพอสบาย ลมธรรมชาติช่วยให้เย็นโดยไม่ต้องเปิดแอร์ แค่เปลี่ยนนิสัยเล็กน้อย'],
+  ['nature','🦀','ปลูกป่าชายเลน',3,'PSM','ป่าชายเลนเก็บคาร์บอนต่อพื้นที่ได้มากกว่าป่าบกหลายเท่า โดยเฉพาะในดิน และช่วยกันคลื่นกัดเซาะ'],
+];
+
+const P_COL = { c:'#16a34a', t:'#eafbee' };
+const B_COL = { c:'#5b6670', t:'#f1f3f5' };
+
+const keyFlavor = { M:['คิดค่าใช้จ่ายตลอดอายุ','รวมกันซื้อ'], K:['อบรมสั้นๆ','ถามคนที่เคยทำ'], P:['ชวนเพื่อนบ้าน','ทำเป็นทีม'], E:['วางไว้ใกล้มือ','ตั้งค่าเริ่มต้นให้ประหยัด'], W:['ผู้นำทำก่อน','ครูทำให้ดู'] };
+
+function measureCard([cat, emoji, name, pts, icons, desc]) {
+  const [ce, cn, cc, ct] = CATS[cat];
+  return `<div class="card"><div class="inner" style="--c:${cc};--t:${ct}"><span class="tag">มาตรการ ${ce} ${cn}</span><div class="emoji">${emoji}</div><div class="name">${name}</div><div class="big">${pts} แต้ม/ตา</div><div class="small">ด่านที่ปิดได้</div><div class="icons">${icons.split('').map(i => `<span class="chip">${ICON[i]}<small>${ICONNAME[i]}</small></span>`).join('')}</div><div class="desc"><b>รู้ไหม:</b> ${desc}</div></div></div>`;
+}
+function keyCard(k, n) {
+  const name = k === 'S' ? 'วัดผลให้เห็น' : KEYNAME[k];
+  const from = k === 'W' ? '<span class="chip" style="font-size:20pt">ทุกด่าน</span>' : '<span class="chip">' + ICON[k] + '</span>';
+  const pair = '<div class="pair">' + from + '<span class="arrow">→</span><span class="k">' + KEY[k] + '</span></div>';
+  let how, ex;
+  if (k === 'S') {
+    how = '<b>ใช้ได้ 2 แบบ</b><br>① ทิ้งเพื่อยกเลิกด่าน 👀 หรือข่าวลือ<br>② ประกบมาตรการ +1 แต้ม/ตา และกัน “เปลี่ยนคนทำ”';
+    ex = 'เช่น จดค่าไฟทุกเดือน · ชั่งขยะ · ติดกราฟ';
+  } else if (k === 'W') {
+    how = '<b>วิธีใช้:</b> ทิ้งใบนี้เมื่อถูกปิดด้วยด่าน <b>แบบไหนก็ได้</b> แทนกุญแจชนิดใดก็ได้';
+    ex = 'เช่น ' + keyFlavor[k][n % 2];
+  } else {
+    how = '<b>วิธีใช้:</b> ทิ้งใบนี้เมื่อถูกปิดด้วยด่าน ' + ICON[k] + ' เพื่อยกเลิกการปิด';
+    ex = 'เช่น ' + keyFlavor[k][n % 2];
+  }
+  return '<div class="card"><div class="inner" style="--c:#7c3aed;--t:#f5f0ff"><span class="tag">กุญแจ</span>' + pair + '<div class="name" style="font-size:19pt">' + name + '</div><div class="how" style="' + (k === 'S' ? 'font-size:11.5pt;margin-top:2mm' : '') + '">' + how + '</div><div class="ex">' + ex + '</div></div></div>';
+}
+function simple(tag, emoji, name, big, desc, c, t, foot='') {
+  const L = (desc || '').length + (foot || '').length * 0.6 + (name || '').length * 0.8;
+  const cls = L > 125 ? 'tight' : (L > 80 ? 'mid' : 'roomy');
+  return `<div class="card"><div class="inner ${cls}" style="--c:${c};--t:${t}"><span class="tag">${tag}</span><div class="emoji">${emoji}</div><div class="name">${name}</div>${big ? `<div class="big">${big}</div>` : ''}<div class="desc">${desc}</div><div class="foot">${foot}</div></div></div>`;
+}
+
+// ===== ฝ่ายผลักดัน 32 ใบ (มาตรการ 17 · กุญแจ 8 · อื่นๆ 7) =====
+const pCards = [];
+MEASURES.forEach(m => pCards.push(measureCard(m)));
+[['M',1],['K',1],['P',1],['E',1],['W',1]].forEach(([k, n]) => { for (let i = 0; i < n; i++) pCards.push(keyCard(k, i)); });
+for (let i = 0; i < 3; i++) pCards.push(keyCard('S', i));
+for (let i = 0; i < 2; i++) pCards.push(simple('ตัวเสริม', '📰', 'ออกสื่อ', '+1 แต้ม/ตา', 'ประกบมาตรการ 1 ใบ ยิ่งคนรู้ ยิ่งมีคนทำตาม', '#0ea5e9', '#e6f6fe', 'ถูกทิ้งพร้อมมาตรการถ้ามาตรการถูกปิด'));
+for (let i = 0; i < 2; i++) pCards.push(simple('พิเศษ', '🔍', 'สำรวจก่อนทำ', 'เล่นฟรี ไม่เสียตา', 'เปิดดูด่านคว่ำของฝ่ายต่อต้าน แล้วทิ้งด่านนั้น', '#0f766e', '#e6f7f4'));
+pCards.push(simple('ไอเท็มถาวร', '🏫', 'ศูนย์เรียนรู้', 'ถือการ์ดได้ 5 ใบ', 'เมื่อคนได้เห็นตัวอย่างจริงและเรียนรู้ร่วมกัน การเปลี่ยนแปลงขยายได้เร็วกว่าทำคนเดียว', '#d97706', '#fff7e6', 'วางแล้วอยู่ทั้งเกม ปิดหรือล้างไม่ได้ · เลือกเริ่มเกมได้ 1 จาก 3'));
+pCards.push(simple('ไอเท็มถาวร', '📊', 'กระดานผลงาน', 'ด่าน 👀 ไม่มีผลกับเรา', 'เมื่อทุกคนเห็นตัวเลขผลงานจริง คนจะเชื่อและทำต่อมากขึ้น', '#d97706', '#fff7e6', 'วางแล้วอยู่ทั้งเกม ปิดหรือล้างไม่ได้ · เลือกเริ่มเกมได้ 1 จาก 3'));
+pCards.push(simple('ไอเท็มถาวร', '🤝', 'เครือข่ายอาสา', 'มาตรการถูกปิด → จั่ว 1', 'ทุกครั้งที่มาตรการถูกปิดสำเร็จ (เราตอบโต้ไม่ได้) จั่วการ์ด 1 ใบ เพราะคนที่เคยลองมักมีอะไรให้แบ่งปัน', '#d97706', '#fff7e6', 'วางแล้วอยู่ทั้งเกม ปิดหรือล้างไม่ได้ · เลือกเริ่มเกมได้ 1 จาก 3'));
+
+// ===== ฝ่ายต่อต้าน 27 ใบ =====
+const BLOCKS = [
+  ['M','ลงทุนสูง คืนทุนช้า','ของที่แพงตอนซื้อ อาจถูกที่สุดเมื่อคิดตลอดอายุการใช้งาน'],
+  ['M','ไม่ได้ตั้งงบไว้','โครงการที่ไม่มีงบตั้งแต่ต้นมักหยุดกลางทาง'],
+  ['M','ซื้อของถูกแต่ใช้ได้ไม่นาน','ของถูกที่พังเร็ว ทำให้ต้องซื้อใหม่ซ้ำและเกิดขยะ'],
+  ['K','ไม่รู้ว่าเริ่มตรงไหน','แค่ทำจริง 1 อย่างเล็กๆ ก่อน มักดีกว่าวางแผนใหญ่แต่ไม่เริ่ม'],
+  ['K','ไม่มีใครสอน','คนที่เคยทำมาแล้วมักช่วยลดเวลาลองผิดลองถูกได้มาก'],
+  ['K','ข้อมูลที่เจอขัดแย้งกัน','ข้อมูลที่ดูดีเกินจริงควรถามที่มา และเทียบอย่างน้อย 2 แหล่ง'],
+  ['P','ทำแบบเดิมก็ได้','นิสัยเปลี่ยนง่ายขึ้นเมื่อมีทางเลือกใหม่ให้เห็นและให้ลอง'],
+  ['P','ไม่มีใครทำ ทำไมฉันต้องทำ','คนมักทำตามคนรอบข้าง ถ้าเห็นเพื่อนทำก่อน ก็ตามง่ายขึ้น'],
+  ['P','ทำคนเดียวก็ไม่ช่วยอะไร','การกระทำเล็กๆ ของคนจำนวนมากรวมกันเป็นผลใหญ่'],
+  ['E','ขั้นตอนเยอะ','ทุกขั้นตอนที่ตัดออกได้หนึ่งขั้น ทำให้คนยอมทำต่อมากขึ้น'],
+  ['E','ไม่สะดวก ไม่มีที่วาง','ถ้าถังหรืออุปกรณ์อยู่ในที่ที่ใช้งานจริง คนจะใช้มากกว่า'],
+  ['E','ต้องเปลี่ยนระบบเดิมทั้งหมด','เปลี่ยนทีละส่วนมักได้ผลกว่าเปลี่ยนพร้อมกันทั้งระบบ'],
+  ['S','ไม่เห็นผลทันที','ผลลดคาร์บอนมักสะสมช้า การบันทึกช่วยให้เห็นการเปลี่ยนแปลง'],
+  ['S','ไม่มีตัวเลขยืนยัน','สิ่งที่วัดได้มักถูกทำต่อ สิ่งที่วัดไม่ได้มักถูกลืม'],
+  ['ME','ต้องลงทุนและปรับระบบด้วย','โครงการใหญ่เจออุปสรรคหลายด้านพร้อมกัน แก้ทีละด่านได้'],
+  ['PK','ไม่เข้าใจเลยไม่อยากเปลี่ยน','ความเข้าใจและความอยากเปลี่ยนมักมาพร้อมกัน'],
+];
+const bCards = [];
+BLOCKS.forEach(([ic, name, desc]) => bCards.push(`<div class="card"><div class="inner" style="--c:${B_COL.c};--t:${B_COL.t}"><span class="tag">ด่าน</span><div class="icons big" style="margin-top:5mm">${ic.split('').map(i => `<span class="chip" style="--c:${B_COL.c}">${ICON[i]}<small>${ICONNAME[i]}</small></span>`).join('')}</div><div class="name" style="margin-top:4mm;font-size:18pt">${name}</div><div class="how" style="margin-top:2.5mm;font-size:12pt"><b>วิธีใช้:</b> ปิดมาตรการที่มีไอคอนนี้ และเพิ่งวางในตานี้</div><div class="ex" style="font-size:11pt"><b>รู้ไหม:</b> ${desc}</div></div></div>`));
+const R = '#b91c1c', RT = '#fdecec';
+bCards.push(simple('พิเศษ · หักแต้ม', '🎭', 'ฟอกเขียว', '−12 แต้ม', 'ถูกกล่าวหาว่าอ้างว่ารักษ์โลกแต่ไม่ได้ลดจริง คนเลิกเชื่อ → หักคะแนนรวมทันที ฝ่ายผลักดันทิ้ง 📏 จากมือ 1 ใบเพื่อยกเลิกได้', R, RT));
+bCards.push(simple('พิเศษ · หักแต้ม', '📱', 'ข่าวลือ', '−8 แต้ม', 'มีเรื่องเล่าผิดๆ แพร่ไปว่ามาตรการไม่ดี → หักคะแนนรวมทันที ฝ่ายผลักดันทิ้ง 📏 จากมือ 1 ใบเพื่อยกเลิกได้', R, RT));
+bCards.push(simple('พิเศษ · หักแต้ม', '🤷', 'ไม่เชื่อว่าได้ผล', '−4 แต้ม', 'คนสงสัยว่าทำไปก็ไม่ได้ผล → หักคะแนนรวมทันที ฝ่ายผลักดันทิ้ง 📏 จากมือ 1 ใบเพื่อยกเลิกได้', R, RT));
+bCards.push(simple('พิเศษ · ล้างกระดาน', '📉', 'เปลี่ยนคนทำ ไม่มีใครสานต่อ', '', 'ทิ้งทุกมาตรการบนโต๊ะที่ไม่มี 📏 ประกบ และไม่ได้อยู่ในหมวดที่ครบ 3 ใบ (ตัวเสริมทิ้งตามไป) ยกเลิกไม่ได้', R, RT));
+for (let i = 0; i < 2; i++) bCards.push(simple('พิเศษ', '✂️', 'ตัดงบกลางปี', '', 'ตาถัดไปฝ่ายผลักดันวางการ์ดไม่ได้ และต้องทิ้งการ์ดในมือรวม 2 ใบ', R, RT));
+for (let i = 0; i < 2; i++) bCards.push(simple('พิเศษ', '🗂️', 'ข้อมูลกระจัดกระจาย', '', 'ทิ้งตัวเสริม 1 ใบบนโต๊ะ (ฝ่ายต่อต้านเลือก)', R, RT));
+const I = '#b45309', IT = '#fff3e0';
+bCards.push(simple('ไอเท็มถาวร', '📺', 'โฆษณา: ซื้อใหม่ดีกว่า', 'ทุกตา −1 แต้ม', 'คะแนนของฝ่ายผลักดัน −1 ทุกตาที่มีมาตรการบนโต๊ะ', I, IT, 'วางแล้วอยู่ทั้งเกม · เลือกเริ่มเกมได้ 1 จาก 3'));
+bCards.push(simple('ไอเท็มถาวร', '🛋️', 'ความสบายแบบเดิม', 'ด่าน 🙄 ต้องใช้ ⭐', 'ด่าน 🙄 ต้องใช้ ⭐ เท่านั้นถึงตอบโต้ได้ (👥 ใช้ไม่ได้)', I, IT, 'วางแล้วอยู่ทั้งเกม · เลือกเริ่มเกมได้ 1 จาก 3'));
+bCards.push(simple('ไอเท็มถาวร', '🧾', 'รอขั้นตอนอนุมัติ', 'มี 🌀 = ไม่ได้แต้มตาแรก', 'มาตรการที่มี 🌀 ที่เพิ่งวางในตานี้ ยังไม่ได้แต้มในตาที่วาง', I, IT, 'วางแล้วอยู่ทั้งเกม · เลือกเริ่มเกมได้ 1 จาก 3'));
+
+// ===== การ์ดสัญญา + สรุปไอคอน 5 ใบ =====
+const oCards = [];
+[['🌱','ชุมชนเริ่มต้น',125,'ฝ่ายผลักดันชนะราว 65% (จากการจำลอง)'],['🌿','ชุมชนคาร์บอนต่ำ',175,'ฝ่ายผลักดันชนะราว 45%'],['🌳','ชุมชนต้นแบบ',225,'ฝ่ายผลักดันชนะราว 25%']].forEach(([e, n, t, p]) => oCards.push(simple('การ์ดสัญญา', e, n, `เป้า ${t} แต้ม`, 'คะแนนรวมของฝ่ายผลักดันเมื่อจบเกม ต้องเท่าหรือสูงกว่าเป้า', '#0f766e', '#e6f7f4', p)));
+for (const side of ['ผลักดัน', 'ต่อต้าน']) {
+  oCards.push(`<div class="card"><div class="inner" style="--c:#14261c;--t:#fff"><span class="tag">สรุป ฝ่าย${side}</span><div style="width:100%;margin-top:3mm;font-size:12.5pt;line-height:1.5;text-align:left">${['M','K','P','E','S'].map(i => `${ICON[i]} → ${KEY[i]} ${KEYNAME[i]}`).join('<br>')}<br>⭐ → ใช้แทนได้ทุกด่าน<hr style="border:0;border-top:.3mm solid #ccc;margin:1.5mm 0">${side === 'ผลักดัน' ? '<b>ตา:</b> ทำ 1 อย่าง (วาง/ประกบ/ไอเท็ม/ทิ้ง) · 🔍 ฟรี<br><b>นับแต้ม:</b> มาตรการ + ตัวเสริม + คอมโบ +2' : '<b>ตอบ 1 ใบ:</b> ด่าน (ใส่มาตรการที่เพิ่งวาง) · พิเศษ · ไอเท็ม · ตั้งด่านคว่ำ · ผ่าน<br>ด่านคว่ำเปิดฟรีเมื่อมีมาตรการใหม่'}</div></div></div>`);
+}
+
+// ===== หลังการ์ด =====
+const back = (b1, b2, b3, logo, title, sub) => `<div class="card back" style="--b1:${b1};--b2:${b2};--b3:${b3}"><div class="inner"><div class="logo">${logo}</div><div class="bname">${title}</div><div class="bsub">${sub}</div><div class="borg">ฝ่าด่านลดคาร์บอน · KPI Green Office</div></div></div>`;
+const backP = back('#4ade80', '#15803d', '#14532d', '🌱', 'ฝ่ายผลักดัน', 'ลงมือทำให้รอด');
+const backB = back('#94a3b8', '#475569', '#1e293b', '⛔', 'ฝ่ายต่อต้าน', 'อุปสรรคที่ต้องฝ่า');
+const backO = back('#fbbf24', '#d97706', '#78350f', '🔑', 'ฝ่าด่านลดคาร์บอน', 'การ์ดสัญญา & สรุป');
+
+const EMPTY = '<div class="card empty"></div>';
+let totalPages = 0;
+const root = document.getElementById('sheets');
+function duplex(fronts, back, label) {
+  const per = 4;
+  for (let i = 0; i < fronts.length; i += per) {
+    const chunk = fronts.slice(i, i + per);
+    root.insertAdjacentHTML('beforeend', `<div class="page"><div class="sect">${label} (${Math.floor(i / per) + 1}/${Math.ceil(fronts.length / per)})</div><div class="grid">${chunk.join('')}</div></div>`);
+    const cells = Array(per).fill(EMPTY);
+    chunk.forEach((_, k) => { cells[Math.floor(k / 2) * 2 + (1 - (k % 2))] = back; });
+    root.insertAdjacentHTML('beforeend', `<div class="page"><div class="grid">${cells.join('')}</div></div>`);
+    totalPages += 2;
+  }
+}
+duplex(pCards, backP, `การ์ดฝ่ายผลักดัน ${pCards.length} ใบ`);
+duplex(bCards, backB, `การ์ดฝ่ายต่อต้าน ${bCards.length} ใบ`);
+duplex(oCards, backO, `การ์ดสัญญา 3 + การ์ดสรุป 2`);
+document.title = `ฝ่าด่านลดคาร์บอน — ${pCards.length + bCards.length + oCards.length} ใบ (พิมพ์สองหน้า)`;
+document.querySelector('.toolbar b').textContent += ` (ผลักดัน ${pCards.length} · ต่อต้าน ${bCards.length} · สัญญา/สรุป ${oCards.length} · ${totalPages + 8} หน้ารวมกติกา 8 หน้า)`;
+</script>
+</body>
+</html>

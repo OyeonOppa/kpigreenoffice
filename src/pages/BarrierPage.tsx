@@ -58,7 +58,7 @@ type SetGame = (f: (g: State | null) => State | null) => void
 const pick = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)]
 
 export default function BarrierPage() {
-  const [cfg, setCfg] = useState<Config>({ side: 'P', target: 100, pItem: 'edu', bItem: 'ad', hints: true })
+  const [cfg, setCfg] = useState<Config>({ side: 'P', target: 125, pItem: 'edu', bItem: 'ad', hints: true })
   const [game, setGame] = useState<State | null>(null)
   const [muted, setMuted] = useState(sfx.muted)
 
@@ -132,6 +132,7 @@ function IconChip({ i, size = 'md' }: { i: Icon; size?: 'sm' | 'md' | 'lg' }) {
   return (
     <span title={`${ICONS[i].name} → แก้ด้วย ${ICONS[i].fix}`} className={`inline-flex items-center rounded-lg border border-line bg-white leading-tight ${cls}`}>
       {ICONS[i].emoji}
+      {size !== 'sm' && <span className="ml-1 text-[0.6em] font-semibold text-ink/70 whitespace-nowrap">{ICONS[i].name}</span>}
     </span>
   )
 }
@@ -171,7 +172,7 @@ function describe(c: Card): Described {
     case 'block':
       return { emoji: c.icons.map((i) => ICONS[i].emoji).join(''), name: c.name, tag: 'ด่าน', color: '#475569', tint: '#eef1f4', desc: c.why, icons: c.icons }
     case 'rumor':
-      return { emoji: c.emoji, name: c.name, tag: 'หักแต้ม', ...RED_TONE, desc: `หักคะแนนรวม ${c.v} แต้มทันที (ฝ่ายผลักดันทิ้ง 📏 ยกเลิกได้)` }
+      return { emoji: c.emoji, name: c.name, tag: 'หักแต้ม', ...RED_TONE, desc: `${c.note} → หักคะแนนรวม ${c.v} แต้มทันที (ฝ่ายผลักดันทิ้ง 📏 ยกเลิกได้)` }
     case 'wipe':
       return { emoji: '📉', name: 'เปลี่ยนคนทำ ไม่มีใครสานต่อ', tag: 'ล้างกระดาน', ...RED_TONE, desc: 'ทิ้งทุกมาตรการที่ไม่มี 📏 ประกบ และไม่อยู่ในหมวดที่ครบ 3 ใบ ยกเลิกไม่ได้' }
     case 'freeze':

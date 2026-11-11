@@ -29,7 +29,7 @@ export const KEYS: Record<KeyKind, { emoji: string; name: string; hint: string }
   P: { emoji: '👥', name: 'ชวนกัน', hint: 'แก้ด่าน 🙄 เคยชิน' },
   E: { emoji: '🛠️', name: 'ทำให้ง่าย', hint: 'แก้ด่าน 🌀 ยุ่งยาก' },
   S: { emoji: '📏', name: 'วัดผลให้เห็น', hint: 'แก้ด่าน 👀 · ยกเลิกข่าวลือ · หรือประกบมาตรการ' },
-  W: { emoji: '⭐', name: 'ทำให้ดูเป็นตัวอย่าง', hint: 'แก้ได้ทุกด่าน' },
+  W: { emoji: '⭐', name: 'ตัวอย่างที่ดี', hint: 'แก้ได้ทุกด่าน' },
 }
 
 export const CATS: Record<Cat, { emoji: string; name: string; color: string; tint: string; size: number }> = {
@@ -45,7 +45,7 @@ export const ITEM_META: Record<PItem | BItem, { emoji: string; name: string; sid
   net: { emoji: '🤝', name: 'เครือข่ายอาสา', side: 'P', desc: 'ทุกครั้งที่มาตรการถูกปิดสำเร็จ จั่วการ์ด 1 ใบ' },
   ad: { emoji: '📺', name: 'โฆษณา: ซื้อใหม่ดีกว่า', side: 'B', desc: 'ทุกตา คะแนนของฝ่ายผลักดัน −1 (ถ้ามีมาตรการบนโต๊ะ)' },
   comfort: { emoji: '🛋️', name: 'ความสบายแบบเดิม', side: 'B', desc: 'ด่าน 🙄 ต้องใช้ ⭐ เท่านั้นถึงแก้ได้ (👥 ใช้ไม่ได้)' },
-  red: { emoji: '🧾', name: 'ขั้นตอนเยอะ', side: 'B', desc: 'มาตรการที่มี 🌀 ที่เพิ่งวางในตานี้ ยังไม่ได้แต้มตาที่วาง' },
+  red: { emoji: '🧾', name: 'รอขั้นตอนอนุมัติ', side: 'B', desc: 'มาตรการที่มี 🌀 ที่เพิ่งวางในตานี้ ยังไม่ได้แต้มตาที่วาง' },
 }
 
 export const P_ITEM_IDS: PItem[] = ['edu', 'board', 'net']
@@ -79,6 +79,8 @@ export interface RumorCard {
   v: number
   emoji: string
   name: string
+  /** คำอธิบายสั้นๆ ว่าเกิดอะไรขึ้น (ไว้ให้ผู้เล่นเข้าใจโดยไม่ต้องตีความ) */
+  note: string
 }
 export type Card =
   | MeasureCard
@@ -110,6 +112,9 @@ export const MEASURES: MeasureDef[] = [
   { emoji: '🌾', name: 'ทำนาเปียกสลับแห้ง', cat: 'nature', pts: 3, icons: ['K', 'S', 'E'], why: 'นาที่ขังน้ำตลอดฤดูเกิดก๊าซมีเทน ปล่อยให้แห้งเป็นช่วงๆ ลดมีเทนได้มากและประหยัดน้ำ' },
   { emoji: '🏞️', name: 'ดูแลป่าชุมชน', cat: 'nature', pts: 3, icons: ['P', 'S', 'K'], why: 'ป่าที่สมบูรณ์เก็บคาร์บอนไว้ทั้งในต้นไม้และดิน การดูแลป่าเดิมสำคัญพอๆ กับการปลูกใหม่' },
   { emoji: '🦀', name: 'ปลูกป่าชายเลน', cat: 'nature', pts: 3, icons: ['P', 'S', 'M'], why: 'ป่าชายเลนเก็บคาร์บอนต่อพื้นที่ได้มากกว่าป่าบกหลายเท่า โดยเฉพาะในดิน และช่วยกันคลื่นกัดเซาะ' },
+  { emoji: '💻', name: 'ประชุมออนไลน์แทนเดินทาง', cat: 'travel', pts: 2, icons: ['K', 'E'], why: 'ไม่ต้องเดินทางไปประชุม ก็ไม่ปล่อยไอเสียจากการเดินทางครั้งนั้น และประหยัดเวลา' },
+  { emoji: '🌳', name: 'ปลูกต้นไม้ในชุมชน', cat: 'nature', pts: 2, icons: ['P', 'K'], why: 'ต้นไม้ดูดคาร์บอนไว้ในลำต้นและราก และให้ร่มเงา ยิ่งมีคนช่วยกันดูแล ยิ่งรอด' },
+  { emoji: '🪟', name: 'เปิดหน้าต่างรับลม', cat: 'energy', pts: 1, icons: ['P'], why: 'ถ้าอากาศพอสบาย ลมธรรมชาติช่วยให้เย็นโดยไม่ต้องเปิดแอร์ แค่เปลี่ยนนิสัยเล็กน้อย' },
 ]
 
 type BlockDef = { icons: Icon[]; name: string; why: string }
@@ -133,17 +138,17 @@ export const BLOCKS: BlockDef[] = [
   { icons: ['P', 'K'], name: 'ไม่เข้าใจเลยไม่อยากเปลี่ยน', why: 'ความเข้าใจและความอยากเปลี่ยนมักมาพร้อมกัน' },
 ]
 
-export const RUMORS: { v: number; emoji: string; name: string }[] = [
-  { v: 12, emoji: '🎭', name: 'ฟอกเขียว' },
-  { v: 8, emoji: '📱', name: 'ข่าวลือ' },
-  { v: 4, emoji: '🤷', name: 'ไม่เชื่อว่าได้ผล' },
+export const RUMORS: { v: number; emoji: string; name: string; note: string }[] = [
+  { v: 12, emoji: '🎭', name: 'ฟอกเขียว', note: 'ถูกกล่าวหาว่าอ้างว่ารักษ์โลก แต่ที่ทำไม่ได้ลดคาร์บอนจริง คนจึงเลิกเชื่อ' },
+  { v: 8, emoji: '📱', name: 'ข่าวลือ', note: 'มีเรื่องเล่าผิดๆ แพร่ไปว่ามาตรการเหล่านี้ไม่ดี' },
+  { v: 4, emoji: '🤷', name: 'ไม่เชื่อว่าได้ผล', note: 'คนในชุมชนเริ่มสงสัยว่าทำไปก็ไม่ได้ผล' },
 ]
 
 /** กุญแจในกองฝ่ายผลักดัน (ไม่รวม 📏 ที่เป็นการ์ดสองหน้าที่ แยกนับ 3 ใบ) */
-export const KEY_COUNTS: Record<Exclude<KeyKind, 'S'>, number> = { M: 2, K: 2, P: 2, E: 1, W: 1 }
+export const KEY_COUNTS: Record<Exclude<KeyKind, 'S'>, number> = { M: 1, K: 1, P: 1, E: 1, W: 1 }
 
 export const CONTRACTS = [
-  { id: 'starter', emoji: '🌱', name: 'ชุมชนเริ่มต้น', target: 100, note: 'ฝ่ายผลักดันชนะราว 3 ใน 4 ของเกม' },
-  { id: 'low', emoji: '🌿', name: 'ชุมชนคาร์บอนต่ำ', target: 150, note: 'สูสี ราวครึ่งต่อครึ่ง' },
-  { id: 'model', emoji: '🌳', name: 'ชุมชนต้นแบบ', target: 200, note: 'ท้าทาย ฝ่ายผลักดันชนะราว 1 ใน 4' },
+  { id: 'starter', emoji: '🌱', name: 'ชุมชนเริ่มต้น', target: 125, note: 'ฝ่ายผลักดันชนะราว 2 ใน 3 ของเกม' },
+  { id: 'low', emoji: '🌿', name: 'ชุมชนคาร์บอนต่ำ', target: 175, note: 'สูสี ราวครึ่งต่อครึ่ง' },
+  { id: 'model', emoji: '🌳', name: 'ชุมชนต้นแบบ', target: 225, note: 'ท้าทาย ฝ่ายผลักดันชนะราว 1 ใน 4' },
 ] as const
