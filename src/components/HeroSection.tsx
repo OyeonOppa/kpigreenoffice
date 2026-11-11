@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { Globe, LogIn, Mail, Phone, Sprout } from 'lucide-react'
 import { useVideoCrossfade } from '../hooks/useVideoCrossfade'
-import { DASHBOARD, FOREST, ORG_TREE, VIDEO_URLS, IMAGE_URLS, USE_STATIC_IMAGES } from '../content'
+import { DASHBOARD, FOREST, HERO, ORG_TREE, VIDEO_URLS, IMAGE_URLS, USE_STATIC_IMAGES } from '../content'
 import { DAILY_CAP, stageOf, treeSeed, type ForestMember, type OrgSnapshot } from '../forest'
 import { useForest, useForestAuth, useOrgForest } from '../forest/hooks'
 import ForestSvg from './tree/ForestSvg'
@@ -47,6 +47,10 @@ export default function HeroSection() {
       {/* เผื่อพื้นที่ด้านบนให้ navbar แบบ fixed ที่ลอยอยู่เสมอ (ดู Navbar.tsx) */}
       <div className="relative z-10 flex-1 flex flex-col justify-center px-4 sm:px-6 pt-28 sm:pt-32 pb-10">
         <div className="w-full max-w-6xl mx-auto">
+          <h1 className="font-display text-3xl sm:text-5xl text-ink tracking-tight text-center">
+            {HERO.headingMain} <span className="text-accent-deep">{HERO.headingAccent}</span>
+          </h1>
+          <p className="text-ink/75 text-sm sm:text-base text-center max-w-2xl mx-auto mt-2 mb-5">{HERO.subtitle}</p>
           <p className="text-accent-deep text-xs sm:text-sm font-medium tracking-widest uppercase text-center mb-2">
             {ORG_TREE.label}
           </p>

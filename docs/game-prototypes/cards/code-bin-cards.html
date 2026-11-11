@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>รหัสลับถังขยะ — ต้นแบบการ์ด (ปริ้นได้)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 10mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Noto Sans Thai", sans-serif; color: #14261c; background: #eee; }
+  .toolbar { position: sticky; top: 0; background: #14261c; color: #fff; padding: 10px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; z-index: 9; }
+  .toolbar button { background: #22c55e; color: #fff; border: 0; border-radius: 99px; padding: 8px 18px; font: 700 14px inherit; font-family: inherit; cursor: pointer; }
+  .page { width: 190mm; min-height: 277mm; margin: 10px auto; background: #fff; page-break-after: always; break-after: page; }
+  .grid { width: 152.4mm; margin: 0 auto; display: grid; grid-template-columns: repeat(2, 76.2mm); }
+  .grid.tall { grid-auto-rows: 101.6mm; }
+  .grid.half { grid-auto-rows: 50.8mm; }
+  .sect { font-size: 9pt; color: #6b7a70; margin: 0 0 2mm; }
+
+  .card { border: 0.3mm dashed #999; padding: 2mm; position: relative; display: flex; overflow: hidden; }
+  .tall .card { width: 76.2mm; height: 101.6mm; padding: 3.2mm; }
+  .half .card { width: 76.2mm; height: 50.8mm; padding: 2.4mm; }
+  .inner { flex: 1; border-radius: 3.5mm; border: 0.7mm solid var(--c); background: var(--t); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 1.5mm; position: relative; }
+  .tag { position: absolute; top: 1.5mm; left: 2.5mm; font-size: 6.5pt; font-weight: 800; color: #fff; background: var(--c); border-radius: 99px; padding: 0 2.2mm; }
+  .emoji { font-size: 26pt; line-height: 1.1; margin-top: 2mm; }
+  .name { font-size: 12pt; font-weight: 800; line-height: 1.15; }
+
+  /* covers */
+  .cover .inner { border: 0; background: var(--c); color: var(--fg, #fff); }
+  .cover .big { font-size: 32pt; font-weight: 800; line-height: 1; }
+  .cover .nm { font-size: 11pt; font-weight: 800; margin-top: 1mm; }
+
+  /* key card */
+  .key .inner { justify-content: flex-start; padding: 2.5mm; border-color: var(--c); background: #fff; }
+  .key .ttl { font-size: 9pt; font-weight: 800; color: var(--c); margin-bottom: 1.5mm; }
+  .key .kg { display: grid; grid-template-columns: repeat(4, 11.5mm); grid-auto-rows: 11.5mm; gap: 1mm; }
+  .key .kc { border-radius: 1.5mm; display: flex; align-items: center; justify-content: center; font-size: 10pt; font-weight: 800; color: #fff; }
+  .key .legend { font-size: 6.5pt; margin-top: auto; color: #3a4a3f; line-height: 1.35; text-align: center; }
+
+  .back .inner { background: linear-gradient(160deg, #f59e0b, #7c3aed); border: 0; color: #fff; }
+  .back .emoji { font-size: 22pt; margin: 0; }
+  .back .name { font-size: 12pt; }
+
+  .rules { padding: 11mm 14mm; font-size: 9.8pt; line-height: 1.5; }
+  .rules h1 { margin: 0 0 1mm; font-size: 23pt; }
+  .rules h2 { margin: 3.5mm 0 1mm; font-size: 12.5pt; color: #16a34a; }
+  .rules ul, .rules ol { margin: 1mm 0; padding-left: 5mm; }
+  .rules table { border-collapse: collapse; width: 100%; font-size: 9pt; margin: 1.5mm 0; }
+  .rules td, .rules th { border: 0.3mm solid #cfd8d1; padding: 0.8mm 2mm; text-align: left; vertical-align: top; }
+  .rules th { background: #eafbee; }
+  .note { background: #fff8e1; border-radius: 3mm; padding: 2mm 3mm; font-size: 9pt; margin-top: 3mm; }
+  .key-rule { background: #eafbee; border-radius: 3mm; padding: 2mm 3mm; font-weight: 700; margin: 1.5mm 0; }
+  .ans h2 { margin: 3mm 0 1mm; font-size: 12pt; }
+  .ans .row { display: flex; flex-wrap: wrap; gap: 1.5mm; }
+  .ans .chip { border: 0.3mm solid var(--c); background: var(--t); border-radius: 99px; padding: 0.4mm 2.5mm; font-size: 8.5pt; }
+
+
+  /* ---------- หลังการ์ด + พิมพ์สองหน้า ---------- */
+  .card.empty { border: 0; }
+  .back .inner { background: radial-gradient(circle at 15% 12%, rgba(255,255,255,.22) 0 9mm, transparent 9.2mm), radial-gradient(circle at 88% 90%, rgba(255,255,255,.16) 0 13mm, transparent 13.2mm), linear-gradient(160deg, var(--b1), var(--b2)); border: 0.8mm solid var(--b3); color: #fff; justify-content: center; }
+  .back .logo { width: 24mm; height: 24mm; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 30pt; box-shadow: 0 1mm 3mm rgba(0,0,0,.25); }
+  .back .bname { font-size: 19pt; font-weight: 800; line-height: 1.1; margin-top: 2.5mm; }
+  .back .bsub { font-size: 8.5pt; opacity: .95; margin-top: 1mm; }
+  .back .borg { font-size: 7pt; opacity: .8; margin-top: 3mm; letter-spacing: .3mm; }
+  .half .back .logo { width: 13mm; height: 13mm; font-size: 16pt; }
+  .half .back .bname { font-size: 13pt; margin-top: 1mm; }
+  .half .back .bsub { font-size: 7pt; margin-top: 0; }
+  .half .back .borg { font-size: 6pt; margin-top: 1mm; }
+  .page.blank::before { content: "(หน้าหลังของแผ่นนี้ — เว้นว่างไว้ ใช้ให้การพิมพ์สองหน้าเรียงถูก)"; display: block; padding: 10mm; color: #aaa; font-size: 9pt; }
+  @media print { .sect { display: none; } .page.blank::before { content: none; } }
+
+  /* ---------- การ์ดใหญ่: การ์ดขยะ/คลุม 3x2 นิ้ว · แผนที่ลับ 3x4 นิ้ว ---------- */
+  .tag { font-size: 8.5pt; top: 2mm; left: 3mm; padding: 0 2.6mm; }
+  .emoji { font-size: 40pt; margin-top: 3mm; }
+  .half .emoji { font-size: 36pt; margin-top: 4mm; }
+  .name { font-size: 17pt; }
+  .half .name { font-size: 16pt; padding: 0 1mm; }
+  .cover .big { font-size: 46pt; }
+  .cover .nm { font-size: 16pt; margin-top: 1.5mm; }
+  .key .ttl { font-size: 11pt; margin-bottom: 2mm; }
+  .key .kg { grid-template-columns: repeat(4, 13.5mm); grid-auto-rows: 13.5mm; gap: 1.2mm; }
+  .key .kc { font-size: 15pt; border-radius: 2mm; }
+  .key .legend { font-size: 9pt; }
+  .back .logo { width: 30mm; height: 30mm; font-size: 38pt; }
+  .back .bname { font-size: 22pt; }
+  .back .bsub { font-size: 11pt; }
+  .back .borg { font-size: 8pt; }
+  .half .back .logo { width: 17mm; height: 17mm; font-size: 22pt; }
+  .half .back .bname { font-size: 17pt; margin-top: 1mm; }
+  .half .back .bsub { font-size: 9pt; margin-top: 0; }
+  .half .back .borg { font-size: 7pt; margin-top: 1mm; }
+  @media print {
+    body { background: #fff; } .toolbar { display: none; }
+    .page { margin: 0; width: auto; min-height: 0; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <b>รหัสลับถังขยะ — ต้นแบบการ์ด</b>
+  <button onclick="window.print()">พิมพ์ / บันทึกเป็น PDF</button>
+  <span style="font-size:12px;opacity:.8">A4 · พิมพ์สองหน้า (Two-sided) แบบ <b>Flip on long edge / พลิกด้านยาว</b> · Scale 100% · เปิด Background graphics</span>
+</div>
+
+<div class="page rules">
+  <h1>รหัสลับถังขยะ 🔎</h1>
+  <div>เกมให้คำใบ้เป็นทีม + แยกขยะ · 4–10 คน · อายุ 10+ · 20 นาที</div>
+
+  <h2>เป้าหมาย</h2>
+  สองทีม (<b>ทีมส้ม ★</b> กับ <b>ทีมม่วง ✚</b>) แข่งกันเก็บ "ขยะของทีมตัวเอง" ให้ครบก่อน — ต้อง <b>เดาให้ถูกว่าการ์ดไหนเป็นของทีม</b> และ <b>บอกถังที่ขยะชิ้นนั้นต้องทิ้งให้ถูก</b>
+
+  <h2>เตรียมเกม</h2>
+  <ol>
+    <li>แบ่งสองทีม แต่ละทีมเลือก <b>หัวหน้าทีม</b> 1 คน (ผู้ให้คำใบ้) ที่เหลือเป็นผู้ทาย</li>
+    <li>สับการ์ดขยะ 60 ใบ วางหงาย <b>4 ช่อง × 5 แถว = 20 ใบ</b> กลางโต๊ะ</li>
+    <li>หัวหน้าสองทีมจั่ว <b>การ์ดแผนที่ลับ</b> 1 ใบ ดูแล้วตั้งไว้ไม่ให้ทีมเห็น (ทั้งสองคนใช้ใบเดียวกัน) บนการ์ดบอกว่าทีมไหนเริ่มก่อน และช่องไหนเป็นของใคร</li>
+    <li>วาง <b>การ์ดคลุม</b> ข้างโต๊ะ ใช้ปิดการ์ดที่ทีมเก็บได้</li>
+  </ol>
+  <table>
+    <tr><th>ในแผนที่ลับ มี 20 ช่อง</th><th>จำนวน</th></tr>
+    <tr><td>ทีมที่เริ่มก่อน</td><td>8</td></tr>
+    <tr><td>ทีมที่เริ่มทีหลัง</td><td>7</td></tr>
+    <tr><td>กลาง ○ (ไม่ใช่ของใคร)</td><td>4</td></tr>
+    <tr><td>🔥 ขยะเพลิง (ห้ามแตะ!)</td><td>1</td></tr>
+  </table>
+
+  <h2>ตาของทีมหนึ่ง</h2>
+  <ol>
+    <li><b>หัวหน้าให้คำใบ้ 1 คำ + ตัวเลข</b> เช่น "ครัว 3" = มี 3 ใบของทีมเราที่เกี่ยวกับ "ครัว"
+      <ul>
+        <li>ต้องเป็นคำเดียว ห้ามเป็นชื่อสิ่งของบนกริดหรือบางส่วนของชื่อนั้น</li>
+        <li><b>ห้ามใช้คำเกี่ยวกับถัง:</b> ถัง · สี · เขียว/เหลือง/น้ำเงิน/แดง · รีไซเคิล · อันตราย · เศษอาหาร · ขยะทั่วไป</li>
+        <li>ห้ามบอกใบ้ด้วยท่าทาง เสียง หรือสีหน้า</li>
+      </ul></li>
+    <li><b>ผู้ทายปรึกษากัน แล้วแตะการ์ด 1 ใบ</b> ทายได้ไม่เกิน <b>ตัวเลข + 1</b> ใบ และต้องทายอย่างน้อย 1 ใบ</li>
+    <li><b>หัวหน้าบอกว่าใบนั้นเป็นของใคร</b> (ดูจากแผนที่ลับ):
+      <ul>
+        <li>ของ <b>ทีมตัวเอง</b> → ไปข้อ 4</li>
+        <li>ของ <b>อีกทีม</b> → วางการ์ดคลุมสีทีมนั้นทับ (เป็นแต้มของเขา) <b>จบตา</b></li>
+        <li><b>กลาง ○</b> → วางการ์ดคลุมกลาง <b>จบตา</b></li>
+        <li><b>🔥 ขยะเพลิง</b> → <b>ทีมนี้แพ้ทันที</b></li>
+      </ul></li>
+    <li><b>ด่านถัง:</b> ผู้ทายต้องพูดว่าขยะชิ้นนั้นทิ้ง <b>ถังไหน</b> แล้วให้หัวหน้าทีมตรงข้ามเปิด <b>หน้าเฉลย</b> (ท้ายเล่ม) ตรวจ
+      <ul>
+        <li><b>ตอบถังถูก</b> → วางการ์ดคลุมสีทีมตัวเองทับ ทายต่อได้ถ้ายังไม่ครบจำนวน</li>
+        <li><b>ตอบถังผิด</b> → ไม่ได้การ์ดคลุม <b>จบตา</b> (การ์ดยังอยู่ ให้ผู้ตัดสินอ่านถังที่ถูกให้ทุกคนฟัง ทีมไหนทายใบนี้ทีหลังแล้วตอบถูก จะได้ใบนี้)</li>
+      </ul></li>
+  </ol>
+  <div class="key-rule">ทีมที่คลุมครบทุกช่องของตัวเองก่อน ชนะ · ทีมไหนแตะ 🔥 แพ้ทันที</div>
+
+  <h2>ตัวอย่าง</h2>
+  คำใบ้ "ครัว 3" → ทีมทาย <b>เปลือกไข่</b> (ของทีม ✓) → บอกถัง "เขียว" ✓ ได้ใบ → ทาย <b>กระดูกไก่</b> ✓ ถังเขียว ✓ ได้ใบ → ทาย <b>ฟองน้ำล้างจาน</b> (ของทีม ✓) → ตอบ "เหลือง" ✗ (จริงๆ คือน้ำเงิน) → จบตา
+
+  <h2>ตัวเลือก</h2>
+  <ul>
+    <li><b>ทั้งห้องเป็นทีมเดียว (ครูเป็นหัวหน้า):</b> มี 10 ตา เก็บให้ได้ 8 ใบ ถ้าเจอกลางหรือตอบถังผิดเสียตา</li>
+    <li><b>เด็ก:</b> ยกเลิกข้อห้ามคำเกี่ยวกับถัง และเอา 🔥 ออก</li>
+    <li><b>จับเวลา:</b> ผู้ทายมี 2 นาทีต่อตา</li>
+  </ul>
+  <div class="note">เฉลยถังของขยะทั้ง 60 ชิ้นอยู่หน้าสุดท้าย ให้หัวหน้าทีมตรงข้ามเป็นผู้ตรวจ · ต้นแบบนี้ยังไม่ผ่านการเล่นทดสอบ ตัวเลขช่องและกฎด่านถังอาจต้องปรับ</div>
+</div>
+
+<div class="page blank"></div>
+<div id="sheets"></div>
+
+<script>
+const BIN = {
+  green:  { c:'#16a34a', t:'#eafbee', shape:'●', name:'ถังเขียว',  hint:'เศษอาหาร' },
+  yellow: { c:'#d99a00', t:'#fff8e1', shape:'▲', name:'ถังเหลือง', hint:'รีไซเคิล' },
+  blue:   { c:'#0284c7', t:'#e6f6fe', shape:'■', name:'ถังน้ำเงิน', hint:'ขยะทั่วไป' },
+  red:    { c:'#e4573d', t:'#ffede9', shape:'◆', name:'ถังแดง',    hint:'ขยะอันตราย' },
+};
+const waste = {
+  green:  [['🍌','เปลือกกล้วย'],['🍚','เศษข้าว'],['🍊','เปลือกส้ม'],['🍗','กระดูกไก่'],['🥬','เศษผัก'],['🐟','ก้างปลา'],['🍂','ใบไม้แห้ง'],['☕','กากกาแฟ'],['🥚','เปลือกไข่'],['🍉','เปลือกแตงโม'],
+           ['🥔','เปลือกมันฝรั่ง'],['🌽','ซังข้าวโพด'],['🍞','ขนมปังขึ้นรา'],['🥜','เปลือกถั่ว'],['🍋','เปลือกมะนาว']],
+  yellow: [['🍾','ขวดน้ำพลาสติกใส'],['🥫','กระป๋องน้ำอัดลม'],['📦','กล่องกระดาษ'],['📰','หนังสือพิมพ์'],['🫙','ขวดแก้ว'],['📄','กระดาษ A4'],['🛢️','ขวดน้ำมันพืช'],['🥛','กระป๋องนมเปล่า'],['📚','หนังสือเก่า'],['🥤','ขวดน้ำอัดลม PET'],['🧃','กล่องนมล้างสะอาด'],
+           ['🧴','ขวดแชมพูล้างแล้ว'],['🍶','ขวดซอสแก้ว'],['📓','สมุดเก่า'],['🐟','กระป๋องทูน่าล้างแล้ว'],['🚚','กล่องพัสดุ']],
+  blue:   [['🍿','ถุงขนมเปื้อน'],['🥡','แก้วกาแฟเปื้อน'],['🧻','ทิชชู่ใช้แล้ว'],['🍱','โฟมใส่อาหาร'],['🛍️','ถุงพลาสติกเปื้อน'],['🥢','หลอดดูด'],['🍜','ซองบะหมี่'],['🪥','แปรงสีฟันเก่า'],['🍦','ถ้วยโยเกิร์ตเปื้อน'],['🧽','ฟองน้ำล้างจาน'],
+           ['🧦','ถุงเท้าเก่า'],['🍬','ถุงลูกอม'],['🪒','มีดโกนใช้แล้ว'],['🧉','กล่องน้ำผลไม้เปื้อน'],['🍕','กล่องพิซซ่าเปื้อนน้ำมัน']],
+  red:    [['🔋','ถ่านไฟฉาย'],['💡','หลอดไฟ'],['🧴','กระป๋องสเปรย์'],['☠️','ขวดยาฆ่าแมลง'],['💊','ยาหมดอายุ'],['📱','แบตเตอรี่มือถือ'],['🌡️','เทอร์โมมิเตอร์ปรอท'],['🖨️','ตลับหมึกพิมพ์'],['🎨','กระป๋องสีทาบ้าน'],
+           ['🧪','น้ำยาล้างห้องน้ำ'],['🔌','อะแดปเตอร์เก่า'],['💅','น้ำยาล้างเล็บ'],['🚗','น้ำมันเครื่องใช้แล้ว'],['📟','เครื่องใช้ไฟฟ้าเล็กที่เสีย']],
+};
+const items = [];
+for (const [k, list] of Object.entries(waste)) for (const [e, n] of list) items.push({ bin:k, e, n });
+
+const TEAM = {
+  O: { c:'#f59e0b', fg:'#fff', sym:'★', name:'ทีมส้ม' },
+  P: { c:'#7c3aed', fg:'#fff', sym:'✚', name:'ทีมม่วง' },
+  N: { c:'#cfc7b5', fg:'#14261c', sym:'○', name:'กลาง' },
+  X: { c:'#14261c', fg:'#fff', sym:'🔥', name:'ขยะเพลิง' },
+};
+
+// ตัวสุ่มแบบกำหนด seed เพื่อให้แผนที่ลับเหมือนเดิมทุกครั้งที่เปิดไฟล์
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function makeKey(i) {
+  const r = rng(1000 + i * 77), first = i % 2 === 0 ? 'O' : 'P', second = first === 'O' ? 'P' : 'O';
+  const cells = [...Array(8).fill(first), ...Array(7).fill(second), ...Array(4).fill('N'), 'X'];
+  for (let k = cells.length - 1; k > 0; k--) { const j = Math.floor(r() * (k + 1)); [cells[k], cells[j]] = [cells[j], cells[k]]; }
+  return { first, cells };
+}
+
+const itemHTML = (c) => `<div class="card"><div class="inner" style="--c:#6b7a70;--t:#fff"><span class="tag">ขยะ</span><div class="emoji">${c.e}</div><div class="name">${c.n}</div></div></div>`;
+const coverHTML = (k) => { const t = TEAM[k]; return `<div class="card cover"><div class="inner" style="--c:${t.c};--fg:${t.fg}"><div class="big">${t.sym}</div><div class="nm">${t.name}</div></div></div>`; };
+const keyHTML = (key, n) => {
+  const f = TEAM[key.first];
+  const cells = key.cells.map(k => `<div class="kc" style="background:${TEAM[k].c};color:${TEAM[k].fg}">${TEAM[k].sym}</div>`).join('');
+  return `<div class="card key"><div class="inner" style="--c:${f.c}"><div class="ttl">แผนที่ลับ #${n + 1} · ${f.name} เริ่มก่อน</div><div class="kg">${cells}</div>
+    <div class="legend">★ ส้ม · ✚ ม่วง · ○ กลาง · 🔥 ขยะเพลิง<br>ถือไว้ 4 ช่องต่อแถว ตรงกับกริดบนโต๊ะ</div></div></div>`;
+};
+const backHTML = `<div class="card back" style="--b1:#f59e0b;--b2:#7c3aed;--b3:#4c1d95"><div class="inner"><div class="logo">🔎</div><div class="bname">รหัสลับถังขยะ</div><div class="bsub">เกมคำใบ้เป็นทีม แยกขยะ</div><div class="borg">KPI Green Office</div></div></div>`;
+const EMPTY = '<div class="card empty"></div>';
+let totalPages = 0;
+// หน้าหน้า + หน้าหลังสลับกัน — หลังการ์ดสลับซ้าย-ขวาเพื่อให้ตรงกับหน้าหน้าเมื่อพลิกแบบ long edge
+function duplex(root, fronts, per, gridCls, back, label) {
+  for (let i = 0; i < fronts.length; i += per) {
+    const chunk = fronts.slice(i, i + per);
+    root.insertAdjacentHTML('beforeend', `<div class="page"><div class="sect">${label} (${Math.floor(i / per) + 1}/${Math.ceil(fronts.length / per)})</div><div class="grid ${gridCls}">${chunk.join('')}</div></div>`);
+    const cells = Array(per).fill(EMPTY);
+    chunk.forEach((_, k) => { cells[Math.floor(k / 2) * 2 + (1 - (k % 2))] = back; });
+    root.insertAdjacentHTML('beforeend', `<div class="page"><div class="grid ${gridCls}">${cells.join('')}</div></div>`);
+    totalPages += 2;
+  }
+}
+const root = document.getElementById('sheets');
+
+const keyBack = '<div class="card back" style="--b1:#374151;--b2:#14261c;--b3:#000"><div class="inner"><div class="logo">🤫</div><div class="bname">แผนที่ลับ</div><div class="bsub">เฉพาะหัวหน้าทีมเท่านั้น</div><div class="borg">รหัสลับถังขยะ · KPI Green Office</div></div></div>';
+duplex(root, items.map(itemHTML), 10, 'half', backHTML, 'การ์ดขยะ ' + items.length + ' ใบ');
+duplex(root, Array.from({ length: 20 }, (_, i) => keyHTML(makeKey(i), i)), 4, 'tall', keyBack, 'การ์ดแผนที่ลับ 20 ใบ');
+const covers = [...Array(8).fill('O'), ...Array(8).fill('P'), ...Array(4).fill('N'), 'X'].map(coverHTML);
+duplex(root, covers, 10, 'half', backHTML, 'การ์ดคลุม ' + covers.length + ' ใบ (ส้ม 8 · ม่วง 8 · กลาง 4 · ขยะเพลิง 1)');
+const ans = Object.entries(waste).map(([k, list]) => {
+  const b = BIN[k];
+  return '<h2 style="color:' + b.c + '">' + b.shape + ' ' + b.name + ' — ' + b.hint + ' (' + list.length + ' ใบ)</h2><div class="row">' + list.map(([e, n]) => '<span class="chip" style="--c:' + b.c + ';--t:' + b.t + '">' + e + ' ' + n + '</span>').join('') + '</div>';
+}).join('');
+root.insertAdjacentHTML('beforeend', '<div class="page ans" style="padding:12mm 14mm"><h1 style="font-size:20pt;margin:0 0 2mm">หน้าเฉลย (ให้ผู้ตรวจดูเท่านั้น)</h1><div style="font-size:9pt;color:#6b7a70">หัวหน้าทีมตรงข้ามเป็นคนตรวจเมื่อผู้ทายบอกถัง</div>' + ans + '</div>');
+root.insertAdjacentHTML('beforeend', '<div class="page blank"></div>');
+totalPages += 2;
+document.title = 'รหัสลับถังขยะ — ' + items.length + ' ใบขยะ (พิมพ์สองหน้า)';
+document.querySelector('.toolbar b').textContent += ' (ขยะ ' + items.length + ' · แผนที่ลับ 20 · การ์ดคลุม ' + covers.length + ' · ' + (totalPages + 2) + ' หน้ารวมกติกา)';
+</script>
+</body>
+</html>

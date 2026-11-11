@@ -7,6 +7,9 @@ import { useForestAuth } from '../forest/hooks'
 import PlayerAvatar from './live/PlayerAvatar'
 import SignInDialog from './SignInDialog'
 
+// เมนูต้องกดได้จากทุกหน้า ลิงก์แบบ #section จึงต้องชี้กลับหน้าแรกเสมอ
+const fromAnyPage = (href: string) => (href.startsWith('#') ? `/${href}` : href)
+
 // nav แบบ fixed ค้างอยู่บนสุดตลอด ไม่ว่าจะเลื่อนหน้าไปถึงไหน
 // ใช้ liquid-glass-nav (ผิวทึบกว่าปกติ) เพราะต้องอ่านง่ายทั้งตอนลอยทับภาพ hero และตอนอยู่บนพื้น canvas เรียบๆ
 export default function Navbar() {
@@ -29,7 +32,7 @@ export default function Navbar() {
     <header className="fixed top-0 inset-x-0 z-50 px-4 sm:px-6 py-6">
       <nav className="liquid-glass liquid-glass-nav rounded-full max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
         <div className="flex items-center min-w-0">
-          <a href="#" className="flex items-center gap-2 min-w-0" aria-label={SITE_NAME}>
+          <a href="/" className="flex items-center gap-2 min-w-0" aria-label={SITE_NAME}>
             <img
               src="/images/low carbon logo.webp"
               alt=""
@@ -80,7 +83,7 @@ export default function Navbar() {
           )}
 
           <a
-            href="#contact"
+            href="/#contact"
             className="liquid-glass liquid-glass-nav rounded-full px-5 py-2 text-ink text-sm font-medium hover:bg-ink/5 transition-colors"
           >
             {HERO.contactLabel}
@@ -119,7 +122,7 @@ export default function Navbar() {
               />
             ))}
             <a
-              href="#contact"
+              href="/#contact"
               onClick={closeAll}
               className="text-ink/80 hover:text-ink text-sm font-medium px-4 py-3 rounded-xl hover:bg-ink/5 transition-colors"
             >
@@ -130,7 +133,7 @@ export default function Navbar() {
               {user ? (
                 <>
                   <a
-                    href={FOREST.path}
+                    href={fromAnyPage(FOREST.path)}
                     onClick={closeAll}
                     className="flex items-center gap-2.5 px-4 py-3 rounded-xl hover:bg-ink/5 transition-colors"
                   >
@@ -213,7 +216,7 @@ function AccountMenu({
           >
             <p className="text-ink text-sm font-medium px-3 pt-1 pb-2 truncate">{name}</p>
             <a
-              href={FOREST.path}
+              href={fromAnyPage(FOREST.path)}
               className="flex items-center gap-2 text-ink/80 hover:text-ink text-sm font-medium px-3 py-2 rounded-xl hover:bg-ink/5 transition-colors"
             >
               <Sprout size={15} className="text-accent" />
@@ -249,7 +252,7 @@ function DesktopNavItem({
   if (!link.children?.length) {
     return (
       <a
-        href={link.href}
+        href={fromAnyPage(link.href)}
         className="text-ink/70 hover:text-ink text-sm font-medium transition-colors"
       >
         {link.label}
@@ -288,7 +291,7 @@ function DesktopNavItem({
             {link.children.map((child) => (
               <div key={child.label} className="flex flex-col">
                 <a
-                  href={child.href}
+                  href={fromAnyPage(child.href)}
                   onClick={onNavigate}
                   className="text-ink/80 hover:text-ink text-sm font-medium px-3 py-2 rounded-xl hover:bg-ink/5 transition-colors"
                 >
@@ -297,7 +300,7 @@ function DesktopNavItem({
                 {child.children?.map((sub) => (
                   <a
                     key={sub.label}
-                    href={sub.href}
+                    href={fromAnyPage(sub.href)}
                     onClick={onNavigate}
                     className="text-ink/60 hover:text-ink text-xs font-medium pl-7 pr-3 py-1.5 rounded-xl hover:bg-ink/5 transition-colors"
                   >
@@ -327,7 +330,7 @@ function MobileNavItem({
   if (!link.children?.length) {
     return (
       <a
-        href={link.href}
+        href={fromAnyPage(link.href)}
         onClick={onNavigate}
         className="text-ink/80 hover:text-ink text-sm font-medium px-4 py-3 rounded-xl hover:bg-ink/5 transition-colors"
       >
@@ -363,7 +366,7 @@ function MobileNavItem({
             {link.children.map((child) => (
               <div key={child.label} className="flex flex-col">
                 <a
-                  href={child.href}
+                  href={fromAnyPage(child.href)}
                   onClick={onNavigate}
                   className="text-ink/75 hover:text-ink text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-ink/5 transition-colors"
                 >
@@ -372,7 +375,7 @@ function MobileNavItem({
                 {child.children?.map((sub) => (
                   <a
                     key={sub.label}
-                    href={sub.href}
+                    href={fromAnyPage(sub.href)}
                     onClick={onNavigate}
                     className="text-ink/60 hover:text-ink text-xs font-medium pl-8 pr-4 py-2 rounded-xl hover:bg-ink/5 transition-colors"
                   >

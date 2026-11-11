@@ -1,5 +1,11 @@
 import { Mail, MapPin, Phone } from 'lucide-react'
 import { FOOTER, NAV_LINKS, SITE_NAME } from '../content'
+import { SEO_PAGES } from '../seo/pages'
+
+const LINK_GROUPS = [
+  { title: 'ความรู้', kinds: ['article', 'tool'] },
+  { title: 'เกม', kinds: ['game'] },
+]
 
 export default function Footer() {
   // ช่องที่ยังไม่มีข้อมูลจริงจะไม่ถูกแสดง — ไม่โชว์เบอร์/อีเมลปลอมบนเว็บจริง
@@ -9,7 +15,7 @@ export default function Footer() {
   return (
     <footer id="contact" className="bg-canvas border-t border-line px-6 pt-16 pb-8 scroll-mt-24">
       <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
           <div>
             <div className="flex items-center gap-2 mb-4">
               <img
@@ -28,7 +34,7 @@ export default function Footer() {
               {NAV_LINKS.map((link) => (
                 <li key={link.label}>
                   <a
-                    href={link.href}
+                    href={link.href.startsWith('#') ? `/${link.href}` : link.href}
                     className="text-ink/65 hover:text-ink text-sm transition-colors"
                   >
                     {link.label}
@@ -37,6 +43,21 @@ export default function Footer() {
               ))}
             </ul>
           </div>
+
+          {LINK_GROUPS.map((group) => (
+            <div key={group.title}>
+              <p className="text-ink font-medium text-sm mb-4">{group.title}</p>
+              <ul className="flex flex-col gap-2.5">
+                {SEO_PAGES.filter((p) => group.kinds.includes(p.kind)).map((p) => (
+                  <li key={p.path}>
+                    <a href={p.path} className="text-ink/65 hover:text-ink text-sm transition-colors">
+                      {p.name}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
 
           <div>
             <p className="text-ink font-medium text-sm mb-4">ติดต่อเรา</p>

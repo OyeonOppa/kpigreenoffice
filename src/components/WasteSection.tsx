@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, useInView } from 'framer-motion'
 import { RotateCcw } from 'lucide-react'
 import { WASTE, WASTE_GAME_ITEMS } from '../content'
@@ -20,7 +20,9 @@ function shuffle<T>(arr: readonly T[]): T[] {
 
 function WasteGame() {
   const [seed, setSeed] = useState(0)
-  const items = useMemo(() => shuffle(WASTE_GAME_ITEMS).slice(0, ROUNDS), [seed])
+  // รอบแรกต้องตรงกับ HTML ที่สร้างล่วงหน้า จึงเริ่มจากลำดับเดิมแล้วค่อยสุ่มหลังหน้าโหลดเสร็จ
+  const [items, setItems] = useState<(typeof WASTE_GAME_ITEMS)[number][]>(() => WASTE_GAME_ITEMS.slice(0, ROUNDS))
+  useEffect(() => setItems(shuffle(WASTE_GAME_ITEMS).slice(0, ROUNDS)), [seed])
   const [round, setRound] = useState(0)
   const [score, setScore] = useState(0)
   const [feedback, setFeedback] = useState<{ correct: boolean; binType: string } | null>(null)

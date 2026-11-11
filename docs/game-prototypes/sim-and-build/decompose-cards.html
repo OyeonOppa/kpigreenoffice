@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>ย่อยนานแค่ไหน? — ต้นแบบการ์ด (พิมพ์สองหน้า)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 10mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Noto Sans Thai", sans-serif; color: #1f2a20; background: #eee; }
+  .toolbar { position: sticky; top: 0; background: #1f2a20; color: #fff; padding: 10px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; z-index: 9; }
+  .toolbar button { background: #22c55e; color: #fff; border: 0; border-radius: 99px; padding: 8px 18px; font: 700 14px inherit; font-family: inherit; cursor: pointer; }
+  .page { width: 190mm; min-height: 277mm; margin: 10px auto; background: #fff; page-break-after: always; break-after: page; }
+  .grid { width: 152.4mm; margin: 0 auto; display: grid; grid-template-columns: repeat(2, 76.2mm); grid-auto-rows: 101.6mm; }
+  .card { width: 76.2mm; height: 101.6mm; border: 0.3mm dashed #999; padding: 3.2mm; position: relative; display: flex; overflow: hidden; }
+  .card.empty { border: 0; }
+  .inner { flex: 1; border-radius: 4mm; border: 0.9mm solid var(--c); background: var(--t); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3mm; text-align: center; position: relative; }
+  .tag { font-size: 9pt; font-weight: 800; color: #fff; background: var(--c); border-radius: 99px; padding: 0.4mm 3.5mm; }
+  .no { position: absolute; right: 4mm; bottom: 3mm; font-size: 9pt; color: #7a6a52; font-weight: 600; }
+
+  /* รูป: อีโมจิ หรือไอคอน SVG (ใช้เมื่อไม่มีอีโมจิที่ตรงกับชื่อ) */
+  .pic { position: relative; display: inline-block; line-height: 1; }
+  .ico { width: 1em; height: 1em; display: block; }
+  .badge { position: absolute; right: -0.26em; bottom: -0.04em; font-size: 0.46em; line-height: 1; }
+
+  /* ด้านหน้า: โจทย์ */
+  .front .inner { --c: #1d6f8f; --t: #f1f9fc; }
+  .front .emoji { font-size: 78pt; line-height: 1.05; margin: 5mm 0 3mm; }
+  .front .name { font-size: 24pt; font-weight: 800; line-height: 1.15; }
+  .front .ask { font-size: 12pt; color: #4b6b78; margin-top: 4mm; }
+
+  /* ด้านหลัง: เฉลย */
+  .ans .inner { --c: #355e3b; --t: #f4faf2; justify-content: flex-start; padding-top: 3mm; }
+  .ans .emoji { font-size: 34pt; line-height: 1.05; margin-top: 2mm; }
+  .ans .name { font-size: 16.5pt; font-weight: 800; line-height: 1.15; }
+  .band { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1mm; width: 100%; margin-top: 2.5mm; }
+  .band div { border-radius: 1.5mm; padding: 1mm 0; font-size: 13pt; font-weight: 800; color: #9aa59b; background: #e6ebe6; line-height: 1.1; }
+  .band div.on { color: #fff; background: var(--tc); }
+  .lvl { font-size: 11pt; font-weight: 800; margin-top: 1.5mm; }
+  .time { font-size: 14pt; font-weight: 800; margin-top: 0.5mm; line-height: 1.2; }
+  .note { font-size: 9.5pt; color: #4b5a4e; line-height: 1.25; }
+  .why { font-size: 10.5pt; line-height: 1.35; margin-top: 2mm; color: #26332a; }
+  .tip { font-size: 10pt; margin-top: auto; background: #fff; border: 0.3mm solid #cfdccf; border-radius: 2.5mm; padding: 1.2mm 2.5mm; line-height: 1.3; width: 100%; }
+  .src { font-size: 8.5pt; color: #5b6b5d; margin-top: 1.5mm; }
+
+  /* การ์ดช่วยเล่น */
+  .ruler .inner { --c: #355e3b; --t: #f4faf2; justify-content: flex-start; padding: 3mm; }
+  .ruler h3 { margin: 2mm 0 1.5mm; font-size: 15pt; }
+  .trow { display: flex; align-items: center; gap: 2.5mm; width: 100%; text-align: left; margin-top: 1.4mm; }
+  .trow b { flex: 0 0 8mm; height: 8mm; border-radius: 2mm; color: #fff; font-size: 14pt; display: flex; align-items: center; justify-content: center; background: var(--tc); }
+  .trow span { font-size: 11pt; line-height: 1.2; font-weight: 600; }
+  .chk { text-align: left; font-size: 11pt; line-height: 1.4; width: 100%; padding-left: 5mm; margin: 1mm 0; }
+  .chk li { margin: 1.2mm 0; }
+
+  /* หลังการ์ดมาตรฐาน */
+  .back .inner { background: radial-gradient(circle at 15% 12%, rgba(255,255,255,.22) 0 9mm, transparent 9.2mm), radial-gradient(circle at 88% 90%, rgba(255,255,255,.16) 0 13mm, transparent 13.2mm), linear-gradient(160deg, #0e7490, #166534); border: 0.9mm solid #134e4a; color: #fff; justify-content: center; }
+  .logo { width: 30mm; height: 30mm; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 38pt; box-shadow: 0 1mm 3mm rgba(0,0,0,.25); }
+  .bname { font-size: 22pt; font-weight: 800; line-height: 1.1; margin-top: 3mm; }
+  .bsub { font-size: 11pt; opacity: .95; margin-top: 1mm; }
+
+  .rules { padding: 11mm 14mm; font-size: 12pt; line-height: 1.45; height: 275mm; overflow: hidden; }
+  .rules h1 { margin: 0 0 1mm; font-size: 26pt; }
+  .rules h2 { margin: 4mm 0 1.5mm; font-size: 16pt; color: #355e3b; }
+  .rules p { margin: 1.2mm 0; }
+  .rules ul, .rules ol { margin: 1.2mm 0; padding-left: 6mm; }
+  .rules li { margin: 0.8mm 0; }
+  .rules table { border-collapse: collapse; width: 100%; font-size: 11.5pt; margin: 1.5mm 0; }
+  .rules td, .rules th { border: 0.3mm solid #cfd8d1; padding: 1mm 2.2mm; text-align: left; vertical-align: top; }
+  .rules th { background: #eef6ec; }
+  .box { background: #fff8e1; border-radius: 3mm; padding: 2mm 3.5mm; margin: 2mm 0; }
+  .key { background: #eafbee; border-radius: 3mm; padding: 2mm 3.5mm; margin: 2mm 0; font-weight: 700; }
+  .chip { display: inline-block; min-width: 7mm; text-align: center; border-radius: 1.5mm; color: #fff; font-weight: 800; padding: 0 1.5mm; background: var(--tc); }
+  .sheet { padding: 10mm 12mm; font-size: 9.5pt; line-height: 1.35; height: 275mm; overflow: hidden; }
+  .sheet h1 { font-size: 17pt; margin: 0 0 1mm; }
+  .sheet h2 { font-size: 12pt; margin: 4mm 0 1mm; color: #355e3b; }
+  .sheet table { border-collapse: collapse; width: 100%; font-size: 8.8pt; margin-top: 2mm; }
+  .sheet td, .sheet th { border: 0.25mm solid #cfd8d1; padding: 0.5mm 1.6mm; text-align: left; vertical-align: top; }
+  .sheet th { background: #eef6ec; }
+  .sheet .ref { margin: 1.5mm 0; }
+  .sheet .url { font-size: 8.5pt; color: #355e3b; word-break: break-all; }
+
+  @media print {
+    body { background: #fff; } .toolbar { display: none; }
+    .page { margin: 0; width: auto; min-height: 0; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <b>ย่อยนานแค่ไหน? — ต้นแบบการ์ด</b>
+  <button onclick="window.print()">พิมพ์ / บันทึกเป็น PDF</button>
+  <span style="font-size:12px;opacity:.85">A4 · พิมพ์สองหน้า (Two-sided) แบบ <b>Flip on long edge / พลิกด้านยาว</b> · Scale 100% · เปิด Background graphics</span>
+</div>
+
+<div id="sheets"></div>
+
+<script>
+// ระดับเวลา — ทุกการ์ดอยู่ในระดับเดียว ไม่มีการ์ดคร่อมสองระดับ
+const TIERS = [
+  { n: 1, c: '#16a34a', name: 'ไม่ถึง 2 เดือน' },
+  { n: 2, c: '#65a30d', name: '2 เดือน – ไม่ถึง 1 ปี' },
+  { n: 3, c: '#ca8a04', name: '1 – ไม่ถึง 10 ปี' },
+  { n: 4, c: '#ea580c', name: '10 – ไม่ถึง 100 ปี' },
+  { n: 5, c: '#dc2626', name: '100 – ไม่ถึง 1,000 ปี' },
+  { n: 6, c: '#57534e', name: 'นานจนประเมินไม่ได้' },
+];
+const tc = (n) => TIERS[n - 1].c;
+
+// ไอคอนวาดเอง สำหรับของที่ไม่มีอีโมจิตรงชื่อ
+const SVG = {
+  alcan: `<svg class="ico" viewBox="0 0 100 100"><g stroke="#4b5563" stroke-width="3" stroke-linejoin="round"><path d="M31 15h38l5 9v53l-5 9H31l-5-9V24z" fill="#d1d5db"/><path d="M26 37h48v29H26z" fill="#ef4444"/></g><path d="M33 26v50" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".75"/><path d="M42 51.5h22" stroke="#fff" stroke-width="4" stroke-linecap="round"/><ellipse cx="50" cy="15" rx="19" ry="4.5" fill="#e5e7eb" stroke="#4b5563" stroke-width="3"/><rect x="44" y="11.5" width="12" height="5" rx="2.5" fill="#9ca3af"/></svg>`,
+  rings: `<svg class="ico" viewBox="0 0 100 100"><rect x="8" y="25" width="84" height="50" rx="16" fill="#bfe3f5" fill-opacity=".6" stroke="#2b7bb0" stroke-width="3"/><g fill="#fff" stroke="#2b7bb0" stroke-width="3"><circle cx="27" cy="40" r="9.5"/><circle cx="50" cy="40" r="9.5"/><circle cx="73" cy="40" r="9.5"/><circle cx="27" cy="60" r="9.5"/><circle cx="50" cy="60" r="9.5"/><circle cx="73" cy="60" r="9.5"/></g></svg>`,
+  diaper: `<svg class="ico" viewBox="0 0 100 100"><g stroke="#4a6fa5" stroke-width="3" stroke-linejoin="round"><path d="M12 22h76l-10 26c-5 16-14 30-28 30S27 64 22 48z" fill="#f8fafc"/><path d="M12 22h76v11H12z" fill="#93c5fd"/><rect x="4" y="21" width="15" height="13" rx="4" fill="#fcd34d"/><rect x="81" y="21" width="15" height="13" rx="4" fill="#fcd34d"/></g><circle cx="40" cy="47" r="3.2" fill="#93c5fd"/><circle cx="60" cy="47" r="3.2" fill="#93c5fd"/><circle cx="50" cy="60" r="3.2" fill="#93c5fd"/></svg>`,
+  plywood: `<svg class="ico" viewBox="0 0 100 100"><g stroke="#7c4a1c" stroke-width="3" stroke-linejoin="round"><path d="M4 46 58 24 96 42 42 64z" fill="#f1cf98"/><path d="M4 46 42 64v18L4 64z" fill="#d9a35e"/><path d="M42 64 96 42v18L42 82z" fill="#c08646"/></g><path d="M4 52 42 70M4 58 42 76M42 70 96 48M42 76 96 54" stroke="#7c4a1c" stroke-width="1.8" fill="none"/><path d="M28 43q12-5 24 2t22 0M20 51q14-6 30 1" stroke="#c99a5b" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>`,
+  carton: `<svg class="ico" viewBox="0 0 100 100"><g stroke="#2f5d8a" stroke-width="3" stroke-linejoin="round"><path d="M18 42h40v52H18z" fill="#fff"/><path d="M58 42 82 30v52L58 94z" fill="#dbe7f4"/><path d="M18 42 38 20 58 42z" fill="#eef4fb"/><path d="M38 20 62 8 82 30 58 42z" fill="#c7dcf2"/><path d="M18 62h40v18H18z" fill="#3b82f6"/><path d="M58 62 82 50v18L58 80z" fill="#2563eb"/></g><path d="M36 21 61 8.5" stroke="#2f5d8a" stroke-width="6" stroke-linecap="round"/><text x="38" y="76.5" font-size="15" font-weight="800" fill="#fff" text-anchor="middle" font-family="Noto Sans Thai, sans-serif">นม</text></svg>`,
+  foamcup: `<svg class="ico" viewBox="0 0 100 100"><g stroke="#64748b" stroke-width="3" stroke-linejoin="round"><path d="M22 20h56l-8 72H30z" fill="#fff"/><path d="M18 13h64v9H18z" fill="#f1f5f9"/></g><path d="M28 40h44M30 56h40M32 72h36" stroke="#cbd5e1" stroke-width="2.6" stroke-linecap="round"/></svg>`,
+  bag: `<svg class="ico" viewBox="0 0 100 100"><path d="M16 89 19 37q1-8 5-12V9h13v11q0 12 13 12t13-12V9h13v16q4 4 5 12l3 52q0 4-4 4H20q-4 0-4-4z" fill="#f8fafc" stroke="#64748b" stroke-width="3" stroke-linejoin="round"/><rect x="27" y="13" width="7" height="8" rx="3" fill="#fff" stroke="#94a3b8" stroke-width="2"/><rect x="66" y="13" width="7" height="8" rx="3" fill="#fff" stroke="#94a3b8" stroke-width="2"/><path d="M31 50l7 9M60 62l10-7M40 79l13 3" stroke="#cbd5e1" stroke-width="2.6" stroke-linecap="round"/></svg>`,
+  glassbottle: `<svg class="ico" viewBox="0 0 100 100"><g stroke="#15803d" stroke-width="3" stroke-linejoin="round"><rect x="40" y="4" width="20" height="8" rx="2" fill="#bbf7d0"/><path d="M42 12h16v18c0 6 12 10 12 22v36a6 6 0 0 1-6 6H36a6 6 0 0 1-6-6V52c0-12 12-16 12-22z" fill="#86efac" fill-opacity=".75"/><path d="M30 54h40v22H30z" fill="#f0fdf4"/></g><path d="M39 36v50" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".85"/></svg>`,
+  pet: `<svg class="ico" viewBox="0 0 100 100"><g stroke="#2563eb" stroke-width="3" stroke-linejoin="round"><rect x="40" y="3" width="20" height="10" rx="2" fill="#3b82f6"/><path d="M43 13h14v8c0 4 10 8 10 16v51a6 6 0 0 1-6 6H39a6 6 0 0 1-6-6V37c0-8 10-12 10-16z" fill="#dbeafe"/><path d="M33 48h34v20H33z" fill="#60a5fa"/></g><path d="M40 40v42" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".85"/></svg>`,
+};
+
+/* ข้อมูลการ์ด — เวลาทุกค่ามาจากแหล่งในวงเล็บ src (ดูรายละเอียดหน้าท้าย)
+   EPA  = US EPA Gulf of Mexico Program, Marine Debris Timeline
+   NPS  = US National Park Service (Tonto NM), Marine Lab Timeline
+   NOAA = ชุดข้อมูล NOAA Marine Debris Program + Mote Marine Lab + NPS (2018) ผ่าน Our World in Data
+   Mote = ตารางของ Mote Marine Laboratory ที่อ้างในชุดการเรียนรู้ MARLISCO (EU) */
+const ITEMS = [
+  { e: '🧻', name: 'กระดาษทิชชู่', tier: 1, time: 'ราว 2 – 4 สัปดาห์', src: 'EPA · NPS',
+    why: 'กระดาษบางทำจากเส้นใยพืช จุลินทรีย์ย่อยได้เร็ว', tip: 'ใช้เท่าที่จำเป็น ใช้แล้วทิ้งถังน้ำเงิน' },
+  { e: '🍌', name: 'เปลือกกล้วย', tier: 1, time: 'ราว 2 – 5 สัปดาห์', src: 'NPS',
+    why: 'เปลือกผลไม้นุ่มและชื้น เป็นอาหารชั้นดีของจุลินทรีย์', tip: 'ถังเขียว หรือหมักเป็นปุ๋ย' },
+  { e: '🍊', name: 'เปลือกส้ม', tier: 1, time: 'ราว 2 – 5 สัปดาห์', src: 'NPS',
+    why: 'ย่อยเร็วก็จริง แต่ถ้าทิ้งปนขยะอื่นจะเน่าเหม็นและแยกยาก', tip: 'ถังเขียว หรือหมักเป็นปุ๋ย' },
+  { e: '📰', name: 'หนังสือพิมพ์', tier: 1, time: 'ราว 6 สัปดาห์', src: 'EPA · NPS · Mote',
+    why: 'เป็นกระดาษเหมือนทิชชู่ แต่หนากว่า จึงใช้เวลานานกว่า', tip: 'ถังเหลือง (ถ้าสะอาดและแห้ง)' },
+  { e: '🍎', name: 'แกนแอปเปิล', tier: 2, time: 'ราว 2 – 6 เดือน', note: 'EPA และ Mote ระบุ 2 เดือน · NPS ระบุ 6 เดือน', src: 'EPA · NPS · Mote',
+    why: 'เนื้อผลไม้แน่นกว่าเปลือกบางๆ จึงย่อยช้ากว่า', tip: 'ถังเขียว หรือหมักเป็นปุ๋ย' },
+  { e: SVG.carton, name: 'กล่องนมเคลือบไข', fname: 'กล่องนม<br>เคลือบไข', tier: 2, time: 'ราว 3 เดือน', src: 'EPA · NPS · NOAA',
+    why: 'ไขที่เคลือบกันน้ำ ทำให้ย่อยช้ากว่าหนังสือพิมพ์', tip: 'ล้าง พับแบน แยกตามที่จุดรับกำหนด' },
+  { e: SVG.rings, badge: '☀️', name: 'ห่วงรัดกระป๋อง แบบย่อยด้วยแสง', fname: 'ห่วงรัดกระป๋อง<br>แบบย่อยด้วยแสง', small: true, tier: 2, time: 'ราว 6 เดือน', src: 'EPA · NOAA',
+    why: 'ผลิตให้เปราะและแตกเมื่อโดนแดด ต่างจากห่วงธรรมดาที่อยู่ได้ราว 400 ปี', tip: 'ตัดห่วงทุกวงก่อนทิ้ง ถังน้ำเงิน' },
+  { e: '🧤', name: 'ถุงมือขนสัตว์', tier: 3, time: 'ราว 1 ปี', src: 'EPA · Mote',
+    why: 'ผ้าจากธรรมชาติย่อยได้ แต่ใช้เวลานานกว่ากระดาษมาก', tip: 'ใช้ซ้ำ ซ่อม หรือบริจาค' },
+  { e: '🧦', name: 'ถุงเท้าขนสัตว์', tier: 3, time: 'ราว 1 – 5 ปี', src: 'NPS',
+    why: 'เส้นใยธรรมชาติก็ย่อยได้ แต่ต้องรอเป็นปี', tip: 'ใช้ซ้ำ ซ่อม หรือบริจาค' },
+  { e: SVG.plywood, name: 'ไม้อัด', tier: 3, time: 'ราว 1 – 3 ปี', src: 'EPA · NPS · Mote',
+    why: 'ไม้แผ่นบางหลายชั้นที่อัดติดกันด้วยกาว', tip: 'ใช้ซ้ำ หรือขายร้านรับซื้อของเก่า' },
+  { e: '🚬', name: 'ก้นบุหรี่', tier: 3, time: 'ราว 1 – 5 ปี', src: 'NPS · NOAA',
+    why: 'ไส้กรองไม่ใช่สำลี แต่ทำจากพลาสติกชนิดหนึ่ง (เซลลูโลสอะซิเตต)', tip: 'ดับให้สนิท ทิ้งถังน้ำเงิน ห้ามทิ้งลงพื้นหรือท่อ' },
+  { e: SVG.diaper, badge: '🌱', name: 'ผ้าอ้อมแบบย่อยสลายได้', fname: 'ผ้าอ้อม<br>แบบย่อยสลายได้', tier: 3, time: 'ราว 1 ปี', src: 'EPA',
+    why: 'เทียบกับผ้าอ้อมสำเร็จรูปทั่วไปที่ใช้เวลาราว 450 ปี', tip: 'ห่อให้มิดชิด ทิ้งถังน้ำเงิน' },
+  { e: SVG.bag, name: 'ถุงพลาสติกหูหิ้ว', tier: 4, time: 'ราว 10 – 20 ปี', src: 'NPS · NOAA',
+    why: 'พลาสติกไม่ได้ย่อยหายไป แต่แตกเป็นชิ้นเล็กลงเรื่อยๆ จนเป็นไมโครพลาสติก', tip: 'พกถุงผ้า ใช้ถุงเดิมซ้ำให้นานที่สุด' },
+  { e: '👞', name: 'รองเท้าหนัง', tier: 4, time: 'ราว 50 ปี', note: 'แหล่งข้อมูลระบุเป็น “หนัง”', src: 'NPS',
+    why: 'หนังผ่านการฟอกด้วยสารเคมีให้ทนทาน จึงย่อยช้า', tip: 'ซ่อม ใช้ซ้ำ หรือบริจาค' },
+  { e: '🥫', name: 'กระป๋องอาหาร (เหล็ก)', fname: 'กระป๋องอาหาร<br>(เหล็ก)', tier: 4, time: 'ราว 50 ปี', src: 'EPA · NPS · NOAA · Mote',
+    why: 'เหล็กค่อยๆ เป็นสนิมและผุกร่อนไปตามเวลา', tip: 'ล้างให้สะอาด ทิ้งถังเหลือง' },
+  { e: SVG.foamcup, name: 'แก้วน้ำโฟม', tier: 4, time: 'ราว 50 ปี', src: 'EPA · NPS · NOAA',
+    why: 'โฟมคือพลาสติกที่เป่าให้พอง เบา ลอยน้ำ และแตกเป็นเม็ดเล็ก', tip: 'พกแก้วส่วนตัว ถ้าใช้แล้วทิ้งถังน้ำเงิน' },
+  { e: '🥾', name: 'พื้นรองเท้าบูทยาง', fname: 'พื้นรองเท้า<br>บูทยาง', tier: 4, time: 'ราว 50 – 80 ปี', src: 'NPS',
+    why: 'ยางสังเคราะห์ทนต่อการย่อยสลายตามธรรมชาติ', tip: 'ซ่อม ใช้ให้นาน ทิ้งถังน้ำเงิน' },
+  { e: '🛟', name: 'ทุ่นลอยน้ำทำจากโฟม', fname: 'ทุ่นลอยน้ำ<br>ทำจากโฟม', tier: 4, time: 'ราว 50 – 80 ปี', note: 'EPA และ NPS ระบุ 80 ปี · NOAA ระบุ 50 ปี', src: 'EPA · NPS · NOAA',
+    why: 'โฟมก้อนใหญ่แตกเป็นเม็ดเล็ก ที่สัตว์ทะเลกินเข้าไปได้', tip: 'เก็บกลับเมื่อชำรุด อย่าปล่อยลอยทิ้ง' },
+  { e: SVG.alcan, name: 'กระป๋องอะลูมิเนียม', fname: 'กระป๋อง<br>อะลูมิเนียม', tier: 5, time: 'ราว 200 ปี', note: 'NPS และ Mote ระบุ 80 – 200 ปี', src: 'EPA · NOAA · NPS · Mote',
+    why: 'ไม่เป็นสนิมผุพังแบบเหล็ก จึงอยู่นานกว่ากระป๋องเหล็ก', tip: 'ทิ้งถังเหลือง รีไซเคิลได้' },
+  { e: SVG.rings, name: 'ห่วงพลาสติกรัดกระป๋อง', fname: 'ห่วงพลาสติก<br>รัดกระป๋อง', tier: 5, time: 'ราว 400 ปี', src: 'EPA · NOAA',
+    why: 'ห่วงพลาสติกพันคอ ปาก และครีบสัตว์ทะเลได้', tip: 'ตัดห่วงทุกวงก่อนทิ้ง ถังน้ำเงิน' },
+  { e: SVG.diaper, name: 'ผ้าอ้อมสำเร็จรูป', tier: 5, time: 'ราว 450 ปี', src: 'EPA · NPS · NOAA',
+    why: 'มีพลาสติกหลายชั้นและสารดูดซับน้ำอยู่ข้างใน', tip: 'ห่อให้มิดชิด ทิ้งถังน้ำเงิน' },
+  { e: SVG.pet, name: 'ขวดน้ำพลาสติก', tier: 5, time: 'ราว 450 ปี', src: 'EPA · NPS · NOAA',
+    why: 'ขวดพลาสติกเพิ่งใช้แพร่หลายราว 60 ปี จึงยังไม่มีใครเห็นขวดย่อยหมดจริง ตัวเลขนี้จึงเป็นการประมาณ', tip: 'ล้าง บีบแบน ทิ้งถังเหลือง' },
+  { e: '🎣', name: 'เอ็นตกปลา', tier: 5, time: 'ราว 600 ปี', src: 'EPA · NPS · NOAA',
+    why: 'เส้นเอ็นใสมองเห็นยาก พันตัวสัตว์น้ำได้', tip: 'เก็บเศษเอ็นกลับบ้านทุกครั้ง ทิ้งถังน้ำเงิน' },
+  { e: SVG.glassbottle, name: 'ขวดแก้ว', tier: 6, time: 'นานจนประเมินไม่ได้', note: 'NPS ประมาณว่านับล้านปี', src: 'EPA · NPS · NOAA · Mote',
+    why: 'จุลินทรีย์ย่อยแก้วไม่ได้ แต่แก้วไม่เป็นอันตรายแบบพลาสติก', tip: 'ทิ้งถังเหลือง ระวังเศษแตก' },
+  { e: '🫙', name: 'โหลแก้ว', tier: 6, time: 'นานจนประเมินไม่ได้', note: 'แหล่งข้อมูลจัด “ขวดและโหลแก้ว” ไว้ด้วยกัน', src: 'EPA · Mote',
+    why: 'อยู่ได้นานที่สุดในชุดนี้ แต่นำไปหลอมรีไซเคิลได้', tip: 'ล้างแล้วใช้ซ้ำ หรือทิ้งถังเหลือง' },
+];
+
+const pic = (it) => `<span class="pic">${it.e}${it.badge ? `<span class="badge">${it.badge}</span>` : ''}</span>`;
+
+const frontHTML = (it, i) => `<div class="card front"><div class="inner"><span class="tag">ถ้าหลุดลงทะเล ย่อยนานแค่ไหน?</span><div class="emoji">${pic(it)}</div><div class="name"${it.small ? ' style="font-size:21pt"' : ''}>${it.fname || it.name}</div><div class="ask">วางไว้ตรงไหนในแถว?</div></div></div>`;
+
+const backAnsHTML = (it) => {
+  const band = TIERS.map((t) => `<div class="${t.n === it.tier ? 'on' : ''}" style="--tc:${t.c}">${t.n}</div>`).join('');
+  return `<div class="card ans"><div class="inner"><span class="tag">เฉลย</span><div class="emoji">${pic(it)}</div><div class="name">${it.name}</div><div class="band">${band}</div><div class="lvl" style="color:${tc(it.tier)}">ระดับ ${it.tier} · ${TIERS[it.tier - 1].name}</div><div class="time">${it.time}</div>${it.note ? `<div class="note">${it.note}</div>` : ''}<div class="why">${it.why}</div><div class="tip"><b>จัดการ:</b> ${it.tip}</div><div class="src">ที่มา: ${it.src}</div></div></div>`;
+};
+
+const LOGO_BACK = `<div class="card back"><div class="inner"><div class="logo">🌊</div><div class="bname">ย่อยนานแค่ไหน?</div><div class="bsub">เกมเรียงลำดับ · ขยะในทะเล</div></div></div>`;
+
+const rulerFront = `<div class="card ruler"><div class="inner"><span class="tag">ไม้บรรทัดเวลา</span><h3>ระดับการย่อยสลาย</h3>${TIERS.map((t) => `<div class="trow" style="--tc:${t.c}"><b>${t.n}</b><span>${t.name}</span></div>`).join('')}<div style="font-size:9.5pt;color:#5b6b5d;margin-top:2mm">ซ้าย = ย่อยเร็ว · ขวา = ย่อยช้า</div></div></div>`;
+const rulerBack = `<div class="card ruler"><div class="inner"><span class="tag">วิธีตรวจว่าวางถูกไหม</span><ul class="chk"><li>พลิกการ์ดที่เพิ่งวางดูด้านเฉลย</li><li>ระดับของใบใหม่ต้อง <b>ไม่ต่ำกว่า</b> ใบซ้ายที่อยู่ติดกัน และ <b>ไม่สูงกว่า</b> ใบขวาที่อยู่ติดกัน</li><li>ระดับ <b>เท่ากัน</b> = วางก่อนหรือหลังกันก็ได้</li><li>ผิด → เอาใบนั้นออกจากเกม แล้วรับบทลงโทษตามโหมดที่เล่น</li></ul><div style="font-size:9.5pt;color:#5b6b5d;margin-top:auto">ตัดสินด้วย “ระดับ” เท่านั้น ไม่ใช้ตัวเลขปี</div></div></div>`;
+const quickFront = `<div class="card ruler"><div class="inner"><span class="tag">เริ่มเล่นอย่างไร</span><h3>สรุป 3 บรรทัด</h3><ul class="chk"><li>วางใบเริ่มต้นกลางโต๊ะ หงาย <b>ด้านเฉลย</b></li><li>วางการ์ดใหม่ลงแถว หงาย <b>ด้านโจทย์</b> แล้วพลิกตรวจ</li><li>ถูก = อยู่ในแถวต่อ · ผิด = ออก + บทลงโทษ</li></ul><p style="font-size:10.5pt;color:#355e3b;margin-top:auto;font-weight:700">ซ้าย = ย่อยเร็ว → ขวา = ย่อยช้า</p></div></div>`;
+const srcFront = `<div class="card ruler"><div class="inner"><span class="tag">ข้อมูลมาจากไหน?</span><h3>ที่มาของเวลาในการ์ด</h3><ul class="chk" style="font-size:10.5pt"><li><b>EPA</b> สำนักงานปกป้องสิ่งแวดล้อมสหรัฐฯ</li><li><b>NPS</b> หน่วยงานอุทยานแห่งชาติสหรัฐฯ</li><li><b>NOAA</b> องค์การบริหารมหาสมุทรและบรรยากาศแห่งชาติสหรัฐฯ</li><li><b>Mote</b> ห้องปฏิบัติการทางทะเล Mote สหรัฐฯ</li></ul><div style="font-size:9.5pt;color:#5b6b5d;margin-top:auto">เป็นเวลาโดยประมาณของขยะที่อยู่ในทะเล ตามที่หน่วยงานเผยแพร่ · รายชื่อเอกสารอยู่ท้ายคู่มือ</div></div></div>`;
+
+const root = document.getElementById('sheets');
+const add = (html) => root.insertAdjacentHTML('beforeend', html);
+const pageOf = (inner, cls = '') => `<div class="page ${cls}">${inner}</div>`;
+const byTier = (n) => ITEMS.filter((it) => it.tier === n).length;
+
+/* ---------------- กติกา 4 หน้า (2 แผ่น หน้า-หลัง) ---------------- */
+add(pageOf(`
+<h1>ย่อยนานแค่ไหน? 🌊</h1>
+<p>เกมเรียงลำดับการ์ด · 2–8 คน · อายุ 8+ · 15 นาที · เล่นแข่งกันหรือร่วมมือกันก็ได้</p>
+<div class="box" style="font-size:10.5pt">ได้แรงบันดาลใจจากเกมเรียงลำดับการ์ดแนว Timeline · เวลาการย่อยสลายบนการ์ดทุกใบ มาจากเอกสารของ <b>US EPA, US NPS, NOAA และ Mote Marine Lab</b> (ดูหน้าที่มาท้ายเล่ม) · ต้นแบบนี้ยังไม่ผ่านการเล่นทดสอบกับผู้เล่นจริง</div>
+<h2>เป้าหมาย</h2>
+<p>ถ้าขยะชิ้นหนึ่ง <b>หลุดลงทะเล</b> จะใช้เวลานานแค่ไหนกว่าจะย่อยสลาย? เรียงสิ่งของจาก <b>“ย่อยเร็ว”</b> (ซ้าย) ไป <b>“ย่อยช้า”</b> (ขวา) ให้ถูกที่สุด โดยไม่รู้คำตอบล่วงหน้า</p>
+<h2>ระดับการย่อยสลาย 6 ระดับ</h2>
+<table>
+${TIERS.map((t) => `<tr><td style="width:14mm"><span class="chip" style="--tc:${t.c}">${t.n}</span></td><td>${t.name}</td><td style="width:26mm">${byTier(t.n)} ใบ</td></tr>`).join('')}
+</table>
+<div class="key">เกมตัดสินด้วย “ระดับ” ไม่ใช้ตัวเลขปี เพราะทุกแหล่งระบุว่าเป็นเวลาโดยประมาณ และแต่ละแหล่งให้ตัวเลขต่างกันเล็กน้อย แต่ทุกการ์ดอยู่ในระดับเดียวกันไม่ว่าจะใช้ตัวเลขของแหล่งไหน</div>
+<h2>อุปกรณ์</h2>
+<ul>
+<li>การ์ดสิ่งของ ${ITEMS.length} ใบ · <b>หน้า = โจทย์</b> (รูปและชื่อ) · <b>หลัง = เฉลย</b> (ระดับ เวลา เกร็ดความรู้ วิธีจัดการ และที่มา)</li>
+<li>การ์ดช่วยเล่น 3 ใบ: ไม้บรรทัดเวลา (ด้านหลังคือวิธีตรวจ), สรุปวิธีเล่น, ข้อมูลมาจากไหน</li>
+</ul>
+`, 'rules'));
+add(pageOf(`
+<h2>เตรียมเกม (ทั้งสองโหมด)</h2>
+<ol>
+<li>สับการ์ดสิ่งของ แล้ววางเป็นกอง <b>หงายด้านโจทย์ขึ้น</b> (ด้านเฉลยคว่ำอยู่ข้างล่าง ห้ามแอบดู)</li>
+<li>พลิกใบบนสุดมาวางกลางโต๊ะ <b>ด้านเฉลยขึ้น</b> เป็นใบเริ่มต้นของแถว</li>
+<li>วางการ์ดไม้บรรทัดเวลาไว้ข้างแถว ให้ทุกคนเห็น</li>
+</ol>
+<h2>โหมด ก — แข่งกัน (2–8 คน)</h2>
+<ol>
+<li>แจกการ์ด: <b>2–4 คน คนละ 4 ใบ · 5–6 คน คนละ 3 ใบ · 7–8 คน คนละ 2 ใบ</b> (ถือด้านโจทย์ ห้ามดูเฉลย)</li>
+<li>ถึงตาคุณ เลือก 1 ใบ แล้ว <b>วางลงในแถวด้านโจทย์ขึ้น</b> พร้อมบอกเหตุผลสั้นๆ</li>
+<li><b>พลิกดูเฉลย</b> แล้วตรวจกับใบซ้าย-ขวาที่อยู่ติดกัน (ดูการ์ดวิธีตรวจ)</li>
+<li>ถูก → การ์ดอยู่ในแถว (ด้านเฉลยขึ้น) · ผิด → เอาการ์ดออกจากเกม และ <b>จั่วเพิ่ม 1 ใบ</b> (ถ้ากองหมดแล้ว ไม่ต้องจั่ว)</li>
+<li>ใครวางการ์ดในมือหมดก่อน <b>ชนะ</b></li>
+</ol>
+<h2>โหมด ข — ร่วมมือกัน (2–8 คน)</h2>
+<ol>
+<li>ผลัดกันจั่วใบบนสุดของกอง ทุกคน <b>ช่วยกันคิด</b> ว่าจะวางตรงไหน แต่ผู้จั่วเป็นคนตัดสินใจ</li>
+<li>พลิกเฉลย ถูก → การ์ดอยู่ในแถว · ผิด → เอาออกจากเกม และเพิ่ม <b>🌡 ความร้อน 1 ขีด</b></li>
+<li>แถวยาวถึง <b>10 ใบ</b> ก่อนความร้อนครบ <b>3 ขีด</b> = ทุกคนชนะ</li>
+</ol>
+`, 'rules'));
+add(pageOf(`
+<h2>วิธีตรวจว่าวางถูกไหม</h2>
+<p>ระดับของใบใหม่ต้อง <b>ไม่ต่ำกว่า</b> ใบซ้ายที่อยู่ติดกัน และ <b>ไม่สูงกว่า</b> ใบขวาที่อยู่ติดกัน ถ้าระดับเท่ากัน วางก่อนหรือหลังกันก็ได้</p>
+<div class="box">ตัวอย่าง: แถวมี <b>เปลือกกล้วย (1)</b> ติดกับ <b>ขวดพลาสติก (5)</b> · วาง <b>รองเท้าหนัง (4)</b> ไว้ระหว่างกลาง → ถูก เพราะ 1 ≤ 4 ≤ 5</div>
+<h2>ทำไมต้องเป็น “ขยะในทะเล”</h2>
+<p>เวลาย่อยสลายขึ้นกับสถานที่ เช่น แดด ความชื้น อุณหภูมิ และอากาศ ตัวเลขในเกมนี้ทุกใบเป็นเวลาที่หน่วยงานประมาณไว้สำหรับ <b>ขยะที่อยู่ในทะเล</b> ถ้าอยู่ในบ่อฝังกลบหรือบนบก เวลาจะต่างไปจากนี้</p>
+<h2>เล่นกับเด็กเล็ก</h2>
+<p>ให้ดูเฉลยได้ก่อนวาง 1 ครั้งต่อรอบ หรือเล่นโหมด ข โดยไม่นับความร้อน แล้วชวนคุยว่า “ถ้านานขนาดนี้ เราควรทำยังไง”</p>
+<h2>คุยต่อหลังเกม</h2>
+<ul>
+<li>ใบไหนทำให้ทุกคนเดาผิดมากที่สุด เพราะอะไร</li>
+<li>ของที่หน้าตาคล้ายกันแต่ระดับต่างกันมาก เช่น <b>ผ้าอ้อมสองแบบ</b> หรือ <b>ห่วงรัดกระป๋องสองแบบ</b></li>
+<li>ของไหนใช้ซ้ำ รีไซเคิล หรือเลือกแบบอื่นแทนได้</li>
+</ul>
+`, 'rules'));
+add(pageOf(`
+<h2>ตัวอย่างการเล่นทีละตา (โหมด ข ร่วมมือ)</h2>
+<table>
+<tr><th style="width:12mm">ตา</th><th>เกิดอะไรขึ้น</th><th style="width:44mm">แถวตอนนี้</th></tr>
+<tr><td>เริ่ม</td><td>พลิกใบเริ่มต้นหงายเฉลย: <b>ถุงพลาสติก (4)</b></td><td>[ถุงพลาสติก 4]</td></tr>
+<tr><td>1</td><td>จั่ว <b>เปลือกกล้วย</b> ทีมเห็นว่าเน่าเร็ว จึงวาง <b>ก่อน</b> ถุงพลาสติก พลิกเฉลย: 1 ≤ 4 → <b>ถูก</b></td><td>[กล้วย 1] [ถุง 4]</td></tr>
+<tr><td>2</td><td>จั่ว <b>ขวดแก้ว</b> วาง <b>หลัง</b> ถุงพลาสติก เฉลย: 6 ≥ 4 → <b>ถูก</b></td><td>[กล้วย 1] [ถุง 4] [แก้ว 6]</td></tr>
+<tr><td>3</td><td>จั่ว <b>ก้นบุหรี่</b> ทีมคิดว่า “แค่สำลี” จึงวาง <b>ก่อน</b> เปลือกกล้วย เฉลยคือระดับ 3 แต่ใบขวาคือ 1 → <b>ผิด</b> เอาออก <b>🌡 +1</b></td><td>(เหมือนเดิม)</td></tr>
+<tr><td>4</td><td>จั่ว <b>กระป๋องอะลูมิเนียม</b> วางระหว่างถุงพลาสติกกับขวดแก้ว เฉลย: 4 ≤ 5 ≤ 6 → <b>ถูก</b></td><td>[กล้วย] [ถุง 4] [อะลูมิเนียม 5] [แก้ว]</td></tr>
+<tr><td>5</td><td>จั่ว <b>กระป๋องเหล็ก</b> ทีมคิดว่าเหล็กน่าจะทนกว่า จึงวาง <b>หลัง</b> อะลูมิเนียม เฉลยคือระดับ 4 แต่ใบซ้ายคือ 5 → <b>ผิด</b> <b>🌡 +1</b> (ที่ถูกคือวางก่อนอะลูมิเนียม)</td><td>(เหมือนเดิม)</td></tr>
+</table>
+<div class="key">สังเกต: การ์ดระดับเดียวกันวางสลับกันได้ เช่น กระป๋องเหล็กกับถุงพลาสติก (ระดับ 4 ทั้งคู่) จะวางใบไหนก่อนก็ถูก</div>
+<h2>ปรับความยากได้</h2>
+<ul>
+<li><b>ง่ายขึ้น:</b> ให้ดูเฉลยของใบที่จั่ว 1 ครั้งก่อนวาง · เล่นโดยไม่นับความร้อน</li>
+<li><b>ยากขึ้น:</b> เล่นโหมด ข ด้วยความร้อนแค่ 2 ขีด · หรือให้แถวยาว 12 ใบ</li>
+<li><b>เพิ่มเนื้อหา:</b> ก่อนวาง ให้ผู้เล่นตอบด้วยว่า “ของชิ้นนี้ควรทิ้งอย่างไร” ตอบถูกทั้งสองข้อจึงนับ</li>
+</ul>
+`, 'rules'));
+
+/* ---------------- การ์ด: จับคู่ หน้า/หลัง (หลังสลับซ้าย-ขวา เมื่อพลิกด้านยาว) ---------------- */
+const pairs = [
+  { f: rulerFront, b: rulerBack },
+  { f: quickFront, b: LOGO_BACK },
+  { f: srcFront, b: LOGO_BACK },
+  ...ITEMS.map((it, i) => ({ f: frontHTML(it, i), b: backAnsHTML(it) })),
+];
+
+const EMPTY = '<div class="card empty"></div>';
+let pages = 4;
+const per = 4;
+for (let i = 0; i < pairs.length; i += per) {
+  const chunk = pairs.slice(i, i + per);
+  const fronts = Array(per).fill(EMPTY);
+  chunk.forEach((p, k) => { fronts[k] = p.f; });
+  add(pageOf(`<div class="grid">${fronts.join('')}</div>`));
+  const backs = Array(per).fill(EMPTY);
+  chunk.forEach((p, k) => { backs[Math.floor(k / 2) * 2 + (1 - (k % 2))] = p.b; });
+  add(pageOf(`<div class="grid">${backs.join('')}</div>`));
+  pages += 2;
+}
+
+/* ---------------- ตารางเฉลยรวม + หน้าที่มา (หน้า-หลังแผ่นเดียว) ---------------- */
+add(pageOf(`
+<h1>ตารางเฉลยรวม (สำหรับครู / ผู้ตัดสิน)</h1>
+<div>ระดับ = ใช้ตัดสินเกม · เวลา = เวลาโดยประมาณของขยะในทะเล ตามแหล่งในคอลัมน์ “ที่มา”</div>
+<table>
+<tr><th>#</th><th>สิ่งของ</th><th>ระดับ</th><th>เวลา (ประมาณ)</th><th>ที่มา</th><th>จัดการ</th></tr>
+${ITEMS.map((it, i) => `<tr><td>${i + 1}</td><td>${it.e.startsWith('<svg') ? '' : it.e + ' '}${it.name}</td><td><b>${it.tier}</b></td><td>${it.time}${it.note ? `<br><span style="color:#5b6b5d">${it.note}</span>` : ''}</td><td>${it.src}</td><td>${it.tip}</td></tr>`).join('')}
+</table>
+`, 'sheet'));
+add(pageOf(`
+<h1>ที่มาของข้อมูล</h1>
+<p>เวลาการย่อยสลายบนการ์ดทุกใบ นำมาจากเอกสารด้านล่าง ซึ่งเป็นชุดข้อมูล “ขยะในทะเลอยู่ได้นานแค่ไหน” ที่หน่วยงานของสหรัฐอเมริกาใช้ในงานให้ความรู้ เมื่อแหล่งให้ตัวเลขต่างกัน การ์ดจะแสดงไว้ทั้งสองค่า</p>
+<div class="ref"><b>EPA</b> — U.S. Environmental Protection Agency, Gulf of Mexico Program. <i>Marine Debris Timeline</i> (Educator and Student Resources, หน้าเว็บเก็บถาวร พ.ศ. 2551)<br><span class="url">web.archive.org/web/2008/http://www.epa.gov/gmpo/edresources/debris_t.html</span></div>
+<div class="ref"><b>NPS</b> — U.S. National Park Service, Tonto National Monument. <i>Marine Lab Timeline</i> (ใบงานครูพร้อมเฉลย)<br><span class="url">www.nps.gov/common/uploads/teachers/lessonplans/Timeline%20(2).pdf</span></div>
+<div class="ref"><b>NOAA</b> — NOAA Marine Debris Program, Mote Marine Lab และ U.S. National Park Service (2018). <i>Decomposition rates of marine debris</i> เผยแพร่ผ่าน Our World in Data<br><span class="url">ourworldindata.org/grapher/decomposition-rates-marine-debris</span></div>
+<div class="ref"><b>Mote</b> — ตารางเวลาย่อยสลายของ Mote Marine Laboratory ที่อ้างในชุดการเรียนรู้ MARLISCO (โครงการของสหภาพยุโรป) กิจกรรม A2<br><span class="url">marlisco.eu/tl_files/marlisco/mixed-images/educational_pack/Act_A2.pdf</span></div>
+<h2>ควรรู้ก่อนนำไปสอน</h2>
+<ul>
+<li>ทุกแหล่งระบุว่าเป็น <b>เวลาโดยประมาณ</b> เพราะขึ้นกับสภาพแวดล้อม เช่น แดด ความลึก อุณหภูมิ และคลื่น</li>
+<li>พลาสติกไม่ได้ “หายไป” เมื่อครบเวลา แต่แตกเป็นชิ้นเล็กจนมองไม่เห็นด้วยตา</li>
+<li>ตัวเลขของพลาสติก เช่น ขวด “450 ปี” ยังไม่มีใครวัดได้จริง เพราะพลาสติกเพิ่งใช้แพร่หลายราว 60 ปี GRID-Arendal (องค์กรที่ทำงานร่วมกับโครงการสิ่งแวดล้อมแห่งสหประชาชาติ) อธิบายว่าเป็น “ตัวเลขประกอบการอธิบาย” ที่ช่วยให้เห็นภาพ <span class="url">marinelitter.grida.no/myth9/</span></li>
+<li>เกมจึงตัดสินด้วย <b>ระดับ</b> ซึ่งทุกแหล่งตรงกัน ไม่ใช่ตัวเลขปีที่อาจต่างกันระหว่างแหล่ง</li>
+</ul>
+<h2>สีถังขยะที่ใช้บนการ์ด</h2>
+<p>🟢 ถังเขียว = ขยะอินทรีย์ · 🟡 ถังเหลือง = ขยะรีไซเคิล · 🔵 ถังน้ำเงิน = ขยะทั่วไป · 🔴 ถังแดง = ขยะอันตราย — ตรวจกับข้อกำหนดของท้องถิ่นหรือหน่วยงานก่อนใช้จริง</p>
+`, 'sheet'));
+pages += 2;
+
+document.title = `ย่อยนานแค่ไหน? — ${ITEMS.length} ใบ (พิมพ์สองหน้า)`;
+document.querySelector('.toolbar b').textContent += ` · การ์ดสิ่งของ ${ITEMS.length} ใบ + ช่วยเล่น 3 ใบ · ${pages} หน้า (${pages / 2} แผ่น)`;
+</script>
+</body>
+</html>

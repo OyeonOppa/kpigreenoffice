@@ -1,0 +1,10 @@
+# ไฟล์ใน /assets มีเลขแฮชในชื่อ เก็บแคชได้ยาว ส่วนรูปให้ 7 วันเผื่อเปลี่ยนรูปชื่อเดิม
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/images/*
+  Cache-Control: public, max-age=604800
+
+# โดเมนสำรองของ Cloudflare ห้ามติดผลค้นหา ไม่งั้นจะซ้ำกับโดเมนจริง
+https://:project.pages.dev/*
+  X-Robots-Tag: noindex

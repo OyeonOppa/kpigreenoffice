@@ -15,6 +15,7 @@ import {
   type State,
 } from '../decompose/engine'
 import { sfx } from '../game/sfx'
+import GameGuide from '../components/seo/GameGuide'
 
 /* ย่อยนานแค่ไหน? — เกมเรียงลำดับการ์ดตามเวลาย่อยสลายของขยะในทะเล (#/decompose) */
 
@@ -76,7 +77,7 @@ export default function DecomposePage() {
   return (
     <div className="game-bg min-h-dvh flex flex-col">
       <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-2 sm:py-3 shrink-0">
-        <a href="#" className="inline-flex items-center gap-1.5 text-ink/60 hover:text-ink text-sm transition-colors">
+        <a href="/" className="inline-flex items-center gap-1.5 text-ink/60 hover:text-ink text-sm transition-colors">
           <Home size={16} /> หน้าแรก
         </a>
         <div className="flex items-center gap-2">
@@ -99,7 +100,10 @@ export default function DecomposePage() {
         {game ? (
           <Board game={game} setGame={setGame} onAgain={start} />
         ) : (
-          <Setup mode={mode} setMode={setMode} bots={bots} setBots={setBots} onStart={start} />
+          <>
+            <Setup mode={mode} setMode={setMode} bots={bots} setBots={setBots} onStart={start} />
+            <GameGuide path="/games/decompose/" />
+          </>
         )}
       </div>
     </div>

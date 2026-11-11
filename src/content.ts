@@ -72,10 +72,13 @@ export const NAV_LINKS: NavLink[] = [
       {
         label: 'Climate Change',
         href: '#climate',
-        children: [{ label: 'Carbon Footprint Calculator', href: '#calculator' }],
+        children: [{ label: 'Carbon Footprint Calculator', href: '/carbon-calculator/' }],
       },
-      { label: '3R', href: '#three-r' },
-      { label: 'จัดการขยะ', href: '#waste' },
+      { label: 'คลังความรู้ทั้งหมด', href: '/knowledge/' },
+      { label: 'หลัก 3R', href: '/knowledge/3r/' },
+      { label: 'ถังขยะ 4 สี', href: '/knowledge/waste-sorting/' },
+      { label: 'ขยะย่อยสลายนานแค่ไหน', href: '/knowledge/waste-decomposition-time/' },
+      { label: 'อาหารกับคาร์บอน', href: '/knowledge/food-carbon-footprint/' },
       {
         label: 'ผลงานของสำนัก / วิทยาลัย',
         href: '#media',
@@ -89,12 +92,13 @@ export const NAV_LINKS: NavLink[] = [
   },
   {
     label: 'Game',
-    href: '#games',
+    href: '/games/',
     children: [
+      { label: 'เกมทั้งหมด', href: '/games/' },
       { label: 'ป่า 3R ปลูกต้นไม้', href: '#/forest' },
       { label: 'ประลองแยกขยะ', href: '#/live' },
       { label: 'เกมแยกขยะลงถัง', href: '#waste-game' },
-      { label: 'คำนวณคาร์บอนฟุตพรินต์', href: '#calculator' },
+      { label: 'คำนวณคาร์บอนฟุตพริ้นท์', href: '/carbon-calculator/' },
     ],
   },
   { label: 'ความร่วมมือ', href: '#partners' },
@@ -179,10 +183,10 @@ export const ORG_IMPACT = {
 export const QUICK_ACTIONS = [
   { id: 'forest', label: 'ป่า 3R ของฉัน', href: '#/forest' },
   { id: 'live', label: 'ประลองแยกขยะ', href: '#/live' },
-  { id: 'calculator', label: 'คำนวณคาร์บอน', href: '#calculator' },
+  { id: 'calculator', label: 'คำนวณคาร์บอน', href: '/carbon-calculator/' },
   { id: 'game', label: 'เกมแยกขยะ', href: '#waste-game' },
   { id: 'policy', label: 'นโยบายของเรา', href: '#about' },
-  { id: 'bins', label: 'ถังขยะ 4 สี', href: '#waste' },
+  { id: 'bins', label: 'ถังขยะ 4 สี', href: '/knowledge/waste-sorting/' },
   { id: 'media', label: 'ผลงานของสำนัก', href: '#media' },
   { id: 'dashboard', label: 'ผลลัพธ์', href: '#dashboard' },
 ] as const
@@ -197,7 +201,7 @@ export const GAMES_PROMO = {
       title: 'ป่า 3R ปลูกต้นไม้ด้วยการลงมือทำ',
       description:
         'ทุกคนมีต้นไม้ของตัวเองคนละต้น บันทึกกิจกรรมลดใช้/ใช้ซ้ำ/แยกขยะแล้วได้แต้ม แต้มทำให้ต้นโตขึ้น และไปรวมเป็นสวนของสำนัก',
-      href: '#/forest',
+      href: '/#/forest',
       cta: 'ดูต้นของฉัน',
       featured: true,
     },
@@ -206,7 +210,7 @@ export const GAMES_PROMO = {
       title: 'ประลองแยกขยะ เล่นพร้อมกันทั้งหน่วยงาน',
       description:
         'ลากขยะลงถังให้ถูกและให้ไว 10 ข้อ ข้อละ 10 วินาที ตอบไวได้คะแนนเยอะกว่า จบเกมประกาศ 10 อันดับ (สแกน QR หรือกรอก PIN เข้าเล่นได้เลย)',
-      href: '#/live',
+      href: '/#/live',
       cta: 'เข้าห้องแข่ง',
       featured: true,
     },
@@ -215,7 +219,7 @@ export const GAMES_PROMO = {
       title: 'ฝ่าด่านลดคาร์บอน เกมไพ่ผลักดัน vs ต่อต้าน',
       description:
         'วางมาตรการลดคาร์บอนให้รอดจากด่านอุปสรรค ด่านแต่ละแบบแก้ด้วยกุญแจที่ตรงกัน เลือกเล่นได้ทั้งฝั่งผลักดันและฝั่งต่อต้าน เล่นกับบอท',
-      href: '#/barrier',
+      href: '/games/barrier/',
       cta: 'เล่นเลย',
     },
     {
@@ -223,7 +227,15 @@ export const GAMES_PROMO = {
       title: 'ส่งต่อขยะ เกมโกหก-จับโกหก',
       description:
         'ส่งไพ่ขยะคว่ำให้เพื่อน พร้อมบอกว่าทิ้งถังไหน จะจริงหรือโกหกก็ได้ ทายผิดต้องเก็บขยะไว้เอง เล่นกับบอท 3–6 คน',
-      href: '#/pass-trash',
+      href: '/games/pass-trash/',
+      cta: 'เล่นเลย',
+    },
+    {
+      emoji: '🔦',
+      title: 'ตรวจออฟฟิศก่อนกลับบ้าน',
+      description:
+        'เดินตรวจห้องที่สุ่มมา ปิดของที่เปิดทิ้งไว้โดยไม่มีคนใช้ แต่ห้ามปิดของที่ต้องเปิดตลอด เช่น เซิร์ฟเวอร์ ตู้เย็น ป้ายทางออก เล่นคนเดียว มีเฉลยทุกจุด',
+      href: '/games/office-energy/',
       cta: 'เล่นเลย',
     },
     {
@@ -231,21 +243,21 @@ export const GAMES_PROMO = {
       title: 'ย่อยนานแค่ไหน? เรียงขยะตามเวลาย่อยสลาย',
       description:
         'ถ้าขยะหลุดลงทะเล อะไรย่อยเร็ว อะไรอยู่นานเป็นร้อยปี? เรียงการ์ด 25 ใบให้ถูก เล่นคนเดียวหรือแข่งกับบอท พร้อมเฉลยและที่มาของข้อมูล',
-      href: '#/decompose',
+      href: '/games/decompose/',
       cta: 'เล่นเลย',
     },
     {
       emoji: '🗑️',
       title: 'เกมแยกขยะ ทิ้งให้ถูกถัง',
       description: 'ทดสอบว่าคุณแยกขยะถูกถังแค่ไหนใน 8 ข้อ เล่นคนเดียวได้ทุกเมื่อ',
-      href: '#waste-game',
+      href: '/knowledge/waste-sorting/#waste-game',
       cta: 'เล่นเลย',
     },
     {
       emoji: '🌍',
       title: 'เครื่องคำนวณคาร์บอนฟุตพรินต์',
       description: 'ตอบ 6 คำถาม รู้ทันทีว่าปีนึงคุณปล่อยคาร์บอนกี่ตัน',
-      href: '#calculator',
+      href: '/carbon-calculator/',
       cta: 'คำนวณเลย',
     },
   ],
@@ -253,7 +265,7 @@ export const GAMES_PROMO = {
 
 export const FOOTER = {
   about:
-    'เว็บไซต์นโยบายคาร์บอนต่ำของหน่วยงาน รวมความรู้ มาตรการ และเครื่องมือช่วยลดการปล่อยก๊าซเรือนกระจก',
+    'เว็บไซต์โครงการสถาบันคาร์บอนต่ำ (Low Carbon KPI) ของสถาบันพระปกเกล้า รวมความรู้ มาตรการ และเครื่องมือช่วยลดการปล่อยก๊าซเรือนกระจก',
   // ช่องไหนยังไม่มีข้อมูลจริงให้ปล่อยเป็นสตริงว่าง — Footer จะไม่แสดงบรรทัดนั้นเลย
   // ดีกว่าโชว์เบอร์/อีเมลปลอมบนเว็บจริงแล้วมีคนโทรหรือส่งเมลไปตามนั้น
   // TODO: ข้อมูลจริงจากหน่วยงาน — ที่อยู่ เบอร์โทร อีเมล

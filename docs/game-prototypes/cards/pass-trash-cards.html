@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>ส่งต่อขยะ — ต้นแบบการ์ด (ปริ้นได้)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 10mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Noto Sans Thai", sans-serif; color: #14261c; background: #eee; }
+  .toolbar { position: sticky; top: 0; background: #14261c; color: #fff; padding: 10px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; z-index: 9; }
+  .toolbar button { background: #22c55e; color: #fff; border: 0; border-radius: 99px; padding: 8px 18px; font: 700 14px inherit; font-family: inherit; cursor: pointer; }
+  .page { width: 190mm; min-height: 277mm; margin: 10px auto; background: #fff; page-break-after: always; break-after: page; }
+  .grid { width: 152.4mm; margin: 0 auto; display: grid; grid-template-columns: repeat(2, 76.2mm); grid-auto-rows: 101.6mm; }
+  .card { width: 76.2mm; height: 101.6mm; border: 0.3mm dashed #999; padding: 3.2mm; position: relative; display: flex; flex-direction: column; overflow: hidden; }
+  .inner { flex: 1; border-radius: 4mm; border: 0.8mm solid var(--c); background: var(--t); display: flex; flex-direction: column; align-items: center; padding: 3mm 2.5mm; text-align: center; position: relative; }
+  .tag { font-size: 8pt; font-weight: 800; color: #fff; background: var(--c); border-radius: 99px; padding: 0.3mm 3mm; }
+  .emoji { font-size: 44pt; line-height: 1.1; margin: 5mm 0 2mm; }
+  .name { font-size: 14pt; font-weight: 800; line-height: 1.2; }
+  .corner { position: absolute; bottom: 1.8mm; right: 2.4mm; transform: rotate(180deg); font-size: 7pt; color: #4b5b50; font-weight: 700; text-align: right; line-height: 1.25; }
+  .ref .binrow { display: flex; align-items: center; gap: 2mm; width: 100%; margin-top: 2mm; padding: 1.2mm 2mm; border-radius: 2.5mm; background: var(--t2); text-align: left; }
+  .ref .shape { font-size: 17pt; font-weight: 800; color: var(--c2); width: 8mm; text-align: center; line-height: 1; }
+  .ref .bn { font-size: 10pt; font-weight: 800; line-height: 1.15; }
+  .ref .bh { font-size: 7.5pt; color: #3a4a3f; line-height: 1.2; }
+  .back .inner { background: linear-gradient(160deg, #22c55e, #16a34a); justify-content: center; color: #fff; border-color: #14532d; }
+  .back .emoji { font-size: 48pt; margin: 0 0 2mm; }
+  .back .name { font-size: 18pt; }
+  .rules { padding: 12mm 15mm; font-size: 10pt; line-height: 1.5; }
+  .rules h1 { margin: 0 0 1mm; font-size: 23pt; }
+  .rules h2 { margin: 3.5mm 0 1mm; font-size: 12.5pt; color: #16a34a; }
+  .rules ul, .rules ol { margin: 1mm 0; padding-left: 5mm; }
+  .rules table { border-collapse: collapse; width: 100%; font-size: 9pt; margin: 1.5mm 0; }
+  .rules td, .rules th { border: 0.3mm solid #cfd8d1; padding: 0.8mm 2mm; text-align: left; }
+  .rules th { background: #eafbee; }
+  .note { background: #fff8e1; border-radius: 3mm; padding: 2mm 3mm; font-size: 9pt; margin-top: 3mm; }
+  .key { background: #eafbee; border-radius: 3mm; padding: 2mm 3mm; font-weight: 700; margin: 1.5mm 0; }
+
+  /* ---------- หลังการ์ด + พิมพ์สองหน้า ---------- */
+  .card.empty { border: 0; }
+  .back .inner { background: radial-gradient(circle at 15% 12%, rgba(255,255,255,.22) 0 9mm, transparent 9.2mm), radial-gradient(circle at 88% 90%, rgba(255,255,255,.16) 0 13mm, transparent 13.2mm), linear-gradient(160deg, var(--b1), var(--b2)); border: 0.8mm solid var(--b3); color: #fff; justify-content: center; }
+  .back .logo { width: 24mm; height: 24mm; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 30pt; box-shadow: 0 1mm 3mm rgba(0,0,0,.25); }
+  .back .bname { font-size: 19pt; font-weight: 800; line-height: 1.1; margin-top: 2.5mm; }
+  .back .bsub { font-size: 8.5pt; opacity: .95; margin-top: 1mm; }
+  .back .borg { font-size: 7pt; opacity: .8; margin-top: 3mm; letter-spacing: .3mm; }
+  .half .back .logo { width: 13mm; height: 13mm; font-size: 16pt; }
+  .half .back .bname { font-size: 13pt; margin-top: 1mm; }
+  .half .back .bsub { font-size: 7pt; margin-top: 0; }
+  .half .back .borg { font-size: 6pt; margin-top: 1mm; }
+  .page.blank::before { content: "(หน้าหลังของแผ่นนี้ — เว้นว่างไว้ ใช้ให้การพิมพ์สองหน้าเรียงถูก)"; display: block; padding: 10mm; color: #aaa; font-size: 9pt; }
+  @media print { .sect { display: none; } .page.blank::before { content: none; } }
+
+  /* ---------- การ์ดใหญ่ 3x4 นิ้ว ตัวอักษรใหญ่ ---------- */
+  .inner { padding: 3.5mm 3mm; justify-content: center; }
+  .tag { font-size: 9.5pt; padding: 0.5mm 3.5mm; }
+  .inner.waste .emoji { font-size: 72pt; margin: 4mm 0 3mm; }
+  .inner.waste .name { font-size: 24pt; line-height: 1.2; }
+  .corner { font-size: 10pt; bottom: 3.5mm; right: 4.5mm; }
+  .ref .binrow { gap: 3.5mm; margin-top: 3mm; padding: 1.8mm 3mm; border-radius: 3mm; }
+  .ref .shape { font-size: 30pt; width: 12mm; }
+  .ref .bn { font-size: 16pt; }
+  .ref .bh { font-size: 11.5pt; }
+  .back .logo { width: 30mm; height: 30mm; font-size: 38pt; }
+  .back .bname { font-size: 24pt; }
+  .back .bsub { font-size: 11pt; }
+  .back .borg { font-size: 8.5pt; }
+  @media print {
+    body { background: #fff; } .toolbar { display: none; }
+    .page { margin: 0; width: auto; min-height: 0; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <b>ส่งต่อขยะ — ต้นแบบการ์ด</b>
+  <button onclick="window.print()">พิมพ์ / บันทึกเป็น PDF</button>
+  <span style="font-size:12px;opacity:.8">A4 · พิมพ์สองหน้า (Two-sided) แบบ <b>Flip on long edge / พลิกด้านยาว</b> · Scale 100% · เปิด Background graphics</span>
+</div>
+
+<div class="page rules">
+  <h1>ส่งต่อขยะ 🗑️</h1>
+  <div>เกมโกหก-จับโกหก แยกขยะ · 3–6 คน · อายุ 8+ · 10–15 นาที</div>
+
+  <h2>เป้าหมาย</h2>
+  อย่าให้ขยะ <b>ถังสีเดียวกันครบ 5 ใบ</b> มาอยู่ที่กองหน้าตัวเอง ใครครบก่อน <b>แพ้</b> คนที่เหลือชนะ
+
+  <h2>เตรียมเกม</h2>
+  <ul>
+    <li>สับการ์ดขยะ 40 ใบ แจกให้เท่ากัน: <b>3 คน</b> 13 ใบ · <b>4 คน</b> 10 ใบ · <b>5 คน</b> 8 ใบ · <b>6 คน</b> 6 ใบ (ส่วนเกินเก็บออกจากเกม)</li>
+    <li>ถือการ์ดในมือ ห้ามให้คนอื่นเห็น · หน้าตัวเองเว้นที่ไว้เป็น <b>กองขยะของฉัน</b> (วางการ์ดหงายหน้า)</li>
+    <li>ทุกคนมีการ์ดสรุปถัง 1 ใบวางไว้ดูได้</li>
+  </ul>
+
+  <h2>ตาของคุณ</h2>
+  <ol>
+    <li>เลือกการ์ด 1 ใบจากมือ <b>คว่ำหน้า</b> ยื่นให้ผู้เล่น 1 คน</li>
+    <li>พูดว่า <b>"นี่คือขยะที่ต้องทิ้ง ถัง[เขียว/เหลือง/น้ำเงิน/แดง]"</b> จะจริงหรือโกหกก็ได้ (พูดเหตุผลเพิ่มได้ไม่เกิน 1 ประโยค)</li>
+  </ol>
+
+  <h2>ผู้รับเลือก 1 ใน 3 ทาง</h2>
+  <ul>
+    <li><b>✅ "จริง"</b> — เชื่อว่าพูดถูก</li>
+    <li><b>❌ "โกหก"</b> — เชื่อว่าพูดผิด</li>
+    <li><b>↪️ "ส่งต่อ"</b> — แอบดูการ์ด 1 ครั้ง แล้วต้องส่งต่อให้คนอื่นที่ยังไม่เคยดูใบนี้ พร้อมพูดถังใหม่ (จะเหมือนเดิมหรือเปลี่ยนก็ได้) ถ้าเหลือแต่คนสุดท้าย ห้ามส่งต่อ ต้องทาย</li>
+  </ul>
+  ทายแล้ว <b>พลิกการ์ดดู</b> แล้วอ่านชื่อขยะกับถังที่ถูกดังๆ ทุกครั้ง
+
+  <div class="key">ทายถูก → ผู้ส่งเก็บการ์ด · ทายผิด → ผู้รับเก็บการ์ด<br>การ์ดที่เก็บ วางหงายในกองขยะของคนนั้น คนที่เก็บเป็นผู้เริ่มตาต่อไป</div>
+
+  <table>
+    <tr><th>ผู้ส่งพูด</th><th>ผู้รับทาย</th><th>ผล</th><th>ใครเก็บ</th></tr>
+    <tr><td>จริง</td><td>"จริง"</td><td>ถูก</td><td>ผู้ส่ง</td></tr>
+    <tr><td>จริง</td><td>"โกหก"</td><td>ผิด</td><td>ผู้รับ</td></tr>
+    <tr><td>โกหก</td><td>"จริง"</td><td>ผิด</td><td>ผู้รับ</td></tr>
+    <tr><td>โกหก</td><td>"โกหก"</td><td>ถูก</td><td>ผู้ส่ง</td></tr>
+  </table>
+
+  <h2>จบเกม</h2>
+  <ul>
+    <li>ใครมีขยะถังเดียวกันครบ <b>5 ใบ</b> แพ้ทันที (เล่น 5–6 คน ถ้าเกมเร็วไป ลดเป็น 4 ใบ)</li>
+    <li>ถึงตาใครแล้วไม่มีการ์ดในมือ เกมจบ: คนที่มีขยะถังเดียวกันมากที่สุดแพ้ (เท่ากัน นับรวมทั้งหมด)</li>
+  </ul>
+
+  <h2>ระดับความยาก</h2>
+  <table>
+    <tr><th>เด็ก</th><td>ผู้รับดูการ์ดได้ก่อนตัดสินทุกครั้ง (เน้นเรียนรู้ ไม่มีโกหกจริง)</td></tr>
+    <tr><th>ปกติ</th><td>ตามกติกาข้างต้น</td></tr>
+    <tr><th>ยาก</th><td>ต้องพูดชื่อเต็มของขยะที่อ้าง เช่น "ขวดแก้ว" (ไม่ใช่แค่ถัง) ไว้ใช้เมื่อจำการ์ดได้แล้ว</td></tr>
+  </table>
+  <div class="note">เฉลยตัวเล็กกลับหัวที่มุมขวาล่างของการ์ดขยะ ใช้ตัดสินเวลาเถียงกัน · ต้นแบบนี้ใช้ทดสอบความสนุกและบาลานซ์ ตัวเลขยังไม่ผ่านการเล่นทดสอบ และเนื้อหาต้องให้ผู้เชี่ยวชาญตรวจก่อนผลิตจริง</div>
+</div>
+
+<div class="page blank"></div>
+<div id="sheets"></div>
+
+<script>
+const BIN = {
+  green:  { c:'#16a34a', t:'#eafbee', shape:'●', name:'ถังเขียว',  hint:'เศษอาหาร' },
+  yellow: { c:'#d99a00', t:'#fff8e1', shape:'▲', name:'ถังเหลือง', hint:'รีไซเคิล' },
+  blue:   { c:'#0284c7', t:'#e6f6fe', shape:'■', name:'ถังน้ำเงิน', hint:'ขยะทั่วไป' },
+  red:    { c:'#e4573d', t:'#ffede9', shape:'◆', name:'ถังแดง',    hint:'ขยะอันตราย' },
+};
+const waste = {
+  green:  [['🍌','เปลือกกล้วย'],['🍚','เศษข้าว'],['🍊','เปลือกส้ม'],['🍗','กระดูกไก่'],['🥬','เศษผัก'],['🐟','ก้างปลา'],['🍂','ใบไม้แห้ง'],['☕','กากกาแฟ'],['🥚','เปลือกไข่'],['🍉','เปลือกแตงโม']],
+  yellow: [['🍾','ขวดน้ำพลาสติกใส'],['🥫','กระป๋องน้ำอัดลม'],['📦','กล่องกระดาษ'],['📰','หนังสือพิมพ์'],['🫙','ขวดแก้ว'],['📄','กระดาษ A4'],['🛢️','ขวดน้ำมันพืช'],['🥛','กระป๋องนมเปล่า'],['📚','หนังสือเก่า'],['🥤','ขวดน้ำอัดลม PET'],['🧃','กล่องนมล้างสะอาด']],
+  blue:   [['🍿','ถุงขนมเปื้อน'],['🥡','แก้วกาแฟเปื้อน'],['🧻','ทิชชู่ใช้แล้ว'],['🍱','โฟมใส่อาหาร'],['🛍️','ถุงพลาสติกเปื้อน'],['🥢','หลอดดูด'],['🍜','ซองบะหมี่'],['🪥','แปรงสีฟันเก่า'],['🍦','ถ้วยโยเกิร์ตเปื้อน'],['🧽','ฟองน้ำล้างจาน']],
+  red:    [['🔋','ถ่านไฟฉาย'],['💡','หลอดไฟ'],['🧴','กระป๋องสเปรย์'],['☠️','ขวดยาฆ่าแมลง'],['💊','ยาหมดอายุ'],['📱','แบตเตอรี่มือถือ'],['🌡️','เทอร์โมมิเตอร์ปรอท'],['🖨️','ตลับหมึกพิมพ์'],['🎨','กระป๋องสีทาบ้าน']],
+};
+const cards = [];
+for (const [k, list] of Object.entries(waste)) for (const [e, n] of list) cards.push({ type:'waste', bin:k, e, n });
+const WASTE_COUNT = cards.length;
+for (let i = 0; i < 6; i++) cards.push({ type:'ref' });
+
+function cardHTML(c) {
+  if (c.type === 'waste') {
+    const b = BIN[c.bin];
+    return `<div class="card"><div class="inner waste" style="--c:#6b7a70;--t:#fff"><span class="tag">ขยะ</span>
+      <div class="emoji">${c.e}</div><div class="name">${c.n}</div></div>
+      <div class="corner">เฉลย<br>${b.shape} ${b.name}</div></div>`;
+  }
+  const rows = Object.values(BIN).map(b =>
+    `<div class="binrow" style="--t2:${b.t};--c2:${b.c}"><span class="shape">${b.shape}</span><div><div class="bn">${b.name}</div><div class="bh">${b.hint}</div></div></div>`).join('');
+  return `<div class="card ref"><div class="inner" style="--c:#16a34a;--t:#fff"><span class="tag">สรุปถัง</span>${rows}</div></div>`;
+}
+const backHTML = `<div class="card back" style="--b1:#38bdf8;--b2:#0284c7;--b3:#075985"><div class="inner"><div class="logo">↪️</div><div class="bname">ส่งต่อขยะ</div><div class="bsub">เกมโกหก-จับโกหก แยกขยะ</div><div class="borg">KPI Green Office</div></div></div>`;
+const EMPTY = '<div class="card empty"></div>';
+let totalPages = 0;
+// หน้าหน้า + หน้าหลังสลับกัน — หลังการ์ดสลับซ้าย-ขวาเพื่อให้ตรงกับหน้าหน้าเมื่อพลิกแบบ long edge
+function duplex(root, fronts, per, gridCls, back, label) {
+  for (let i = 0; i < fronts.length; i += per) {
+    const chunk = fronts.slice(i, i + per);
+    root.insertAdjacentHTML('beforeend', `<div class="page"><div class="sect">${label} (${Math.floor(i / per) + 1}/${Math.ceil(fronts.length / per)})</div><div class="grid ${gridCls}">${chunk.join('')}</div></div>`);
+    const cells = Array(per).fill(EMPTY);
+    chunk.forEach((_, k) => { cells[Math.floor(k / 2) * 2 + (1 - (k % 2))] = back; });
+    root.insertAdjacentHTML('beforeend', `<div class="page"><div class="grid ${gridCls}">${cells.join('')}</div></div>`);
+    totalPages += 2;
+  }
+}
+const root = document.getElementById('sheets');
+
+duplex(root, cards.map(cardHTML), 4, '', backHTML, 'การ์ดขยะ ' + WASTE_COUNT + ' ใบ + การ์ดสรุปถัง 6 ใบ');
+document.title = 'ส่งต่อขยะ — ' + WASTE_COUNT + ' ใบขยะ (พิมพ์สองหน้า)';
+document.querySelector('.toolbar b').textContent += ' (ขยะ ' + WASTE_COUNT + ' ใบ + สรุปถัง 6 ใบ, ' + (totalPages + 2) + ' หน้ารวมกติกา)';
+</script>
+</body>
+</html>

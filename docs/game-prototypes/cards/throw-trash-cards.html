@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>โยนขยะ! — ต้นแบบการ์ด (ปริ้นได้)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 10mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Noto Sans Thai", sans-serif; color: #14261c; background: #eee; }
+  .toolbar { position: sticky; top: 0; background: #14261c; color: #fff; padding: 10px 16px; display: flex; gap: 12px; align-items: center; z-index: 9; }
+  .toolbar button { background: #22c55e; color: #fff; border: 0; border-radius: 99px; padding: 8px 18px; font: 700 14px inherit; font-family: inherit; cursor: pointer; }
+  .page { width: 190mm; min-height: 277mm; margin: 10px auto; background: #fff; padding: 0; page-break-after: always; break-after: page; }
+  .grid { width: 152.4mm; margin: 0 auto; display: grid; grid-template-columns: repeat(2, 76.2mm); grid-auto-rows: 101.6mm; }
+  .card { width: 76.2mm; height: 101.6mm; border: 0.3mm dashed #999; padding: 3.2mm; position: relative; display: flex; flex-direction: column; overflow: hidden; }
+  .card .inner { flex: 1; border-radius: 4mm; border: 0.8mm solid var(--c); background: var(--t); display: flex; flex-direction: column; align-items: center; padding: 3mm 2.5mm; text-align: center; position: relative; }
+  .tag { font-size: 8pt; font-weight: 800; color: #fff; background: var(--c); border-radius: 99px; padding: 0.3mm 3mm; }
+  .emoji { font-size: 34pt; line-height: 1.1; margin: 3mm 0 1mm; }
+  .name { font-size: 12.5pt; font-weight: 800; line-height: 1.2; }
+  .desc { font-size: 8.5pt; line-height: 1.35; margin-top: 2mm; color: #2c3e33; }
+  .big { font-size: 17pt; font-weight: 800; color: var(--c); margin-top: auto; }
+  .corner { position: absolute; bottom: 1.5mm; right: 2mm; transform: rotate(180deg); font-size: 6.5pt; color: #5b6b60; font-weight: 600; }
+  .shape { font-size: 22pt; font-weight: 800; color: var(--c); line-height: 1; }
+  .binname { font-size: 15pt; font-weight: 800; margin-top: 2mm; }
+  .binhint { font-size: 8.5pt; margin-top: 1mm; color: #2c3e33; }
+  .back .inner { background: linear-gradient(160deg, #22c55e, #16a34a); justify-content: center; color: #fff; border-color: #14532d; }
+  .back .emoji { font-size: 46pt; }
+  .back .name { font-size: 18pt; }
+  .rules { padding: 14mm 16mm; font-size: 10.5pt; line-height: 1.55; }
+  .rules h1 { margin: 0 0 2mm; font-size: 24pt; }
+  .rules h2 { margin: 5mm 0 1mm; font-size: 13pt; color: #16a34a; }
+  .rules ul { margin: 1mm 0; padding-left: 5mm; }
+  .rules table { border-collapse: collapse; width: 100%; font-size: 9.5pt; }
+  .rules td, .rules th { border: 0.3mm solid #cfd8d1; padding: 1mm 2mm; text-align: left; }
+  .note { background: #fff8e1; border-radius: 3mm; padding: 2mm 3mm; font-size: 9.5pt; margin-top: 4mm; }
+
+  /* ---------- หลังการ์ด + พิมพ์สองหน้า ---------- */
+  .card.empty { border: 0; }
+  .back .inner { background: radial-gradient(circle at 15% 12%, rgba(255,255,255,.22) 0 9mm, transparent 9.2mm), radial-gradient(circle at 88% 90%, rgba(255,255,255,.16) 0 13mm, transparent 13.2mm), linear-gradient(160deg, var(--b1), var(--b2)); border: 0.8mm solid var(--b3); color: #fff; justify-content: center; }
+  .back .logo { width: 24mm; height: 24mm; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 30pt; box-shadow: 0 1mm 3mm rgba(0,0,0,.25); }
+  .back .bname { font-size: 19pt; font-weight: 800; line-height: 1.1; margin-top: 2.5mm; }
+  .back .bsub { font-size: 8.5pt; opacity: .95; margin-top: 1mm; }
+  .back .borg { font-size: 7pt; opacity: .8; margin-top: 3mm; letter-spacing: .3mm; }
+  .half .back .logo { width: 13mm; height: 13mm; font-size: 16pt; }
+  .half .back .bname { font-size: 13pt; margin-top: 1mm; }
+  .half .back .bsub { font-size: 7pt; margin-top: 0; }
+  .half .back .borg { font-size: 6pt; margin-top: 1mm; }
+  .page.blank::before { content: "(หน้าหลังของแผ่นนี้ — เว้นว่างไว้ ใช้ให้การพิมพ์สองหน้าเรียงถูก)"; display: block; padding: 10mm; color: #aaa; font-size: 9pt; }
+  @media print { .sect { display: none; } .page.blank::before { content: none; } }
+
+  /* ---------- การ์ดใหญ่ 3x4 นิ้ว ตัวอักษรใหญ่ ---------- */
+  .card .inner { padding: 3.5mm 3mm; justify-content: center; }
+  .tag { font-size: 9.5pt; padding: 0.5mm 3.5mm; }
+  .emoji { font-size: 44pt; margin: 3mm 0 2mm; }
+  .name { font-size: 17pt; line-height: 1.2; }
+  .desc { font-size: 12pt; line-height: 1.42; margin-top: 3mm; color: #1f2f26; }
+  .big { font-size: 20pt; margin-top: 3mm; }
+  .inner.waste .emoji { font-size: 72pt; margin: 4mm 0 3mm; }
+  .inner.waste .name { font-size: 24pt; }
+  .corner { font-size: 10pt; bottom: 3.5mm; right: 4.5mm; }
+  .binname { font-size: 26pt; margin-top: 3mm; }
+  .binhint { font-size: 15pt; margin-top: 2mm; }
+  .back .logo { width: 30mm; height: 30mm; font-size: 38pt; }
+  .back .bname { font-size: 24pt; }
+  .back .bsub { font-size: 11pt; }
+  .back .borg { font-size: 8.5pt; }
+  @media print {
+    body { background: #fff; } .toolbar { display: none; }
+    .page { margin: 0; width: auto; min-height: 0; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <b>โยนขยะ! — ต้นแบบการ์ด</b>
+  <button onclick="window.print()">พิมพ์ / บันทึกเป็น PDF</button>
+  <span style="font-size:12px;opacity:.8">A4 · พิมพ์สองหน้า (Two-sided) แบบ <b>Flip on long edge / พลิกด้านยาว</b> · Scale 100% · เปิด Background graphics</span>
+</div>
+
+<div class="page rules">
+  <h1>โยนขยะ! 🗑️</h1>
+  <div>เกมการ์ดปาร์ตี้แยกขยะ · 2–6 คน · อายุ 7+ · 15–20 นาที</div>
+
+  <h2>เป้าหมาย</h2>
+  แต่ละคนสร้าง "บ้านสีเขียว" ของตัวเอง สะสม <b>ใบไม้ 🍃</b> จากการ์ดบัฟ ใครมี <b>ใบไม้สุทธิ 10</b> ตอนจบตาของตัวเองก่อน ชนะ<br>
+  <b>ใบไม้สุทธิ = ใบไม้บนการ์ดบัฟของคุณ − จำนวนขยะที่ค้างในบ้านคุณ</b>
+
+  <h2>เตรียมเกม</h2>
+  <ul>
+    <li>สับการ์ดทั้งหมด (ขยะ ถัง บัฟ แกล้ง ป้องกัน) เป็นกองจั่วเดียว แจกคนละ 5 ใบ</li>
+    <li>หน้าตัวเองวาง 2 โซน: <b>โซนบัฟ</b> (การ์ดบัฟที่เล่นแล้ว) และ <b>บ้าน</b> (ขยะที่อยู่ในบ้านคุณ)</li>
+  </ul>
+
+  <h2>ในตาของคุณ</h2>
+  จั่ว 1 ใบ แล้วทำได้ <b>2 การกระทำ</b> เลือกจาก:
+  <ul>
+    <li>🍃 <b>เล่นการ์ดบัฟ</b> วางในโซนบัฟ แล้วทำตามผลบนการ์ด</li>
+    <li>♻️ <b>แยกขยะ</b> เล่นการ์ดถังสีที่ถูกต้อง 1 ใบ + ขยะ 1 ใบจากบ้านคุณ ทิ้งทั้งคู่ลงกองทิ้ง (ดูสีและรูปทรงที่มุมการ์ดขยะ)</li>
+    <li>🗑️ <b>โยนขยะ</b> วางการ์ดขยะจากมือลงบ้านของคนอื่น (ไม่เกิน 1 ใบต่อตา)</li>
+    <li>💨 <b>เล่นการ์ดแกล้ง</b> ทำตามผลบนการ์ด</li>
+  </ul>
+  จบตาแล้วมือเกิน 7 ใบให้ทิ้งจนเหลือ 7 ใบ
+
+  <h2>"จับผิด!" ✋</h2>
+  ถ้าแยกขยะลงถัง<b>ผิดสี</b> แล้วมีคนตะโกน "จับผิด!" ทันก่อนจบตา คนที่ตะโกนเร็วสุดเก็บ<b>การ์ดถังที่ใช้ผิดนั้น</b>ไปวางในโซนบัฟของตัวเอง นับเป็น <b>+1 ใบไม้</b> ส่วนขยะใบนั้นยังค้างในบ้านคุณ<br>
+  <small>เฉลยตัวเล็กอยู่มุมขวาล่างของการ์ดขยะ (พิมพ์กลับหัว) ใช้ตัดสินเวลาเถียงกัน</small>
+
+  <h2>การ์ดป้องกัน ✋ (เล่นนอกตาได้)</h2>
+  เมื่อมีคนเล่นการ์ดแกล้ง/โยนขยะใส่คุณ ทิ้งการ์ดป้องกันที่ตรงกับผลนั้นเพื่อยกเลิกได้ทันที
+
+  <h2>ขยะอันตราย 🔴</h2>
+  ขยะสีแดง (ถ่าน หลอดไฟ ฯลฯ) ถ้าค้างในบ้านตอนเริ่มตาคุณ <b>เสีย 1 ใบไม้ในโซนบัฟ</b> (ทิ้งการ์ดบัฟ 1 ใบ) ทิ้งได้ด้วยถังแดงเท่านั้น
+
+  <h2>กฎช่วยคนตามหลัง</h2>
+  ถ้าบ้านใครมีขยะครบ 5 ใบ <b>รถเทศบาลมาเก็บให้ทันที 2 ใบ</b> (เลือกใบที่จะเก็บ)
+
+  <h2>กองจั่วหมด</h2>
+  สับกองทิ้งเป็นกองจั่วใหม่
+
+  <table style="margin-top:4mm">
+    <tr><th>สี</th><th>รูปทรง</th><th>ถัง</th><th>ใส่อะไร</th></tr>
+    <tr><td>🟢 เขียว</td><td>● วงกลม</td><td>เศษอาหาร</td><td>เปลือกผลไม้ เศษอาหาร ใบไม้</td></tr>
+    <tr><td>🟡 เหลือง</td><td>▲ สามเหลี่ยม</td><td>รีไซเคิล</td><td>ขวด กระป๋อง กระดาษ แก้ว (สะอาด)</td></tr>
+    <tr><td>🔵 น้ำเงิน</td><td>■ สี่เหลี่ยม</td><td>ขยะทั่วไป</td><td>ของเปื้อน โฟม ถุงขนม ทิชชู่</td></tr>
+    <tr><td>🔴 แดง</td><td>◆ ข้าวหลามตัด</td><td>ขยะอันตราย</td><td>ถ่าน หลอดไฟ สเปรย์ ยา สารเคมี</td></tr>
+  </table>
+  <div class="note"><b>เล่นแบบที่ 2 "ตบถัง!"</b> วางการ์ดถัง 4 ใบกลางวง เปิดการ์ดขยะทีละใบ ใครตบถังที่ถูกก่อนเก็บการ์ดใบนั้น ครบกอง ใครเก็บได้เยอะที่สุดชนะ (ใช้กับห้องเรียนได้: ครูชูการ์ด ทีมชูป้ายถัง)</div>
+  <div class="note" style="background:#e6f6fe">ต้นแบบนี้ใช้ทดสอบความสนุกและบาลานซ์ ตัวเลขและเนื้อหายังต้องให้ผู้เชี่ยวชาญตรวจก่อนผลิตจริง</div>
+</div>
+
+<div class="page blank"></div>
+<div id="sheets"></div>
+
+<script>
+const BIN = {
+  green:  { c:'#16a34a', t:'#eafbee', shape:'●', name:'ถังเขียว',  hint:'เศษอาหาร' },
+  yellow: { c:'#d99a00', t:'#fff8e1', shape:'▲', name:'ถังเหลือง', hint:'รีไซเคิล' },
+  blue:   { c:'#0284c7', t:'#e6f6fe', shape:'■', name:'ถังน้ำเงิน', hint:'ขยะทั่วไป' },
+  red:    { c:'#e4573d', t:'#ffede9', shape:'◆', name:'ถังแดง',    hint:'ขยะอันตราย' },
+};
+const waste = {
+  green:  [['🍌','เปลือกกล้วย'],['🍚','เศษข้าว'],['🍊','เปลือกส้ม'],['🍗','กระดูกไก่'],['🥬','เศษผัก'],['🐟','ก้างปลา'],['🍂','ใบไม้แห้ง'],['☕','กากกาแฟ'],['🥚','เปลือกไข่'],['🍉','เปลือกแตงโม']],
+  yellow: [['🍾','ขวดน้ำพลาสติกใส'],['🥫','กระป๋องน้ำอัดลม'],['📦','กล่องกระดาษ'],['📰','หนังสือพิมพ์'],['🫙','ขวดแก้ว'],['📄','กระดาษ A4'],['🛢️','ขวดน้ำมันพืช'],['🥛','กระป๋องนมเปล่า'],['📚','หนังสือเก่า'],['🥤','ขวดน้ำอัดลม PET'],['🧃','กล่องนมล้างสะอาด']],
+  blue:   [['🍿','ถุงขนมเปื้อน'],['☕','แก้วกาแฟเปื้อน'],['🧻','ทิชชู่ใช้แล้ว'],['🍱','โฟมใส่อาหาร'],['🛍️','ถุงพลาสติกเปื้อน'],['🥢','หลอดดูด'],['🍜','ซองบะหมี่'],['🪥','แปรงสีฟันเก่า'],['🍦','ถ้วยโยเกิร์ตเปื้อน'],['🧽','ฟองน้ำล้างจาน']],
+  red:    [['🔋','ถ่านไฟฉาย'],['💡','หลอดไฟ'],['🧴','กระป๋องสเปรย์'],['☠️','ขวดยาฆ่าแมลง'],['💊','ยาหมดอายุ'],['📱','แบตเตอรี่มือถือ'],['🌡️','เทอร์โมมิเตอร์ปรอท'],['🖨️','ตลับหมึกพิมพ์'],['🎨','กระป๋องสีทาบ้าน']],
+};
+const buffs = [
+  ['🌳','ปลูกต้นไม้','+1 🍃','วางในโซนบัฟ นับเป็น 1 ใบไม้',1,6],
+  ['☀️','โซลาร์รูฟ','+3 🍃','ลงทุนสูง: ทิ้งการ์ดในมือ 2 ใบ แล้ววางการ์ดนี้',3,2],
+  ['🪱','ทำปุ๋ยหมัก','+1 🍃','ขยะสีเขียว (●) ทุกใบในบ้านคุณ ทิ้งทันทีโดยไม่ต้องใช้ถัง แล้ววางการ์ดนี้',1,3],
+  ['🏦','ธนาคารขยะ','+2 🍃','ทิ้งการ์ดขยะสีเหลือง 3 ใบจากมือ (ที่แยกถูก) เพื่อวางการ์ดนี้',2,3],
+  ['👜','ใช้ถุงผ้า','+1 🍃','วางในโซนบัฟ ถ้ามีการ์ด "แจกถุงพลาสติก" โจมตีคุณ ไม่ต้องรับขยะ',1,3],
+  ['💡','ปิดไฟก่อนกลับ','+1 🍃','วางในโซนบัฟ แล้วจั่วการ์ดเพิ่ม 1 ใบ',1,3],
+  ['🔧','ซ่อมแทนซื้อใหม่','+2 🍃','เลือกขยะ 1 ใบในบ้านคุณ นำกลับขึ้นมือแล้วเก็บไว้ใช้โยนต่อ',2,2],
+  ['🤝','ชวนเพื่อนแยกขยะ','+1 🍃','เลือกผู้เล่นอีกคน คุณและเขาจั่ว 1 ใบ',1,3],
+];
+const pranks = [
+  ['🔥','เผาขยะ!','ขยะในบ้านคุณหมดทันที','แต่คุณและคนซ้าย-ขวาของคุณ ทิ้งการ์ดบัฟ 1 ใบ เผาแล้วทุกคนเดือดร้อน!',2],
+  ['🛍️','แจกถุงพลาสติก','ทุกคนรับขยะ','ผู้เล่นทุกคนรับการ์ดขยะสีน้ำเงิน 1 ใบจากกองจั่วลงบ้าน (ของฟรีมีต้นทุน)',2],
+  ['💡','เปิดไฟทิ้งไว้','เลือก 1 คน','เลือกผู้เล่น 1 คน ทิ้งการ์ดบัฟ 1 ใบ (เขาเลือกใบเอง)',3],
+  ['🌪️','ลมพัดขยะ','สลับขยะ','เลือกขยะ 1 ใบจากบ้านใครก็ได้ ย้ายไปบ้านคนอื่นที่คุณเลือก',3],
+  ['🎁','ของแถมฟรี','ยัดเยียด','ให้ผู้เล่น 1 คนรับขยะ 2 ใบจากมือคุณลงบ้านเขา (นับเป็นการโยนขยะ)',3],
+  ['💨','ควันจากการเผา','ทุกคนหายใจลำบาก','ผู้เล่นทุกคนที่มีขยะในบ้าน 3 ใบขึ้นไป ทิ้งการ์ดในมือ 1 ใบ',2],
+];
+const defs = [
+  ['🙅','ไม่รับถุงค่ะ','ยกเลิก','ยกเลิกการ์ด "แจกถุงพลาสติก" หรือ "ของแถมฟรี" ที่เล่นใส่คุณ',4],
+  ['📞','แจ้งเทศบาล','ส่งกลับ','เมื่อมีการโยนขยะใส่บ้านคุณ ส่งขยะใบนั้นกลับบ้านคนโยน',3],
+  ['🪣','ถังมีฝาปิด','กันไว้','ยกเลิกการ์ด "ลมพัดขยะ" หรือ "ควันจากการเผา" ที่เล่นใส่คุณ',3],
+];
+
+const cards = [];
+for (const [k, list] of Object.entries(waste)) for (const [e, n] of list)
+  cards.push({ type:'waste', bin:k, e, n });
+for (const k of Object.keys(BIN)) for (let i = 0; i < 5; i++) cards.push({ type:'bin', bin:k });
+for (const [e,n,big,d,v,q] of buffs) for (let i=0;i<q;i++) cards.push({ type:'buff', e,n,big,d });
+for (const [e,n,big,d,q] of pranks) for (let i=0;i<q;i++) cards.push({ type:'prank', e,n,big,d });
+for (const [e,n,big,d,q] of defs) for (let i=0;i<q;i++) cards.push({ type:'def', e,n,big,d });
+
+const STYLE = {
+  buff:  { c:'#16a34a', t:'#eafbee', tag:'บัฟ' },
+  prank: { c:'#e4573d', t:'#ffede9', tag:'แกล้ง' },
+  def:   { c:'#0284c7', t:'#e6f6fe', tag:'ป้องกัน' },
+};
+
+function cardHTML(c) {
+  if (c.type === 'waste') {
+    const b = BIN[c.bin];
+    return `<div class="card"><div class="inner waste" style="--c:#6b7a70;--t:#fff"><span class="tag">ขยะ</span>
+      <div class="emoji">${c.e}</div><div class="name">${c.n}</div></div>
+      <div class="corner">${b.shape} ${b.name}</div></div>`;
+  }
+  if (c.type === 'bin') {
+    const b = BIN[c.bin];
+    return `<div class="card"><div class="inner" style="--c:${b.c};--t:${b.t}"><span class="tag">ถัง</span>
+      <div class="shape" style="font-size:84pt;margin-top:2mm">${b.shape}</div>
+      <div class="binname" style="color:${b.c}">${b.name}</div><div class="binhint">${b.hint}</div></div></div>`;
+  }
+  const s = STYLE[c.type];
+  return `<div class="card"><div class="inner" style="--c:${s.c};--t:${s.t}"><span class="tag">${s.tag}</span>
+    <div class="emoji">${c.e}</div><div class="name">${c.n}</div>
+    <div class="desc">${c.d}</div><div class="big">${c.big}</div></div></div>`;
+}
+const backHTML = `<div class="card back" style="--b1:#22c55e;--b2:#16a34a;--b3:#14532d"><div class="inner"><div class="logo">🗑️</div><div class="bname">โยนขยะ!</div><div class="bsub">เกมการ์ดปาร์ตี้แยกขยะ</div><div class="borg">KPI Green Office</div></div></div>`;
+const EMPTY = '<div class="card empty"></div>';
+let totalPages = 0;
+// หน้าหน้า + หน้าหลังสลับกัน — หลังการ์ดสลับซ้าย-ขวาเพื่อให้ตรงกับหน้าหน้าเมื่อพลิกแบบ long edge
+function duplex(root, fronts, per, gridCls, back, label) {
+  for (let i = 0; i < fronts.length; i += per) {
+    const chunk = fronts.slice(i, i + per);
+    root.insertAdjacentHTML('beforeend', `<div class="page"><div class="sect">${label} (${Math.floor(i / per) + 1}/${Math.ceil(fronts.length / per)})</div><div class="grid ${gridCls}">${chunk.join('')}</div></div>`);
+    const cells = Array(per).fill(EMPTY);
+    chunk.forEach((_, k) => { cells[Math.floor(k / 2) * 2 + (1 - (k % 2))] = back; });
+    root.insertAdjacentHTML('beforeend', `<div class="page"><div class="grid ${gridCls}">${cells.join('')}</div></div>`);
+    totalPages += 2;
+  }
+}
+const root = document.getElementById('sheets');
+
+duplex(root, cards.map(cardHTML), 4, '', backHTML, 'การ์ด ' + cards.length + ' ใบ');
+document.title = 'โยนขยะ! — ' + cards.length + ' ใบ (พิมพ์สองหน้า)';
+document.querySelector('.toolbar b').textContent += ' (' + cards.length + ' ใบ, ' + (totalPages + 2) + ' หน้ารวมกติกา)';
+</script>
+</body>
+</html>

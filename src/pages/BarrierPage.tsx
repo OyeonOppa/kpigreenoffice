@@ -42,6 +42,7 @@ import {
   type State,
 } from '../barrier/engine'
 import { sfx } from '../game/sfx'
+import GameGuide from '../components/seo/GameGuide'
 
 /* ฝ่าด่านลดคาร์บอน — เกมไพ่สองฝ่าย ผลักดัน vs ต่อต้าน เล่นกับบอท (#/barrier) */
 
@@ -94,7 +95,7 @@ export default function BarrierPage() {
   return (
     <div className="game-bg min-h-dvh flex flex-col">
       <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-2 sm:py-3 shrink-0">
-        <a href="#" className="inline-flex items-center gap-1.5 text-ink/60 hover:text-ink text-sm transition-colors">
+        <a href="/" className="inline-flex items-center gap-1.5 text-ink/60 hover:text-ink text-sm transition-colors">
           <Home size={16} /> หน้าแรก
         </a>
         <div className="flex items-center gap-2">
@@ -119,7 +120,12 @@ export default function BarrierPage() {
       </div>
 
       <div className="flex-1 px-3 sm:px-6 pb-6">
-        {game ? <Board game={game} setGame={setGame} hints={cfg.hints} onAgain={start} /> : <Setup cfg={cfg} setCfg={setCfg} onStart={start} />}
+        {game ? <Board game={game} setGame={setGame} hints={cfg.hints} onAgain={start} /> : (
+          <>
+            <Setup cfg={cfg} setCfg={setCfg} onStart={start} />
+            <GameGuide path="/games/barrier/" />
+          </>
+        )}
       </div>
     </div>
   )
