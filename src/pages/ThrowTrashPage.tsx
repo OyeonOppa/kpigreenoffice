@@ -67,6 +67,31 @@ function sizeClass(desc = ''): string {
 
 const SIZE_W: Record<'sm' | 'md' | 'lg', string> = { sm: 'w-36', md: 'w-32 sm:w-40', lg: 'w-40 sm:w-48' }
 
+/** การ์ดแบบสั้น (ไม่ใช้สัดส่วนโปสการ์ด) — ไว้โชว์บ้าน/โซนบัฟของคนอื่นแบบไม่กินพื้นที่สูง */
+function MiniCard({ card }: { card: Card }) {
+  const f = faceOf(card)
+  return (
+    <div className="flex items-center gap-1.5 rounded-lg border-2 pl-1.5 pr-2.5 py-1 shadow-sm shrink-0 whitespace-nowrap" style={{ borderColor: f.color, background: f.tint }}>
+      <span className="text-lg leading-none">{f.emoji}</span>
+      <span className="text-xs font-medium text-ink leading-tight">{f.name}</span>
+    </div>
+  )
+}
+
+/** แถวการ์ดสั้นที่วางซ้อนกันเมื่อมีหลายใบ (เห็นขอบทุกใบ แต่ไม่กินที่เป็นเส้นตรงยาว) */
+function MiniStack({ cards }: { cards: Card[] }) {
+  if (!cards.length) return <span className="text-xs text-ink/40">— ว่าง —</span>
+  return (
+    <div className="flex flex-wrap gap-y-1.5">
+      {cards.map((c, i) => (
+        <div key={c.id} style={{ marginLeft: i === 0 ? 0 : -16, zIndex: i }} className="relative hover:z-50 hover:!ml-0 transition-[margin]">
+          <MiniCard card={c} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function PrintCard({ card, selected, onClick, size = 'md' }: { card: Card; selected?: boolean; onClick?: () => void; size?: 'sm' | 'md' | 'lg' }) {
   const f = faceOf(card)
   const style = { ['--c' as string]: f.color, ['--t' as string]: f.tint }
@@ -306,7 +331,7 @@ function MyPanel({
 
       {me.home.length > 0 && (
         <div>
-          <div className="text-sm text-ink/55 mb-1.5">ขยะในบ้านคุณ (แตะเพื่อใช้ตอนแยกขยะ/ซ่อมแทนซื้อใหม่)</div>
+          <div className="text-sm text-ink/55 mb-1.5">🏠 ขยะในบ้านคุณ ({me.home.length} ใบ) — แตะเพื่อใช้ตอนแยกขยะ/ซ่อมแทนซื้อใหม่</div>
           <div className="grid grid-cols-3 gap-2.5">
             {me.home.map((c) => (
               <HomeWasteButton key={c.id} card={c as Extract<Card, { kind: 'waste' }>} sel={sel} setSel={setSel} setGame={setGame} />
@@ -317,12 +342,8 @@ function MyPanel({
 
       {me.buffs.length > 0 && (
         <div>
-          <div className="text-sm text-ink/55 mb-1.5">โซนบัฟของคุณ</div>
-          <div className="grid grid-cols-3 gap-2.5">
-            {me.buffs.map((c) => (
-              <PrintCard key={c.id} card={c} size="sm" />
-            ))}
-          </div>
+          <div className="text-sm text-ink/55 mb-1.5">🍃 โซนบัฟของคุณ ({me.buffs.length} ใบ)</div>
+          <MiniStack cards={me.buffs} />
         </div>
       )}
 
@@ -365,16 +386,16 @@ function PlayerPanel({ p, isTurn, isMe }: { p: Player; isTurn: boolean; isMe: bo
           </div>
         </div>
       </div>
-      {(p.home.length > 0 || p.buffs.length > 0) && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {p.home.map((c) => (
-            <PrintCard key={c.id} card={c} size="sm" />
-          ))}
-          {p.buffs.map((c) => (
-            <PrintCard key={c.id} card={c} size="sm" />
-          ))}
+      <div className="mt-3 space-y-2.5">
+        <div>
+          <div className="text-xs font-medium text-ink/50 mb-1">🏠 บ้าน ({p.home.length} ใบ)</div>
+          <MiniStack cards={p.home} />
         </div>
-      )}
+        <div>
+          <div className="text-xs font-medium text-ink/50 mb-1">🍃 โซนบัฟ ({p.buffs.length} ใบ)</div>
+          <MiniStack cards={p.buffs} />
+        </div>
+      </div>
     </div>
   )
 }
