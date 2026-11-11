@@ -618,7 +618,7 @@ function Board({ game, setGame, hints, onAgain, feed, wide }: { game: State; set
   return (
     <div className="max-w-6xl mx-auto lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-4 lg:items-start">
       <div className="space-y-3 min-w-0">
-        <OpponentPanel game={game} me={me} feed={feed} />
+        <OpponentPanel game={game} me={me} feed={feed} collapsible />
         <StatusBar game={game} me={me} />
         <TableView game={game} />
 
@@ -720,7 +720,7 @@ function StatusBar({ game, me }: { game: State; me: Side }) {
 }
 
 /** แผงของคู่ต่อสู้ (บอท): ไพ่ในมือ (เห็นแค่หลังการ์ด) · ไอเท็มถาวร · ด่านคว่ำ · สิ่งที่เพิ่งทำ */
-function OpponentPanel({ game, me, feed, narrow }: { game: State; me: Side; feed: BotMove[]; narrow?: boolean }) {
+function OpponentPanel({ game, me, feed, narrow, collapsible }: { game: State; me: Side; feed: BotMove[]; narrow?: boolean; collapsible?: boolean }) {
   const opp: Side = me === 'P' ? 'B' : 'P'
   const hand = opp === 'P' ? game.pHand : game.bHand
   const deck = opp === 'P' ? game.pDeck : game.bDeck
@@ -730,27 +730,52 @@ function OpponentPanel({ game, me, feed, narrow }: { game: State; me: Side; feed
   const older = feed.slice(-3, -1).reverse()
   const name = opp === 'P' ? 'ฝ่ายผลักดัน' : 'ฝ่ายต่อต้าน'
   const shown = Math.min(hand.length, 6)
+  // บนมือถือ: ย่อเก็บเป็นแถบบาง ๆ ไว้ก่อน ไม่กินที่จอจนต้องเลื่อนนาน เปิดดูรายละเอียดได้ตอนอยากรู้
+  const [open, setOpen] = useState(!collapsible)
+  const header = (
+    <div className="flex items-center justify-between gap-2 flex-wrap">
+      <div className="font-medium text-ink flex items-center gap-2">
+        <span className="text-2xl" aria-hidden>
+          🤖
+        </span>
+        {opp === 'P' ? '🌱' : '⛔'} {name} (บอท)
+      </div>
+      <div className="text-xs text-ink/60 flex items-center gap-1">
+        {thinking ? (
+          <span className="inline-flex items-center gap-1 text-amber-800 font-medium">
+            กำลังคิด<span className="animate-pulse">…</span>
+          </span>
+        ) : (
+          'รอคุณ'
+        )}
+        {' · '}ถือ {hand.length} ใบ · กองจั่วเหลือ {deck.length}
+        {collapsible && <span className="text-ink/40 ml-1">{open ? '▲' : '▼'}</span>}
+      </div>
+    </div>
+  )
+
+  if (collapsible) {
+    return (
+      <div className={`pop-card p-3 ${thinking ? 'ring-4 ring-amber-300/60' : ''}`}>
+        <button type="button" onClick={() => setOpen((v) => !v)} className="w-full text-left">
+          {header}
+        </button>
+        {!open && last && <div className="mt-1 text-xs text-ink/60 truncate">{name}เพิ่งทำ: {last.lines[0] ?? ''}</div>}
+        {open && <div className="mt-3">{renderOpponentBody()}</div>}
+      </div>
+    )
+  }
+
   return (
     <div className={`pop-card p-3 sm:p-4 ${thinking ? 'ring-4 ring-amber-300/60' : ''}`}>
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="font-medium text-ink flex items-center gap-2">
-          <span className="text-2xl" aria-hidden>
-            🤖
-          </span>
-          {opp === 'P' ? '🌱' : '⛔'} {name} (บอท)
-        </div>
-        <div className="text-xs text-ink/60">
-          {thinking ? (
-            <span className="inline-flex items-center gap-1 text-amber-800 font-medium">
-              กำลังคิด<span className="animate-pulse">…</span>
-            </span>
-          ) : (
-            'รอคุณ'
-          )}
-          {' · '}ถือ {hand.length} ใบ · กองจั่วเหลือ {deck.length}
-        </div>
-      </div>
+      {header}
+      {renderOpponentBody()}
+    </div>
+  )
 
+  function renderOpponentBody() {
+    return (
+      <>
       <div className={`mt-3 flex gap-x-5 gap-y-3 items-start ${narrow ? 'flex-col' : 'flex-wrap'}`}>
         <div>
           <div className="text-[11px] text-ink/50 mb-1">ไพ่ในมือ (ไม่เห็นหน้า)</div>
@@ -838,8 +863,9 @@ function OpponentPanel({ game, me, feed, narrow }: { game: State; me: Side; feed
           </div>
         )}
       </div>
-    </div>
-  )
+      </>
+    )
+  }
 }
 
 /** โต๊ะของฝ่ายผลักดัน: มาตรการที่ยังรอด + ตัวเสริมที่ประกบ + ความคืบหน้าของระบบครบวงจร */
