@@ -29,60 +29,65 @@ function wasteLabel(c: Card): string {
   return c.kind === 'waste' ? `${c.emoji} ${c.name}` : ''
 }
 
-function CardChip({ card, selected, onClick, tone }: { card: Card; selected?: boolean; onClick?: () => void; tone?: string }) {
-  let emoji = ''
-  let name = ''
-  let tag = ''
-  let color = tone ?? '#6b7a70'
-  let tint = '#fff'
+interface Face {
+  emoji: string
+  name: string
+  tag: string
+  big?: string
+  desc?: string
+  color: string
+  tint: string
+}
+
+function faceOf(card: Card): Face {
   if (card.kind === 'waste') {
-    emoji = card.emoji
-    name = card.name
-    tag = 'ขยะ'
-  } else if (card.kind === 'bin') {
     const b = BINS[card.bin]
-    emoji = b.shape
-    name = b.name
-    tag = 'ถัง'
-    color = b.c
-    tint = b.t
-  } else if (card.kind === 'buff') {
-    const b = BUFF_BY_KEY[card.key]
-    emoji = b.emoji
-    name = b.name
-    tag = `บัฟ +${b.leaves}🍃`
-    color = '#16a34a'
-    tint = '#eafbee'
-  } else if (card.kind === 'prank') {
-    const p = PRANK_BY_KEY[card.key]
-    emoji = p.emoji
-    name = p.name
-    tag = 'แกล้ง'
-    color = '#e4573d'
-    tint = '#ffede9'
-  } else {
-    const d = DEF_BY_KEY[card.key]
-    emoji = d.emoji
-    name = d.name
-    tag = 'ป้องกัน'
-    color = '#0284c7'
-    tint = '#e6f6fe'
+    return { emoji: card.emoji, name: card.name, tag: 'ขยะ', big: `${b.shape} ${b.name}`, desc: `ทิ้งถัง: ${b.hint}`, color: '#6b7a70', tint: '#ffffff' }
   }
+  if (card.kind === 'bin') {
+    const b = BINS[card.bin]
+    return { emoji: b.shape, name: b.name, tag: 'ถัง', big: b.hint, color: b.c, tint: b.t }
+  }
+  if (card.kind === 'buff') {
+    const b = BUFF_BY_KEY[card.key]
+    return { emoji: b.emoji, name: b.name, tag: 'บัฟ', big: `+${b.leaves} 🍃`, desc: b.desc, color: '#16a34a', tint: '#eafbee' }
+  }
+  if (card.kind === 'prank') {
+    const p = PRANK_BY_KEY[card.key]
+    return { emoji: p.emoji, name: p.name, tag: 'แกล้ง', big: p.big, desc: p.desc, color: '#e4573d', tint: '#ffede9' }
+  }
+  const d = DEF_BY_KEY[card.key]
+  return { emoji: d.emoji, name: d.name, tag: 'ป้องกัน', big: d.big, desc: d.desc, color: '#0284c7', tint: '#e6f6fe' }
+}
+
+/** ขนาดตัวอักษรตามปริมาณข้อความ — สูตรเดียวกับการ์ดเกมอื่นในเว็บนี้ */
+function sizeClass(desc = ''): string {
+  return desc.length > 90 ? 'pc-tight' : desc.length > 55 ? 'pc-mid' : 'pc-roomy'
+}
+
+const SIZE_W: Record<'sm' | 'md' | 'lg', string> = { sm: 'w-24', md: 'w-28 sm:w-32', lg: 'w-36 sm:w-40' }
+
+function PrintCard({ card, selected, onClick, size = 'md' }: { card: Card; selected?: boolean; onClick?: () => void; size?: 'sm' | 'md' | 'lg' }) {
+  const f = faceOf(card)
+  const style = { ['--c' as string]: f.color, ['--t' as string]: f.tint }
   const body = (
-    <div className={`flex flex-col items-center gap-0.5 rounded-xl border-2 p-2 w-24 shrink-0 text-center ${selected ? '-translate-y-1 shadow-lg ring-4 ring-accent/30' : 'shadow-sm'}`} style={{ background: tint, borderColor: color, ['--tw-ring-color' as string]: `${color}33` }}>
-      <span className="text-[9px] font-medium rounded-full px-1.5 text-white leading-tight" style={{ background: color }}>
-        {tag}
-      </span>
-      <span className="text-2xl leading-none mt-0.5">{emoji}</span>
-      <span className="text-[11px] font-medium text-ink leading-tight">{name}</span>
+    <div className="pc" style={style}>
+      <div className={`pc-in ${sizeClass(f.desc)}`}>
+        <span className="pc-tag">{f.tag}</span>
+        <div className="pc-emoji">{f.emoji}</div>
+        <div className="pc-name">{f.name}</div>
+        {f.big && <div className="pc-big">{f.big}</div>}
+        {f.desc && <div className="pc-desc">{f.desc}</div>}
+      </div>
     </div>
   )
+  const cls = `${SIZE_W[size]} shrink-0 transition-transform ${selected ? '-translate-y-1 drop-shadow-lg' : ''}`
   return onClick ? (
-    <button type="button" onClick={onClick} className="hover:-translate-y-0.5 transition-transform">
+    <button type="button" onClick={onClick} className={`${cls} hover:-translate-y-1`}>
       {body}
     </button>
   ) : (
-    body
+    <div className={cls}>{body}</div>
   )
 }
 
@@ -198,7 +203,6 @@ type Sel =
   | { kind: 'prank'; card: Extract<Card, { kind: 'prank' }> }
 
 function Board({ game, setGame, onAgain }: { game: State; setGame: SetGame; onAgain: () => void }) {
-  const me = game.players[0]
   const myTurn = game.turn === 0 && !game.pending && !game.mustDiscard
   const [sel, setSel] = useState<Sel>(null)
   const [windSrc, setWindSrc] = useState<{ owner: number; cardId: number } | null>(null)
@@ -208,15 +212,15 @@ function Board({ game, setGame, onAgain }: { game: State; setGame: SetGame; onAg
   if (game.phase === 'over') return <Over game={game} onAgain={onAgain} />
 
   return (
-    <div className="max-w-5xl mx-auto space-y-3">
-      <div className="flex flex-wrap gap-2 justify-center">
-        {game.players.map((p, i) => (
-          <PlayerChip key={p.name + i} p={p} isTurn={i === game.turn} isMe={i === 0} />
-        ))}
-      </div>
+    <div className="max-w-[100rem] mx-auto xl:grid xl:grid-cols-[minmax(0,1fr)_29rem] xl:gap-4 xl:items-start">
+      <div className="space-y-3 min-w-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+          {game.players.map((p, i) => (
+            <PlayerPanel key={p.name + i} p={p} isTurn={i === game.turn} isMe={i === 0} />
+          ))}
+        </div>
 
-      <div className="pop-card p-3 sm:p-4">
-        <div className="flex items-center justify-between flex-wrap gap-2 text-sm">
+        <div className="pop-card p-3 sm:p-4 flex items-center justify-between flex-wrap gap-2 text-sm">
           <span className="text-ink/70">
             กองจั่วเหลือ {game.deck.length} ใบ · กองทิ้ง {game.discard.length} ใบ
           </span>
@@ -229,101 +233,148 @@ function Board({ game, setGame, onAgain }: { game: State; setGame: SetGame; onAg
             </span>
           )}
         </div>
+
+        {game.pending?.kind === 'catch' && <CatchBanner game={game} setGame={setGame} />}
+        {game.pending?.kind === 'defend' && game.pending.victim === 0 && <DefendPrompt game={game} setGame={setGame} />}
+        {game.mustDiscard > 0 && <DiscardExtraPanel game={game} setGame={setGame} />}
+
+        {!myTurn && !game.pending && !game.mustDiscard && (
+          <div className="pop-card p-5 text-center text-ink/65">
+            {game.players[game.turn].avatar} {game.players[game.turn].name} กำลังเล่น…
+          </div>
+        )}
+
+        <div className="rounded-2xl bg-surface/80 border border-line px-4 py-3 text-sm text-ink/70 leading-relaxed" aria-live="polite">
+          <div className="text-xs font-medium text-ink/50 mb-1">เหตุการณ์ล่าสุด</div>
+          {game.log.slice(-10).map((l, i, arr) => (
+            <div key={game.log.length - arr.length + i} className={i === arr.length - 1 ? 'text-ink font-medium' : ''}>
+              {l}
+            </div>
+          ))}
+        </div>
       </div>
 
-      {game.pending?.kind === 'catch' && <CatchBanner game={game} setGame={setGame} />}
-      {game.pending?.kind === 'defend' && game.pending.victim === 0 && <DefendPrompt game={game} setGame={setGame} />}
-      {game.mustDiscard > 0 && <DiscardExtraPanel game={game} setGame={setGame} />}
+      <aside className="hidden xl:block sticky top-3 max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-[2rem]">
+        {myTurn && !game.pending && !game.mustDiscard ? (
+          <MyPanel game={game} setGame={setGame} sel={sel} setSel={setSel} windSrc={windSrc} setWindSrc={setWindSrc} />
+        ) : (
+          <div className="pop-card p-5 text-center text-ink/55 text-sm">รอจนกว่าจะถึงตาคุณ…</div>
+        )}
+      </aside>
 
       {myTurn && !game.pending && !game.mustDiscard && (
-        <div className="pop-card p-3 sm:p-4 space-y-3">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="text-sm text-ink/70">
-              🏠 บ้านคุณ ({me.home.length} ใบ) · 🍃 โซนบัฟ ({me.buffs.length} ใบ) · ใบไม้สุทธิ <b className="text-ink">{netLeaves(me)}</b>
-            </div>
-            {game.actionsLeft === 0 ? (
-              <button type="button" onClick={() => setGame((g) => g && endTurn(g))} className="pop-btn bg-accent text-white px-4 py-1.5 text-sm font-medium animate-pulse">
-                จบตา →
-              </button>
-            ) : (
-              <button type="button" onClick={() => setGame((g) => g && endTurn(g))} className="text-xs text-ink/50 hover:text-ink underline">
-                จบตาก่อนเวลา
-              </button>
-            )}
-          </div>
-
-          {me.home.length > 0 && (
-            <div>
-              <div className="text-xs text-ink/55 mb-1">ขยะในบ้านคุณ (แตะเพื่อใช้ตอนแยกขยะ/ซ่อมแทนซื้อใหม่)</div>
-              <div className="flex flex-wrap gap-2">
-                {me.home.map((c) => (
-                  <HomeWasteButton key={c.id} card={c as Extract<Card, { kind: 'waste' }>} sel={sel} setSel={setSel} setGame={setGame} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {me.buffs.length > 0 && (
-            <div>
-              <div className="text-xs text-ink/55 mb-1">โซนบัฟของคุณ</div>
-              <div className="flex flex-wrap gap-2">
-                {me.buffs.map((c) => (
-                  <CardChip key={c.id} card={c} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div>
-            <div className="text-xs text-ink/55 mb-1">การ์ดในมือคุณ ({me.hand.length}/7) — แตะเพื่อเลือก</div>
-            <div className="flex flex-wrap gap-2">
-              {me.hand.map((c) => (
-                <CardChip
-                  key={c.id}
-                  card={c}
-                  selected={sel !== null && sel.card.id === c.id}
-                  onClick={() => {
-                    if (c.kind === 'def') return
-                    if (game.actionsLeft < 1 && !windSrc) return
-                    setSel((s) => (s && s.card.id === c.id ? null : (c.kind === 'buff' || c.kind === 'bin' || c.kind === 'waste' || c.kind === 'prank' ? { kind: c.kind, card: c as never } : null)))
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-
-          {sel && <ActionPanel game={game} setGame={setGame} sel={sel} setSel={setSel} windSrc={windSrc} setWindSrc={setWindSrc} />}
+        <div className="xl:hidden mt-3">
+          <MyPanel game={game} setGame={setGame} sel={sel} setSel={setSel} windSrc={windSrc} setWindSrc={setWindSrc} />
         </div>
       )}
-
-      {!myTurn && !game.pending && !game.mustDiscard && (
-        <div className="pop-card p-5 text-center text-ink/65">
-          {game.players[game.turn].avatar} {game.players[game.turn].name} กำลังเล่น…
-        </div>
-      )}
-
-      <div className="rounded-2xl bg-surface/80 border border-line px-4 py-2.5 text-sm text-ink/70 leading-relaxed" aria-live="polite">
-        {game.log.slice(-5).map((l, i, arr) => (
-          <div key={game.log.length - arr.length + i} className={i === arr.length - 1 ? 'text-ink font-medium' : ''}>
-            {l}
-          </div>
-        ))}
-      </div>
     </div>
   )
 }
 
-function PlayerChip({ p, isTurn, isMe }: { p: Player; isTurn: boolean; isMe: boolean }) {
+function MyPanel({
+  game,
+  setGame,
+  sel,
+  setSel,
+  windSrc,
+  setWindSrc,
+}: {
+  game: State
+  setGame: SetGame
+  sel: Sel
+  setSel: (s: Sel) => void
+  windSrc: { owner: number; cardId: number } | null
+  setWindSrc: (v: { owner: number; cardId: number } | null) => void
+}) {
+  const me = game.players[0]
   return (
-    <div className={`rounded-2xl border-2 px-3 py-2 text-center min-w-[7rem] ${isTurn ? 'border-accent bg-accent/10' : 'border-line bg-surface'}`}>
-      <div className="text-2xl">{p.avatar}</div>
-      <div className="text-sm font-medium text-ink">
-        {p.name}
-        {isMe && ' (คุณ)'}
+    <div className="pop-card p-3 sm:p-4 space-y-3">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="text-sm text-ink/70">
+          🏠 บ้านคุณ ({me.home.length} ใบ) · 🍃 โซนบัฟ ({me.buffs.length} ใบ) · ใบไม้สุทธิ <b className="text-ink">{netLeaves(me)}</b>
+        </div>
+        {game.actionsLeft === 0 ? (
+          <button type="button" onClick={() => setGame((g) => g && endTurn(g))} className="pop-btn bg-accent text-white px-4 py-1.5 text-sm font-medium animate-pulse">
+            จบตา →
+          </button>
+        ) : (
+          <button type="button" onClick={() => setGame((g) => g && endTurn(g))} className="text-xs text-ink/50 hover:text-ink underline">
+            จบตาก่อนเวลา
+          </button>
+        )}
       </div>
-      <div className="text-xs text-ink/60">
-        🍃{netLeaves(p)} · 🏠{p.home.length} · 🂠{p.hand.length}
+
+      {me.home.length > 0 && (
+        <div>
+          <div className="text-xs text-ink/55 mb-1">ขยะในบ้านคุณ (แตะเพื่อใช้ตอนแยกขยะ/ซ่อมแทนซื้อใหม่)</div>
+          <div className="grid grid-cols-3 gap-2">
+            {me.home.map((c) => (
+              <HomeWasteButton key={c.id} card={c as Extract<Card, { kind: 'waste' }>} sel={sel} setSel={setSel} setGame={setGame} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {me.buffs.length > 0 && (
+        <div>
+          <div className="text-xs text-ink/55 mb-1">โซนบัฟของคุณ</div>
+          <div className="grid grid-cols-3 gap-2">
+            {me.buffs.map((c) => (
+              <PrintCard key={c.id} card={c} size="sm" />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <div className="text-xs text-ink/55 mb-1">การ์ดในมือคุณ ({me.hand.length}/7) — แตะเพื่อเลือก</div>
+        <div className="grid grid-cols-3 gap-2">
+          {me.hand.map((c) => (
+            <PrintCard
+              key={c.id}
+              card={c}
+              size="sm"
+              selected={sel !== null && sel.card.id === c.id}
+              onClick={() => {
+                if (c.kind === 'def') return
+                if (game.actionsLeft < 1 && !windSrc) return
+                setSel((s) => (s && s.card.id === c.id ? null : (c.kind === 'buff' || c.kind === 'bin' || c.kind === 'waste' || c.kind === 'prank' ? { kind: c.kind, card: c as never } : null)))
+              }}
+            />
+          ))}
+        </div>
       </div>
+
+      {sel && <ActionPanel game={game} setGame={setGame} sel={sel} setSel={setSel} windSrc={windSrc} setWindSrc={setWindSrc} />}
+    </div>
+  )
+}
+
+function PlayerPanel({ p, isTurn, isMe }: { p: Player; isTurn: boolean; isMe: boolean }) {
+  return (
+    <div className={`rounded-2xl border-2 p-3 ${isTurn ? 'border-accent bg-accent/10' : 'border-line bg-surface'}`}>
+      <div className="flex items-center gap-2">
+        <span className="text-2xl">{p.avatar}</span>
+        <div className="min-w-0">
+          <div className="text-sm font-medium text-ink truncate">
+            {p.name}
+            {isMe && ' (คุณ)'}
+          </div>
+          <div className="text-xs text-ink/60">
+            🍃{netLeaves(p)} · 🂠{p.hand.length} ใบ
+          </div>
+        </div>
+      </div>
+      {(p.home.length > 0 || p.buffs.length > 0) && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {p.home.map((c) => (
+            <PrintCard key={c.id} card={c} size="sm" />
+          ))}
+          {p.buffs.map((c) => (
+            <PrintCard key={c.id} card={c} size="sm" />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -343,11 +394,11 @@ function HomeWasteButton({ card, sel, setSel, setGame }: { card: Extract<Card, {
         }}
         className="hover:-translate-y-0.5 transition-transform"
       >
-        <CardChip card={card} />
+        <PrintCard card={card} />
       </button>
     )
   }
-  return <CardChip card={card} />
+  return <PrintCard card={card} />
 }
 
 /** แผงเลือกรายละเอียดต่อ หลังแตะการ์ดในมือ 1 ใบ */
@@ -424,7 +475,7 @@ function ActionPanel({
           <div className="flex flex-wrap gap-2">
             {me.home.map((c) => (
               <button key={c.id} type="button" onClick={() => commit((g) => playBuff(g, sel.card.id, { wasteId: c.id }))} className="hover:-translate-y-0.5 transition-transform">
-                <CardChip card={c} />
+                <PrintCard card={c} />
               </button>
             ))}
           </div>
@@ -489,7 +540,7 @@ function ActionPanel({
             <div className="flex flex-wrap gap-2">
               {allWaste.map(({ pi, c }) => (
                 <button key={c.id} type="button" onClick={() => setWindSrc({ owner: pi, cardId: c.id })} className="flex flex-col items-center gap-0.5">
-                  <CardChip card={c} />
+                  <PrintCard card={c} />
                   <span className="text-[10px] text-ink/50">{game.players[pi].name}</span>
                 </button>
               ))}
@@ -530,7 +581,7 @@ function DiscardPicker({ label, need, pool, onConfirm }: { label: string; need: 
           <div className="flex flex-wrap gap-2">
             {pool.map((c) => (
               <button key={c.id} type="button" onClick={() => toggle(c.id)} className={picked.includes(c.id) ? 'opacity-50' : ''}>
-                <CardChip card={c} />
+                <PrintCard card={c} />
               </button>
             ))}
           </div>
