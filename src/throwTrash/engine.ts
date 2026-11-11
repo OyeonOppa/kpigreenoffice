@@ -9,11 +9,13 @@
 //  - engine หยุดรอผู้เล่นจริง 2 จังหวะเท่านั้น: "ใช้การ์ดป้องกันไหม" (defend) และ "ช่วงจับผิด" (catch)
 //  - "ของแถมฟรี" เลือกขยะ 2 ใบแรกในมือให้อัตโนมัติ (ไม่ให้เลือกเอง) เพื่อตัดขั้นตอน
 
-import { BINS, BUFF_BY_KEY, buildDeck, type BinId, type Card, type DefKey, type PrankKey } from './cards'
+import { BINS, BUFF_BY_KEY, buildDeck, type BinId, type Card, type DefKey, type PrankKey } from './cards.ts'
 
 export type Rng = () => number
 
-export const WIN_TARGET = 10
+// ปรับสมดุล: ลดจาก 10 → 8 แต้ม ให้สอดคล้องกับที่ปรับสัดส่วนการ์ดใน cards.ts (เกมควรจบใน
+// ~15-20 นาทีตามที่ออกแบบไว้ ไม่ใช่เล่นจนกองจั่วหมดหลายรอบแล้วยังไม่มีใครใกล้ชนะ)
+export const WIN_TARGET = 8
 
 export interface Player {
   name: string
