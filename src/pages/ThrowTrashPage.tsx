@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { Home, RotateCcw, Volume2, VolumeX } from 'lucide-react'
 import { BINS, BIN_IDS, BUFF_BY_KEY, DEF_BY_KEY, PRANK_BY_KEY, type Card } from '../throwTrash/cards'
 import {
@@ -131,7 +131,7 @@ export default function ThrowTrashPage() {
   const start = () => setGame(newGame(bots))
 
   return (
-    <div className="game-bg min-h-dvh flex flex-col">
+    <div className={`game-bg min-h-dvh flex flex-col ${game ? 'xl:h-dvh xl:overflow-hidden' : ''}`}>
       <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-2 sm:py-3 shrink-0">
         <a href="#" className="inline-flex items-center gap-1.5 text-ink/60 hover:text-ink text-sm transition-colors">
           <Home size={16} /> หน้าแรก
@@ -147,7 +147,7 @@ export default function ThrowTrashPage() {
           </button>
         </div>
       </div>
-      <div className="flex-1 px-3 sm:px-6 pb-8">
+      <div className={`flex-1 px-3 sm:px-6 pb-8 ${game ? 'xl:min-h-0 xl:pb-3' : ''}`}>
         {game ? <Board game={game} setGame={setGame} onAgain={start} /> : <Setup bots={bots} setBots={setBots} onStart={start} />}
       </div>
     </div>
@@ -234,18 +234,25 @@ function Board({ game, setGame, onAgain }: { game: State; setGame: SetGame; onAg
 
   useEffect(() => setSel(null), [game.turn, game.actionsLeft])
 
+  // เหตุการณ์ล่าสุดเลื่อนอยู่ในกรอบของมันเอง และเลื่อนลงล่างสุดอัตโนมัติ
+  const logRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = logRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [game.log.length])
+
   if (game.phase === 'over') return <Over game={game} onAgain={onAgain} />
 
   return (
-    <div className="max-w-[110rem] mx-auto xl:grid xl:grid-cols-[minmax(0,1fr)_37rem] xl:gap-5 xl:items-start">
-      <div className="space-y-4 min-w-0">
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+    <div className="max-w-[110rem] mx-auto xl:h-full xl:grid xl:grid-cols-[minmax(0,1fr)_37rem] xl:gap-5">
+      <div className="space-y-4 min-w-0 xl:min-h-0 xl:flex xl:flex-col xl:gap-3 xl:space-y-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 xl:flex-1 xl:min-h-0 xl:overflow-y-auto xl:content-start">
           {game.players.map((p, i) => (
             <PlayerPanel key={p.name + i} p={p} isTurn={i === game.turn} isMe={i === 0} />
           ))}
         </div>
 
-        <div className="pop-card p-4 sm:p-5 flex items-center justify-between flex-wrap gap-2 text-base">
+        <div className="pop-card p-4 sm:p-5 xl:py-3 flex items-center justify-between flex-wrap gap-2 text-base xl:shrink-0">
           <span className="text-ink/70">
             กองจั่วเหลือ {game.deck.length} ใบ · กองทิ้ง {game.discard.length} ใบ
           </span>
@@ -264,12 +271,12 @@ function Board({ game, setGame, onAgain }: { game: State; setGame: SetGame; onAg
         {game.mustDiscard > 0 && <DiscardExtraPanel game={game} setGame={setGame} />}
 
         {!myTurn && !game.pending && !game.mustDiscard && (
-          <div className="pop-card p-8 text-center text-ink/65 text-lg">
+          <div className="pop-card p-8 xl:p-4 text-center text-ink/65 text-lg xl:shrink-0">
             {game.players[game.turn].avatar} {game.players[game.turn].name} กำลังเล่น…
           </div>
         )}
 
-        <div className="rounded-2xl bg-surface/80 border border-line px-5 py-4 text-base text-ink/70 leading-relaxed space-y-0.5" aria-live="polite">
+        <div ref={logRef} className="rounded-2xl bg-surface/80 border border-line px-5 py-4 text-base text-ink/70 leading-relaxed space-y-0.5 xl:shrink-0 xl:max-h-44 xl:overflow-y-auto xl:py-3" aria-live="polite">
           <div className="text-sm font-medium text-ink/50 mb-1.5">เหตุการณ์ล่าสุด</div>
           {game.log.slice(-12).map((l, i, arr) => (
             <div key={game.log.length - arr.length + i} className={i === arr.length - 1 ? 'text-ink font-medium' : ''}>
@@ -279,7 +286,7 @@ function Board({ game, setGame, onAgain }: { game: State; setGame: SetGame; onAg
         </div>
       </div>
 
-      <aside className="hidden xl:block sticky top-3 max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-[2rem]">
+      <aside className="hidden xl:block xl:min-h-0 xl:h-full overflow-y-auto rounded-[2rem]">
         {myTurn && !game.pending && !game.mustDiscard ? (
           <MyPanel game={game} setGame={setGame} sel={sel} setSel={setSel} windSrc={windSrc} setWindSrc={setWindSrc} />
         ) : (
@@ -307,11 +314,17 @@ function MyPanel({
   game: State
   setGame: SetGame
   sel: Sel
-  setSel: (s: Sel) => void
+  setSel: Dispatch<SetStateAction<Sel>>
   windSrc: { owner: number; cardId: number } | null
   setWindSrc: (v: { owner: number; cardId: number } | null) => void
 }) {
   const me = game.players[0]
+  // เลือกการ์ดแล้ว แผงการกระทำอยู่ล่างสุด — เลื่อนให้เห็นเองจะได้ไม่ต้องหาปุ่ม
+  const actionRef = useRef<HTMLDivElement>(null)
+  const selId = sel?.card.id
+  useEffect(() => {
+    if (selId !== undefined) actionRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [selId])
   return (
     <div className="pop-card p-4 sm:p-5 space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -366,7 +379,11 @@ function MyPanel({
         </div>
       </div>
 
-      {sel && <ActionPanel game={game} setGame={setGame} sel={sel} setSel={setSel} windSrc={windSrc} setWindSrc={setWindSrc} />}
+      {sel && (
+        <div ref={actionRef}>
+          <ActionPanel game={game} setGame={setGame} sel={sel} setSel={setSel} windSrc={windSrc} setWindSrc={setWindSrc} />
+        </div>
+      )}
     </div>
   )
 }
