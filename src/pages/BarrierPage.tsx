@@ -1157,6 +1157,10 @@ function FanCard({
 }) {
   const fine = useFinePointer()
   const dragged = useRef(false)
+  const [dragging, setDragging] = useState(false)
+  // ยกการ์ดตอนชี้ — คุมเองด้วย state เพราะ whileHover ของ framer ค้างหลังลาก (เมาส์ถูกจับไว้จึงไม่มีเหตุการณ์ออกจากการ์ด)
+  const [hover, setHover] = useState(false)
+  const lifted = hover && interactive && fine && !dragging && !selected
   const off = i - (n - 1) / 2
   const H = cw * (952 / 698)
   const ang = Math.min(3.5, 20 / Math.max(n, 1))
@@ -1164,54 +1168,65 @@ function FanCard({
     const r = tableRef.current?.getBoundingClientRect()
     return !!r && p.x >= r.left && p.x <= r.right && p.y >= r.top && p.y <= r.bottom
   }
+  // ชั้นนอกคุมตำแหน่งในพัด (x/y/หมุน) · ชั้นในคุมการลาก — แยกกันเพราะ dragSnapToOrigin ดีดกลับไป (0,0) ของ "ตัวที่ลาก"
+  // ถ้าตำแหน่งในพัดอยู่บนตัวเดียวกัน การ์ดจะยุบกลับมากองกลางจอหลังปล่อย
   return (
-    <motion.button
-      type="button"
-      aria-label={describe(card).name}
-      aria-pressed={selected}
-      className="absolute bottom-0 left-1/2 outline-none focus-visible:ring-4 ring-amber-300 rounded-[5.73%/4.2%]"
-      style={{ width: cw, marginLeft: -cw / 2, transformOrigin: '50% 100%', zIndex: selected ? 30 : i, touchAction: 'manipulation' }}
+    <motion.div
+      className="absolute bottom-0 left-1/2"
+      style={{ width: cw, marginLeft: -cw / 2, transformOrigin: '50% 100%', zIndex: dragging ? 90 : lifted ? 60 : selected ? 30 : i }}
       initial={{ opacity: 0, x: 0, y: H * 0.8, rotate: 0, scale: 0.8 }}
       animate={{
         opacity: interactive ? 1 : 0.82,
         x: off * step,
-        y: selected ? -H * 0.12 : off * off * 2.5,
-        rotate: selected ? 0 : off * ang,
-        scale: selected ? 1.04 : 1,
+        y: lifted ? -H * 0.52 : selected ? -H * 0.12 : off * off * 2.5,
+        rotate: selected || lifted ? 0 : off * ang,
+        scale: lifted ? 1.38 : selected ? 1.04 : 1,
       }}
+      onPointerEnter={() => setHover(true)}
+      onPointerLeave={() => setHover(false)}
       exit={{ opacity: 0, y: -H * 0.6, scale: 0.85 }}
       transition={{ type: 'spring', stiffness: 260, damping: 26, delay: Math.min(i, 8) * 0.05 }}
-      whileHover={interactive && fine ? { y: -H * 0.52, rotate: 0, scale: 1.38, zIndex: 60 } : undefined}
-      drag={interactive && fine}
-      dragSnapToOrigin
-      dragMomentum={false}
-      dragElastic={0.6}
-      whileDrag={{ scale: 1.12, rotate: 0, zIndex: 90, cursor: 'grabbing' }}
-      onDragStart={() => {
-        dragged.current = true
-        onDragState('on')
-      }}
-      onDrag={(_, info) => onDragState(inTable(info.point) ? 'over' : 'on')}
-      onDragEnd={(_, info) => {
-        const ok = inTable(info.point)
-        onDragState('off')
-        if (ok) onDrop(card)
-        setTimeout(() => {
-          dragged.current = false
-        }, 0)
-      }}
-      onClick={() => {
-        if (!dragged.current && interactive) {
-          play('select')
-          onSelect(card.id)
-        }
-      }}
     >
-      <div className={`card-tilt shadow-[0_10px_24px_rgba(0,0,0,0.5)] ${selected ? 'ring-4 ring-amber-300' : ''}`}>
-        <PrintFace card={card} />
-        <div className="card-glare" aria-hidden />
-      </div>
-    </motion.button>
+      <motion.button
+        type="button"
+        aria-label={describe(card).name}
+        aria-pressed={selected}
+        className="block w-full outline-none focus-visible:ring-4 ring-amber-300 rounded-[5.73%/4.2%]"
+        style={{ touchAction: 'manipulation' }}
+        drag={interactive && fine}
+        dragSnapToOrigin
+        dragMomentum={false}
+        dragElastic={0.6}
+        whileDrag={{ scale: 1.08, cursor: 'grabbing' }}
+        onDragStart={() => {
+          dragged.current = true
+          setDragging(true)
+          onDragState('on')
+        }}
+        onDrag={(_, info) => onDragState(inTable(info.point) ? 'over' : 'on')}
+        onDragEnd={(_, info) => {
+          const ok = inTable(info.point)
+          setDragging(false)
+          setHover(false)
+          onDragState('off')
+          if (ok) onDrop(card)
+          setTimeout(() => {
+            dragged.current = false
+          }, 0)
+        }}
+        onClick={() => {
+          if (!dragged.current && interactive) {
+            play('select')
+            onSelect(card.id)
+          }
+        }}
+      >
+        <div className={`card-tilt shadow-[0_10px_24px_rgba(0,0,0,0.5)] ${selected ? 'ring-4 ring-amber-300' : ''}`}>
+          <PrintFace card={card} />
+          <div className="card-glare" aria-hidden />
+        </div>
+      </motion.button>
+    </motion.div>
   )
 }
 
