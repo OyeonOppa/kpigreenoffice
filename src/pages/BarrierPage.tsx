@@ -639,6 +639,24 @@ function Board({ game, setGame, hints, onAgain, feed, muted, onMute, onQuit }: {
   const tableRef = useRef<HTMLDivElement>(null)
   const [drag, setDrag] = useState<'off' | 'on' | 'over'>('off')
 
+  // กด Esc = ปิดหน้าต่างรายละเอียดการ์ด
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => e.key === 'Escape' && setSel(null)
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [])
+
+  // การ์ดที่บอทเพิ่งเล่น — โชว์กลางจอ ~2 วินาที
+  const last = feed[feed.length - 1]
+  const [seen, setSeen] = useState<BotMove | null>(null)
+  const reveal = last && last !== seen ? last : null
+  useEffect(() => {
+    if (!last) return
+    if (last.cards.length) sfx.drop()
+    const t = setTimeout(() => setSeen(last), 2100)
+    return () => clearTimeout(t)
+  }, [last])
+
   const hand = me === 'P' ? game.pHand : game.bHand
   const pct = Math.min(100, (game.score / game.target) * 100)
 
@@ -691,7 +709,7 @@ function Board({ game, setGame, hints, onAgain, feed, muted, onMute, onQuit }: {
         <div ref={tableRef} className="flex-1 min-w-0 min-h-0">
           <TableView game={game} drag={drag} logLine={game.log[game.log.length - 1]} />
         </div>
-        {dock && sheetOn && (
+        {dock && sheetOn && selectedId === null && (
           <aside className="sheet w-[25rem] shrink-0 min-h-0 overflow-y-auto p-4" aria-label="การกระทำของคุณ">
             {stage}
           </aside>
@@ -711,23 +729,49 @@ function Board({ game, setGame, hints, onAgain, feed, muted, onMute, onQuit }: {
           )}
         </div>
       )}
-      {!dock && sheetOn && selectedId !== null && (
-        <div className="fixed inset-x-2 bottom-[34dvh] z-40 sheet max-h-[52dvh] overflow-y-auto p-3">
-          <button type="button" onClick={() => setSel(null)} className="absolute right-2 top-2 rounded-full bg-ink/10 px-2.5 py-0.5 text-sm" aria-label="ปิด">
-            ✕
-          </button>
-          {stage}
-        </div>
-      )}
-
       {/* มือ — การ์ดเรียงเป็นพัดที่ขอบล่าง */}
       <div className="relative z-30 shrink-0 h-[34dvh] max-h-[22rem] min-h-[11rem]">
         <HandFan game={game} hand={hand} me={me} selectedId={selectedId} interactive={choosing} onSelect={onSelect} onDrop={onDrop} onDragState={setDrag} tableRef={tableRef} />
       </div>
 
-      {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-[2px]">
-          <motion.div initial={{ opacity: 0, scale: 0.92, y: 24 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 26 }} className="sheet w-full max-w-3xl max-h-[88dvh] overflow-y-auto p-4 sm:p-6">
+      {/* บอทวางการ์ด: โชว์กลางจอครู่หนึ่งให้เห็นว่าเล่นอะไร */}
+      <AnimatePresence>
+        {reveal && (
+          <motion.div
+            key={reveal.id}
+            initial={{ opacity: 0, y: -50, scale: 0.7 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 24, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+            className="pointer-events-none absolute inset-x-0 top-[24%] z-40 flex flex-col items-center gap-3 px-4"
+          >
+            <div className="flex gap-3 justify-center">
+              {reveal.cards.slice(0, 3).map(({ card, hidden }, i) => (
+                <div key={card.id} className="w-32 sm:w-44 rounded-[5.73%/4.2%] overflow-hidden shadow-2xl" style={{ transform: `rotate(${(i - (Math.min(reveal.cards.length, 3) - 1) / 2) * 5}deg)` }}>
+                  {hidden ? <CardBack side={reveal.side} width="100%" label="วางคว่ำ" /> : <PrintFace card={card} />}
+                </div>
+              ))}
+              {reveal.cards.length === 0 && <div className="text-6xl" aria-hidden>🤚</div>}
+            </div>
+            <div className="max-w-md rounded-2xl bg-black/75 px-4 py-2 text-center text-sm sm:text-base leading-snug">{reveal.lines[0]}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {(modal || (sheetOn && selectedId !== null)) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-[2px]" onClick={() => !modal && setSel(null)}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 24 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+            onClick={(e) => e.stopPropagation()}
+            className="sheet relative w-full max-w-3xl max-h-[92dvh] overflow-y-auto p-4"
+          >
+            {!modal && (
+              <button type="button" onClick={() => setSel(null)} className="absolute right-3 top-3 z-20 rounded-full bg-ink/10 hover:bg-ink/20 px-2.5 py-0.5 text-sm" aria-label="ปิด (Esc)">
+                ✕
+              </button>
+            )}
             {stage}
           </motion.div>
         </div>
@@ -863,10 +907,8 @@ function OpponentSeat({ game, me, feed }: { game: State; me: Side; feed: BotMove
               ) : last ? (
                 <>
                   <div className="text-[10px] text-ink/50">ตาที่ {last.turn}</div>
-                  {last.lines.slice(0, 2).map((l, i) => (
-                    <div key={i} className="line-clamp-2">
-                      {l}
-                    </div>
+                  {last.lines.slice(0, 3).map((l, i) => (
+                    <div key={i}>{l}</div>
                   ))}
                 </>
               ) : (
@@ -922,7 +964,7 @@ function HandFan({
   const [ref, box] = useBox(true)
   const n = hand.length
   const W = box?.w ?? 0
-  const cw = box && box.w > 0 && box.h > 0 ? Math.floor(Math.min((box.h * 1.2) / (952 / 698), 220, box.w * 0.42)) : 120
+  const cw = box && box.w > 0 && box.h > 0 ? Math.floor(Math.min((box.h * 0.88) / (952 / 698), 210, box.w * 0.42)) : 120
   const step = n > 1 ? Math.min(cw * 0.92, (W - cw - 16) / (n - 1)) : 0
   const max = me === 'P' ? handMax(game) : 4
   return (
@@ -969,7 +1011,7 @@ function FanCard({
   const dragged = useRef(false)
   const off = i - (n - 1) / 2
   const H = cw * (952 / 698)
-  const ang = Math.min(4.5, 26 / Math.max(n, 1))
+  const ang = Math.min(3.5, 20 / Math.max(n, 1))
   const inTable = (p: { x: number; y: number }) => {
     const r = tableRef.current?.getBoundingClientRect()
     return !!r && p.x >= r.left && p.x <= r.right && p.y >= r.top && p.y <= r.bottom
@@ -985,7 +1027,7 @@ function FanCard({
       animate={{
         opacity: interactive ? 1 : 0.82,
         x: off * step,
-        y: selected ? -H * 0.12 : H * 0.16 + off * off * 3,
+        y: selected ? -H * 0.12 : off * off * 2.5,
         rotate: selected ? 0 : off * ang,
         scale: selected ? 1.04 : 1,
       }}
@@ -1075,7 +1117,7 @@ function TableView({ game, drag, logLine }: { game: State; drag: 'off' | 'on' | 
         </AnimatePresence>
       </div>
       {logLine && (
-        <div className="mt-2 shrink-0 rounded-xl bg-black/30 px-3 py-1.5 text-xs sm:text-sm text-white/85 truncate" aria-live="polite">
+        <div className="mt-2 shrink-0 rounded-xl bg-black/30 px-3 py-1.5 text-xs sm:text-sm leading-snug text-white/85 max-h-[3.2rem] overflow-y-auto" aria-live="polite">
           {logLine}
         </div>
       )}
@@ -1208,11 +1250,11 @@ function PActions({ game, card, hints, setGame }: { game: State; card: Card | nu
       )}
 
       {!card ? (
-        <div className="text-ink/65 leading-relaxed">
+        <div className="text-ink/65 leading-relaxed text-sm">
           <p>
-            แตะการ์ดในมือเพื่อเลือก: <b>มาตรการ</b> วางลงโต๊ะ · <b>ตัวเสริม (📰 📏)</b> ประกบมาตรการ · <b>ไอเท็ม</b> วางถาวร · หรือ <b>ทิ้ง 1 ใบ</b>
+            ลากการ์ดขึ้นโต๊ะ หรือแตะเพื่อดูรายละเอียด: <b>มาตรการ</b> วางลงโต๊ะ · <b>ตัวเสริม (📰 📏)</b> ประกบมาตรการ · <b>ไอเท็ม</b> วางถาวร · หรือ <b>ทิ้ง 1 ใบ</b>
           </p>
-          <p className="text-sm mt-2">กุญแจ (💰 📚 👥 🛠️ ⭐) วางเองไม่ได้ ถือไว้ในมือเพื่อแก้ด่านตอนถูกปิด</p>
+          <p className="mt-1.5">กุญแจ (💰 📚 👥 🛠️ ⭐) วางเองไม่ได้ ถือไว้แก้ด่านตอนถูกปิด</p>
         </div>
       ) : (
         <PCardPanel game={game} card={card} hints={hints} setGame={setGame} />
@@ -1226,18 +1268,23 @@ function PCardPanel({ game, card, hints, setGame }: { game: State; card: Card; h
   const [attaching, setAttaching] = useState(false)
   const canAttach = (card.kind === 'media' || (card.kind === 'key' && card.k === 'S')) && game.table.length > 0
   return (
-    <div className="flex flex-col sm:flex-row gap-4 items-start">
-      <div className="shrink-0 mx-auto sm:mx-0">
-        <GameCard card={card} big />
-      </div>
-      <div className="flex-1 min-w-0 w-full">
-        <div className="text-lg font-medium text-ink">
-          {d.emoji} {d.name}
+    <div>
+      <div className="flex gap-3 sm:gap-5 items-start">
+        <div className="shrink-0 w-32 sm:w-56">
+          <GameCard card={card} />
         </div>
-        <p className="text-ink/75 text-sm leading-relaxed mt-1">{d.desc}</p>
-        {card.kind === 'measure' && hints && <CoverageHint game={game} card={card} />}
+        <div className="flex-1 min-w-0">
+          <div className="text-lg font-medium text-ink">
+            {d.emoji} {d.name}
+          </div>
+          <p className="text-ink/75 text-sm leading-relaxed mt-1">{d.desc}</p>
+          {card.kind === 'measure' && hints && <CoverageHint game={game} card={card} />}
+          {card.kind === 'key' && card.k === 'S' && <p className="text-xs text-ink/55 mt-2">📏 ใช้ได้ 2 แบบ: ถือไว้แก้ด่าน 👀 / ยกเลิกข่าวลือ หรือเอาไปประกบมาตรการ เลือกให้ดี</p>}
+        </div>
+      </div>
 
-        <div className="mt-3 flex flex-wrap gap-2">
+      <ActionFooter>
+        <div className="flex flex-wrap gap-2">
           {card.kind === 'measure' && <Btn onClick={() => setGame((g) => g && playMeasure(g, card.id))}>วางมาตรการนี้ลงโต๊ะ</Btn>}
           {card.kind === 'pitem' && <Btn onClick={() => setGame((g) => g && playPItem(g, card.id))}>วางไอเท็มถาวร</Btn>}
           {(card.kind === 'media' || (card.kind === 'key' && card.k === 'S')) && (
@@ -1245,15 +1292,14 @@ function PCardPanel({ game, card, hints, setGame }: { game: State; card: Card; h
               ประกบมาตรการ (+1 แต้ม/ตา){!canAttach && ' — ต้องมีมาตรการบนโต๊ะก่อน'}
             </Btn>
           )}
-          {card.kind === 'search' && <span className="text-sm text-ink/60">🔍 เล่นได้จากแถบสีเหลืองด้านบนเมื่อมีด่านคว่ำ (ฟรี ไม่เสียตา)</span>}
+          {card.kind === 'search' && <span className="text-sm text-ink/60">🔍 เล่นได้จากแถบสีเหลืองเมื่อมีด่านคว่ำ (ฟรี ไม่เสียตา)</span>}
           {card.kind === 'key' && card.k !== 'S' && <span className="text-sm text-ink/60">กุญแจวางเองไม่ได้ ถือไว้แก้ด่าน (ทิ้งได้ถ้ามือเต็ม)</span>}
           <Btn tone="plain" onClick={() => setGame((g) => g && pDiscard(g, card.id))}>
             ทิ้งใบนี้ (นับเป็น 1 ตา)
           </Btn>
         </div>
-
         {attaching && canAttach && (
-          <div className="mt-3">
+          <div className="mt-2">
             <div className="text-sm text-ink/70 mb-1.5">ประกบกับมาตรการไหน</div>
             <div className="flex flex-wrap gap-2">
               {game.table.map((e) => (
@@ -1269,12 +1315,14 @@ function PCardPanel({ game, card, hints, setGame }: { game: State; card: Card; h
             </div>
           </div>
         )}
-        {card.kind === 'key' && card.k === 'S' && (
-          <p className="text-xs text-ink/55 mt-2">📏 ใช้ได้ 2 แบบ: ถือไว้แก้ด่าน 👀 / ยกเลิกข่าวลือ หรือเอาไปประกบมาตรการ เลือกให้ดี</p>
-        )}
-      </div>
+      </ActionFooter>
     </div>
   )
+}
+
+/** แถบปุ่มที่ติดขอบล่างของหน้าต่างเสมอ — ไม่ต้องเลื่อนลงไปกด */
+function ActionFooter({ children }: { children: ReactNode }) {
+  return <div className="sticky bottom-0 z-10 -mx-4 -mb-4 mt-3 px-4 pt-3 pb-4 bg-[#fbf7ee] border-t border-[#e5d9bd]">{children}</div>
 }
 
 function BActions({ game, card, setGame }: { game: State; card: Card | null; setGame: SetGame }) {
@@ -1300,66 +1348,69 @@ function BActions({ game, card, setGame }: { game: State; card: Card | null; set
       )}
 
       {!card || !d ? (
-        <p className="text-ink/65 leading-relaxed text-sm">แตะการ์ดในมือเพื่อดูรายละเอียดและเลือกเล่น หรือกด “ผ่าน” ถ้าไม่อยากเล่นการ์ดในตานี้</p>
+        <p className="text-ink/65 leading-relaxed text-sm">ลากการ์ดขึ้นโต๊ะ หรือแตะการ์ดในมือเพื่อดูรายละเอียดและเลือกเล่น · ไม่อยากเล่นการ์ดในตานี้กด “ผ่าน”</p>
       ) : (
-        <div className="flex flex-col sm:flex-row gap-4 items-start">
-          <div className="shrink-0 mx-auto sm:mx-0">
-            <GameCard card={card} big />
+        <div className="flex gap-3 sm:gap-5 items-start">
+          <div className="shrink-0 w-32 sm:w-56">
+            <GameCard card={card} />
           </div>
-          <div className="flex-1 min-w-0 w-full">
+          <div className="flex-1 min-w-0">
             <div className="text-lg font-medium text-ink">
               {d.emoji} {d.name}
             </div>
             <p className="text-ink/75 text-sm leading-relaxed mt-1">{d.desc}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {card.kind === 'block' && (
-                <>
-                  <Btn tone="red" disabled={!blocks.some((b) => b.id === card.id)} onClick={() => setGame((g) => g && bRespond(g, { t: 'block', cardId: card.id }))}>
-                    ปิดมาตรการที่เพิ่งวาง
-                  </Btn>
-                  <Btn tone="plain" disabled={!!game.trap} onClick={() => setGame((g) => g && bRespond(g, { t: 'trap', cardId: card.id }))}>
-                    ตั้งเป็นด่านคว่ำ{game.trap ? ' (มีแล้ว 1 ใบ)' : ''}
-                  </Btn>
-                  {entry && !blocks.some((b) => b.id === card.id) && (
-                    <span className="text-xs text-ink/55 self-center">ไอคอนไม่ตรงกับมาตรการ{game.pItems.includes('board') ? ' (หรือ 📊 กันด่าน 👀)' : ''} จึงปิดไม่ได้</span>
-                  )}
-                </>
-              )}
-              {(card.kind === 'rumor' || card.kind === 'wipe' || card.kind === 'freeze') && (
-                <Btn tone="red" onClick={() => setGame((g) => g && bRespond(g, { t: 'special', cardId: card.id }))}>
-                  เล่นการ์ดนี้
-                </Btn>
-              )}
-              {card.kind === 'scatter' && (
-                <Btn tone="red" disabled={targets.length === 0} onClick={() => setTargeting((v) => !v)}>
-                  เล่นการ์ดนี้{targets.length === 0 ? ' — ยังไม่มีตัวเสริมบนโต๊ะ' : ''}
-                </Btn>
-              )}
-              {card.kind === 'bitem' && <Btn onClick={() => setGame((g) => g && bRespond(g, { t: 'item', cardId: card.id }))}>วางไอเท็มถาวร</Btn>}
-            </div>
-            {targeting && card.kind === 'scatter' && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {targets.map((e) => (
-                  <button
-                    key={e.id}
-                    type="button"
-                    onClick={() => setGame((g) => g && bRespond(g, { t: 'special', cardId: card.id, targetEntryId: e.id }))}
-                    className="rounded-xl border-2 border-line bg-surface px-3 py-1.5 text-sm hover:border-red-400"
-                  >
-                    {e.card.emoji} {e.card.name} (ตัวเสริม {e.att.length})
-                  </button>
-                ))}
-              </div>
+            {card.kind === 'block' && entry && !blocks.some((b) => b.id === card.id) && (
+              <p className="text-xs text-red-700 mt-2">ไอคอนไม่ตรงกับมาตรการ{game.pItems.includes('board') ? ' (หรือ 📊 กันด่าน 👀)' : ''} จึงปิดไม่ได้</p>
             )}
+            {card.kind === 'scatter' && targets.length === 0 && <p className="text-xs text-red-700 mt-2">ยังไม่มีตัวเสริมบนโต๊ะ จึงเล่นการ์ดนี้ไม่ได้</p>}
           </div>
         </div>
       )}
 
-      <div className="mt-4 pt-3 border-t border-line">
+      <ActionFooter>
+        {card && d && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {card.kind === 'block' && (
+              <>
+                <Btn tone="red" disabled={!blocks.some((b) => b.id === card.id)} onClick={() => setGame((g) => g && bRespond(g, { t: 'block', cardId: card.id }))}>
+                  ปิดมาตรการที่เพิ่งวาง
+                </Btn>
+                <Btn tone="plain" disabled={!!game.trap} onClick={() => setGame((g) => g && bRespond(g, { t: 'trap', cardId: card.id }))}>
+                  ตั้งเป็นด่านคว่ำ{game.trap ? ' (มีแล้ว 1 ใบ)' : ''}
+                </Btn>
+              </>
+            )}
+            {(card.kind === 'rumor' || card.kind === 'wipe' || card.kind === 'freeze') && (
+              <Btn tone="red" onClick={() => setGame((g) => g && bRespond(g, { t: 'special', cardId: card.id }))}>
+                เล่นการ์ดนี้
+              </Btn>
+            )}
+            {card.kind === 'scatter' && (
+              <Btn tone="red" disabled={targets.length === 0} onClick={() => setTargeting((v) => !v)}>
+                เล่นการ์ดนี้
+              </Btn>
+            )}
+            {card.kind === 'bitem' && <Btn onClick={() => setGame((g) => g && bRespond(g, { t: 'item', cardId: card.id }))}>วางไอเท็มถาวร</Btn>}
+          </div>
+        )}
+        {targeting && card?.kind === 'scatter' && (
+          <div className="mb-2 flex flex-wrap gap-2">
+            {targets.map((e) => (
+              <button
+                key={e.id}
+                type="button"
+                onClick={() => setGame((g) => g && bRespond(g, { t: 'special', cardId: card.id, targetEntryId: e.id }))}
+                className="rounded-xl border-2 border-line bg-surface px-3 py-1.5 text-sm hover:border-red-400"
+              >
+                {e.card.emoji} {e.card.name} (ตัวเสริม {e.att.length})
+              </button>
+            ))}
+          </div>
+        )}
         <Btn tone="plain" onClick={() => setGame((g) => g && bRespond(g, { t: 'pass' }))}>
           ผ่าน (ไม่เล่นการ์ดในตานี้)
         </Btn>
-      </div>
+      </ActionFooter>
     </div>
   )
 }
