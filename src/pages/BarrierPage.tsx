@@ -1316,6 +1316,25 @@ function Btn({ children, onClick, tone = 'green', disabled }: { children: ReactN
   )
 }
 
+/** ปุ่มตัดสินใจ: เขียว = ทางที่ดี/รอด · แดงอ่อน = ยอมเสีย — บอกผลลัพธ์ใต้ชื่อปุ่ม */
+function ChoiceBtn({ tone, icon, title, sub, onClick, wide }: { tone: 'good' | 'bad'; icon: string; title: string; sub: string; onClick: () => void; wide?: boolean }) {
+  const cls =
+    tone === 'good'
+      ? 'bg-emerald-600 text-white shadow-[0_4px_0_0_#065f46] hover:bg-emerald-500'
+      : 'bg-red-50 text-red-800 border-2 border-red-300 shadow-[0_4px_0_0_#fca5a5] hover:bg-red-100'
+  return (
+    <button type="button" onClick={onClick} className={`${wide ? 'col-span-2' : ''} flex items-center gap-3 rounded-2xl px-3.5 py-3 text-left active:translate-y-1 active:shadow-none transition-all ${cls}`}>
+      <span className="text-3xl shrink-0" aria-hidden>
+        {icon}
+      </span>
+      <span className="min-w-0">
+        <span className="block font-medium leading-tight">{title}</span>
+        <span className={`block text-xs mt-0.5 leading-snug ${tone === 'good' ? 'text-white/85' : 'text-red-700/80'}`}>{sub}</span>
+      </span>
+    </button>
+  )
+}
+
 /** กุญแจในมือที่แก้ด่านทั้งหมด ตามไอคอนของมาตรการ — ใช้ในโหมดช่วยจำ */
 function CoverageHint({ game, card }: { game: State; card: Extract<Card, { kind: 'measure' }> }) {
   const keys = game.pHand.filter((c) => c.kind === 'key')
@@ -1552,30 +1571,31 @@ function CounterPrompt({ game, setGame }: { game: State; setGame: SetGame }) {
         </p>
       </div>
       <ActionFooter>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-2.5">
           {keys.map((k) => (
-            <button
+            <ChoiceBtn
               key={k.id}
-              type="button"
+              tone="good"
+              icon={KEYS[k.k].emoji}
+              title={`ใช้ ${KEYS[k.k].name}`}
+              sub="มาตรการรอด · เสียกุญแจใบนี้"
               onClick={() => {
                 sfx.correct()
                 setGame((g) => g && counter(g, k.id))
               }}
-              className="rounded-2xl border-2 border-violet-300 bg-violet-50 px-4 py-2 text-left hover:border-violet-500 transition-colors"
-            >
-              <span className="text-2xl mr-1">{KEYS[k.k].emoji}</span>
-              <span className="font-medium text-ink">ใช้ {KEYS[k.k].name}</span>
-            </button>
+            />
           ))}
-          <Btn
-            tone="plain"
+          <ChoiceBtn
+            tone="bad"
+            icon="💥"
+            title="ปล่อยให้ปิด"
+            sub={keys.length ? 'มาตรการหายไป · เก็บกุญแจไว้' : 'ไม่มีกุญแจที่ตรงกัน · มาตรการหายไป'}
+            wide={keys.length % 2 === 0}
             onClick={() => {
               sfx.wrong()
               setGame((g) => g && counter(g, null))
             }}
-          >
-            ปล่อยให้ปิด (มาตรการหายไป)
-          </Btn>
+          />
         </div>
       </ActionFooter>
     </div>
@@ -1591,11 +1611,9 @@ function NegatePrompt({ game, setGame }: { game: State; setGame: SetGame }) {
       </Heading>
       <p className="text-ink/75 leading-relaxed">ทิ้ง 📏 วัดผลให้เห็น 1 ใบจากมือ เพื่อยกเลิกได้ — แต่จะประกบมาตรการ (+1 แต้ม/ตา) ด้วยใบนี้ไม่ได้อีก</p>
       <ActionFooter>
-        <div className="flex flex-wrap gap-2">
-          <Btn onClick={() => setGame((g) => g && negate(g, true))}>📏 ทิ้งเพื่อยกเลิก</Btn>
-          <Btn tone="plain" onClick={() => setGame((g) => g && negate(g, false))}>
-            ยอมเสีย {r.v} แต้ม
-          </Btn>
+        <div className="grid grid-cols-2 gap-2.5">
+          <ChoiceBtn tone="good" icon="📏" title="ทิ้งเพื่อยกเลิก" sub="ไม่เสียแต้ม · เสียใบ 📏 1 ใบ" onClick={() => setGame((g) => g && negate(g, true))} />
+          <ChoiceBtn tone="bad" icon="📉" title={`ยอมเสีย ${r.v} แต้ม`} sub="เก็บ 📏 ไว้ใช้ต่อ" onClick={() => setGame((g) => g && negate(g, false))} />
         </div>
       </ActionFooter>
     </div>
