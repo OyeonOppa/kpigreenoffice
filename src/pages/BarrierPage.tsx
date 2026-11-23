@@ -1316,23 +1316,45 @@ function Btn({ children, onClick, tone = 'green', disabled }: { children: ReactN
   )
 }
 
-/** ปุ่มตัดสินใจ: เขียว = ทางที่ดี/รอด · แดงอ่อน = ยอมเสีย — บอกผลลัพธ์ใต้ชื่อปุ่ม */
-function ChoiceBtn({ tone, icon, title, sub, onClick, wide }: { tone: 'good' | 'bad'; icon: string; title: string; sub: string; onClick: () => void; wide?: boolean }) {
-  const cls =
-    tone === 'good'
-      ? 'bg-emerald-600 text-white shadow-[0_4px_0_0_#065f46] hover:bg-emerald-500'
-      : 'bg-red-50 text-red-800 border-2 border-red-300 shadow-[0_4px_0_0_#fca5a5] hover:bg-red-100'
+type ChoiceTone = 'good' | 'bad' | 'attack' | 'warn' | 'neutral'
+
+const CHOICE_STYLE: Record<ChoiceTone, { btn: string; sub: string }> = {
+  // เขียวทึบ = ทางที่ดี/รอด/วางลงเล่น
+  good: { btn: 'bg-emerald-600 text-white shadow-[0_4px_0_0_#065f46] hover:bg-emerald-500', sub: 'text-white/85' },
+  // แดงอ่อน = ยอมเสีย
+  bad: { btn: 'bg-red-50 text-red-800 border-2 border-red-300 shadow-[0_4px_0_0_#fca5a5] hover:bg-red-100', sub: 'text-red-700/80' },
+  // แดงทึบ = โจมตี (ฝั่งต่อต้าน)
+  attack: { btn: 'bg-red-600 text-white shadow-[0_4px_0_0_#991b1b] hover:bg-red-500', sub: 'text-white/85' },
+  // เหลือง = ทางเลือกกลาง ๆ (เช่น วางคว่ำ)
+  warn: { btn: 'bg-amber-50 text-amber-900 border-2 border-amber-300 shadow-[0_4px_0_0_#fcd34d] hover:bg-amber-100', sub: 'text-amber-800/80' },
+  // เทา = ผ่าน/ทิ้ง/ไม่ทำอะไร
+  neutral: { btn: 'bg-white text-ink border-2 border-line shadow-[0_4px_0_0_oklch(85%_0.02_152)] hover:bg-surface', sub: 'text-ink/60' },
+}
+
+/** ปุ่มตัดสินใจ: สีบอกว่ากดแล้วเป็นยังไง + บรรทัดอธิบายผลใต้ชื่อปุ่ม */
+function ChoiceBtn({ tone, icon, title, sub, onClick, wide, disabled }: { tone: ChoiceTone; icon: string; title: string; sub?: string; onClick: () => void; wide?: boolean; disabled?: boolean }) {
+  const st = CHOICE_STYLE[tone]
   return (
-    <button type="button" onClick={onClick} className={`${wide ? 'col-span-2' : ''} flex items-center gap-3 rounded-2xl px-3.5 py-3 text-left active:translate-y-1 active:shadow-none transition-all ${cls}`}>
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={`${wide ? 'col-span-2' : ''} flex items-center gap-3 rounded-2xl px-3.5 py-3 text-left active:translate-y-1 active:shadow-none transition-all disabled:opacity-45 disabled:pointer-events-none ${st.btn}`}
+    >
       <span className="text-3xl shrink-0" aria-hidden>
         {icon}
       </span>
       <span className="min-w-0">
         <span className="block font-medium leading-tight">{title}</span>
-        <span className={`block text-xs mt-0.5 leading-snug ${tone === 'good' ? 'text-white/85' : 'text-red-700/80'}`}>{sub}</span>
+        {sub && <span className={`block text-xs mt-0.5 leading-snug ${st.sub}`}>{sub}</span>}
       </span>
     </button>
   )
+}
+
+/** กริดปุ่มสองคอลัมน์ — ปุ่มสุดท้ายที่เหลือคี่จะกว้างเต็มแถว */
+function ChoiceGrid({ children }: { children: ReactNode }) {
+  return <div className="grid grid-cols-2 gap-2.5 [&>*:last-child:nth-child(odd)]:col-span-2">{children}</div>
 }
 
 /** กุญแจในมือที่แก้ด่านทั้งหมด ตามไอคอนของมาตรการ — ใช้ในโหมดช่วยจำ */
@@ -1412,22 +1434,18 @@ function PCardPanel({ game, card, hints, setGame }: { game: State; card: Card; h
       </div>
 
       <ActionFooter>
-        <div className="flex flex-wrap gap-2">
-          {card.kind === 'measure' && <Btn onClick={() => setGame((g) => g && playMeasure(g, card.id))}>วางมาตรการนี้ลงโต๊ะ</Btn>}
-          {card.kind === 'pitem' && <Btn onClick={() => setGame((g) => g && playPItem(g, card.id))}>วางไอเท็มถาวร</Btn>}
+        {card.kind === 'search' && <p className="text-sm text-ink/60 mb-2">🔍 เล่นได้จากแถบสีเหลืองเมื่อมีด่านคว่ำ (ฟรี ไม่เสียตา)</p>}
+        {card.kind === 'key' && card.k !== 'S' && <p className="text-sm text-ink/60 mb-2">กุญแจวางเองไม่ได้ ถือไว้แก้ด่านตอนถูกปิด (ทิ้งได้ถ้ามือเต็ม)</p>}
+        <ChoiceGrid>
+          {card.kind === 'measure' && <ChoiceBtn tone="good" icon="🌱" title="วางลงโต๊ะ" sub={`ได้ ${card.pts} แต้ม/ตา ถ้ารอดจากด่าน`} onClick={() => setGame((g) => g && playMeasure(g, card.id))} />}
+          {card.kind === 'pitem' && <ChoiceBtn tone="good" icon="📌" title="วางไอเท็มถาวร" sub="อยู่ทั้งเกม ปิดไม่ได้" onClick={() => setGame((g) => g && playPItem(g, card.id))} />}
           {(card.kind === 'media' || (card.kind === 'key' && card.k === 'S')) && (
-            <Btn disabled={!canAttach} onClick={() => setAttaching((v) => !v)}>
-              ประกบมาตรการ (+1 แต้ม/ตา){!canAttach && ' — ต้องมีมาตรการบนโต๊ะก่อน'}
-            </Btn>
+            <ChoiceBtn tone="good" icon="📎" title="ประกบมาตรการ" sub={canAttach ? '+1 แต้ม/ตา ให้มาตรการที่เลือก' : 'ต้องมีมาตรการบนโต๊ะก่อน'} disabled={!canAttach} onClick={() => setAttaching((v) => !v)} />
           )}
-          {card.kind === 'search' && <span className="text-sm text-ink/60">🔍 เล่นได้จากแถบสีเหลืองเมื่อมีด่านคว่ำ (ฟรี ไม่เสียตา)</span>}
-          {card.kind === 'key' && card.k !== 'S' && <span className="text-sm text-ink/60">กุญแจวางเองไม่ได้ ถือไว้แก้ด่าน (ทิ้งได้ถ้ามือเต็ม)</span>}
-          <Btn tone="plain" onClick={() => setGame((g) => g && pDiscard(g, card.id))}>
-            ทิ้งใบนี้ (นับเป็น 1 ตา)
-          </Btn>
-        </div>
+          <ChoiceBtn tone="neutral" icon="🗑️" title="ทิ้งใบนี้" sub="นับเป็น 1 ตา · ไม่ได้แต้ม" onClick={() => setGame((g) => g && pDiscard(g, card.id))} />
+        </ChoiceGrid>
         {attaching && canAttach && (
-          <div className="mt-2">
+          <div className="mt-3">
             <div className="text-sm text-ink/70 mb-1.5">ประกบกับมาตรการไหน</div>
             <div className="flex flex-wrap gap-2">
               {game.table.map((e) => (
@@ -1494,33 +1512,8 @@ function BActions({ game, card, setGame }: { game: State; card: Card | null; set
       )}
 
       <ActionFooter>
-        {card && d && (
-          <div className="flex flex-wrap gap-2 mb-2">
-            {card.kind === 'block' && (
-              <>
-                <Btn tone="red" disabled={!blocks.some((b) => b.id === card.id)} onClick={() => setGame((g) => g && bRespond(g, { t: 'block', cardId: card.id }))}>
-                  ปิดมาตรการที่เพิ่งวาง
-                </Btn>
-                <Btn tone="plain" disabled={!!game.trap} onClick={() => setGame((g) => g && bRespond(g, { t: 'trap', cardId: card.id }))}>
-                  ตั้งเป็นด่านคว่ำ{game.trap ? ' (มีแล้ว 1 ใบ)' : ''}
-                </Btn>
-              </>
-            )}
-            {(card.kind === 'rumor' || card.kind === 'wipe' || card.kind === 'freeze') && (
-              <Btn tone="red" onClick={() => setGame((g) => g && bRespond(g, { t: 'special', cardId: card.id }))}>
-                เล่นการ์ดนี้
-              </Btn>
-            )}
-            {card.kind === 'scatter' && (
-              <Btn tone="red" disabled={targets.length === 0} onClick={() => setTargeting((v) => !v)}>
-                เล่นการ์ดนี้
-              </Btn>
-            )}
-            {card.kind === 'bitem' && <Btn onClick={() => setGame((g) => g && bRespond(g, { t: 'item', cardId: card.id }))}>วางไอเท็มถาวร</Btn>}
-          </div>
-        )}
         {targeting && card?.kind === 'scatter' && (
-          <div className="mb-2 flex flex-wrap gap-2">
+          <div className="mb-3 flex flex-wrap gap-2">
             {targets.map((e) => (
               <button
                 key={e.id}
@@ -1533,9 +1526,29 @@ function BActions({ game, card, setGame }: { game: State; card: Card | null; set
             ))}
           </div>
         )}
-        <Btn tone="plain" onClick={() => setGame((g) => g && bRespond(g, { t: 'pass' }))}>
-          ผ่าน (ไม่เล่นการ์ดในตานี้)
-        </Btn>
+        <ChoiceGrid>
+          {card && d && card.kind === 'block' && (
+            <>
+              <ChoiceBtn
+                tone="attack"
+                icon="⛔"
+                title="ปิดมาตรการที่เพิ่งวาง"
+                sub={blocks.some((b) => b.id === card.id) ? 'มาตรการหาย ถ้าอีกฝ่ายไม่มีกุญแจแก้' : 'ไอคอนไม่ตรง ปิดไม่ได้'}
+                disabled={!blocks.some((b) => b.id === card.id)}
+                onClick={() => setGame((g) => g && bRespond(g, { t: 'block', cardId: card.id }))}
+              />
+              <ChoiceBtn tone="warn" icon="🂠" title="ตั้งเป็นด่านคว่ำ" sub={game.trap ? 'มีด่านคว่ำอยู่แล้ว 1 ใบ' : 'เปิดเมื่อมาตรการใบหน้าวาง'} disabled={!!game.trap} onClick={() => setGame((g) => g && bRespond(g, { t: 'trap', cardId: card.id }))} />
+            </>
+          )}
+          {card && d && (card.kind === 'rumor' || card.kind === 'wipe' || card.kind === 'freeze') && (
+            <ChoiceBtn tone="attack" icon={d.emoji} title="เล่นการ์ดนี้" sub="ใช้ผลทันที" onClick={() => setGame((g) => g && bRespond(g, { t: 'special', cardId: card.id }))} />
+          )}
+          {card && d && card.kind === 'scatter' && (
+            <ChoiceBtn tone="attack" icon={d.emoji} title="เล่นการ์ดนี้" sub={targets.length === 0 ? 'ยังไม่มีตัวเสริมบนโต๊ะ' : 'เลือกตัวเสริมที่จะทำลาย'} disabled={targets.length === 0} onClick={() => setTargeting((v) => !v)} />
+          )}
+          {card && d && card.kind === 'bitem' && <ChoiceBtn tone="good" icon="📌" title="วางไอเท็มถาวร" sub="อยู่ทั้งเกม" onClick={() => setGame((g) => g && bRespond(g, { t: 'item', cardId: card.id }))} />}
+          <ChoiceBtn tone="neutral" icon="🤚" title="ผ่าน" sub="ไม่เล่นการ์ดในตานี้" onClick={() => setGame((g) => g && bRespond(g, { t: 'pass' }))} />
+        </ChoiceGrid>
       </ActionFooter>
     </div>
   )
