@@ -48,6 +48,7 @@ import {
 } from '../barrier/engine'
 import { cardFace, type Face } from '../barrier/cardFace'
 import { sfx } from '../game/sfx'
+import { play, preloadSounds } from '../barrier/sound'
 
 /* ฝ่าด่านลดคาร์บอน — เกมการ์ดสองฝ่าย ผลักดัน vs ต่อต้าน เล่นกับบอท (#/barrier) */
 
@@ -144,16 +145,22 @@ export default function BarrierPage() {
     }
   }, [game])
 
+  useEffect(() => {
+    preloadSounds()
+  }, [])
+
   const phase = game?.phase
   useEffect(() => {
     if (!game || game.phase !== 'over') return
     const iWon = (game.human === 'P') === !!game.won
-    ;(iWon ? sfx.fanfare : sfx.wrong)()
+    if (iWon) sfx.fanfare()
+    else play('lose')
     // เล่นเสียงเฉพาะตอนเกมจบ
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase])
 
-  const start = () =>
+  const start = () => {
+    play('start')
     setGame(
       newGame({
         human: cfg.side,
@@ -162,6 +169,7 @@ export default function BarrierPage() {
         bStart: cfg.side === 'B' ? cfg.bItem : pick(B_ITEM_IDS),
       }),
     )
+  }
 
   return (
     <div className={`arena flex flex-col h-dvh ${game ? 'overflow-hidden' : 'overflow-y-auto'}`}>
@@ -502,7 +510,10 @@ function MenuBtn({ children, onClick, primary }: { children: ReactNode; onClick:
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => {
+        play('menu')
+        onClick()
+      }}
       className={`pop-btn w-full px-6 py-3.5 text-lg font-medium ${primary ? 'bg-accent text-white' : 'bg-white/10 text-white border-2 border-white/25'}`}
       style={{ ['--pop-shadow' as string]: primary ? 'oklch(38% 0.12 152)' : 'rgba(0,0,0,0.45)' }}
     >
@@ -517,7 +528,10 @@ function PickCard({ selected, onClick, children }: { selected: boolean; onClick:
     <motion.button
       type="button"
       aria-pressed={selected}
-      onClick={onClick}
+      onClick={() => {
+        play('menu')
+        onClick()
+      }}
       whileHover={{ y: -4 }}
       whileTap={{ scale: 0.98 }}
       className={`text-left rounded-3xl border-2 p-4 sm:p-5 transition-colors ${selected ? 'border-amber-300 bg-white/20 ring-4 ring-amber-300/30' : 'border-white/20 bg-white/10 hover:bg-white/15'}`}
@@ -556,7 +570,14 @@ function Setup({ cfg, setCfg, onStart }: { cfg: Config; setCfg: (c: Config) => v
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center w-full max-w-4xl mx-auto px-4 pb-8">
         {step !== 'title' && (
           <div className="w-full flex items-center justify-between mb-4">
-            <button type="button" onClick={back} className="hud-btn !px-4 !py-1.5 text-sm gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                play('back')
+                back()
+              }}
+              className="hud-btn !px-4 !py-1.5 text-sm gap-1"
+            >
               ← ย้อนกลับ
             </button>
             <div className="flex items-center gap-2" aria-label={`ขั้นที่ ${n} จาก 3`}>
@@ -723,6 +744,9 @@ function Setup({ cfg, setCfg, onStart }: { cfg: Config; setCfg: (c: Config) => v
             <p className="mt-4 text-sm text-ink/70 leading-relaxed">
               ในเกม: <b>ลากการ์ดขึ้นไปวางที่โต๊ะ</b> เพื่อเล่น หรือแตะการ์ดเพื่อดูรายละเอียดก่อน (จอสัมผัสใช้แตะอย่างเดียว) กด Esc เพื่อปิดหน้าต่างรายละเอียด
             </p>
+            <p className="mt-3 text-xs text-ink/50">
+              เสียงประกอบ: ชุด Interface Sounds โดย Kenney (<a className="underline" href="https://kenney.nl" target="_blank" rel="noreferrer">kenney.nl</a>) สัญญาอนุญาต CC0
+            </p>
           </div>
         </div>
       )}
@@ -761,7 +785,7 @@ function Board({ game, setGame, hints, onAgain, feed, muted, onMute, onQuit }: {
   const reveal = last && last !== seen ? last : null
   useEffect(() => {
     if (!last) return
-    if (last.cards.length) sfx.drop()
+    if (last.cards.length) play('reveal')
     const t = setTimeout(() => setSeen(last), 2100)
     return () => clearTimeout(t)
   }, [last])
@@ -778,10 +802,25 @@ function Board({ game, setGame, hints, onAgain, feed, muted, onMute, onQuit }: {
   const sheetOn = a === me && !modal && game.phase !== 'over'
   const entry = entryOf(game, game.ctx)
 
+  // เสียงตามเหตุการณ์ในเกม — เทียบสถานะก่อน/หลัง จึงครอบคลุมทั้งที่เราเล่นและที่บอทเล่น
+  const [prev, setPrev] = useState({ table: game.table.length, score: game.score })
+  const overlay = modal || (sheetOn && selectedId !== null)
+  const [prevOverlay, setPrevOverlay] = useState(overlay)
+  if (game.table.length !== prev.table || game.score !== prev.score) {
+    setPrev({ table: game.table.length, score: game.score })
+    if (game.table.length > prev.table) play('place')
+    else if (game.table.length < prev.table) play('bad')
+    else if (game.score > prev.score) play('score')
+  }
+  if (overlay !== prevOverlay) {
+    setPrevOverlay(overlay)
+    play(overlay ? 'open' : 'close', 0.5)
+  }
+
+
   // ปล่อยการ์ดลงโต๊ะ = เล่นการ์ดนั้นเลยถ้าเจตนาชัด (มาตรการ · ด่านที่ปิดได้ · ไอเท็ม) ที่เหลือเปิดแผงให้เลือกวิธีเล่น
   const onDrop = (c: Card) => {
     if (!choosing) return
-    sfx.drop()
     if (me === 'P') {
       if (c.kind === 'measure') return setGame((g) => g && playMeasure(g, c.id))
       if (c.kind === 'pitem') return setGame((g) => g && playPItem(g, c.id))
@@ -1162,7 +1201,10 @@ function FanCard({
         }, 0)
       }}
       onClick={() => {
-        if (!dragged.current && interactive) onSelect(card.id)
+        if (!dragged.current && interactive) {
+          play('select')
+          onSelect(card.id)
+        }
       }}
     >
       <div className={`card-tilt shadow-[0_10px_24px_rgba(0,0,0,0.5)] ${selected ? 'ring-4 ring-amber-300' : ''}`}>
@@ -1593,7 +1635,7 @@ function CounterPrompt({ game, setGame }: { game: State; setGame: SetGame }) {
               title={`ใช้ ${KEYS[k.k].name}`}
               sub="มาตรการรอด · เสียกุญแจใบนี้"
               onClick={() => {
-                sfx.correct()
+                play('good')
                 setGame((g) => g && counter(g, k.id))
               }}
             />
@@ -1605,7 +1647,7 @@ function CounterPrompt({ game, setGame }: { game: State; setGame: SetGame }) {
             sub={keys.length ? 'มาตรการหายไป · เก็บกุญแจไว้' : 'ไม่มีกุญแจที่ตรงกัน · มาตรการหายไป'}
             wide={keys.length % 2 === 0}
             onClick={() => {
-              sfx.wrong()
+              play('bad')
               setGame((g) => g && counter(g, null))
             }}
           />
