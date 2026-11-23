@@ -3,6 +3,9 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Home, RotateCcw, Volume2, VolumeX } from 'lucide-react'
 import feltUrl from '../barrier/art/felt.svg'
 import backUrl from '../barrier/art/card-back.svg'
+import skylineUrl from '../barrier/art/skyline.svg'
+import avatarPusherUrl from '../barrier/art/avatar-pusher.svg'
+import avatarBlockerUrl from '../barrier/art/avatar-blocker.svg'
 import {
   B_ITEM_IDS,
   CATS,
@@ -74,15 +77,14 @@ function useBox(active: boolean) {
   return [ref, box] as const
 }
 
-/** จอกว้าง (คอมพิวเตอร์): วางเป็นกระดานสองฝั่ง ซ้าย-ขวา ไม่ต้องเลื่อนหน้า */
-function useWide() {
+function useMedia(q: string) {
   return useSyncExternalStore(
     (cb) => {
-      const m = window.matchMedia('(min-width: 1280px)')
+      const m = window.matchMedia(q)
       m.addEventListener('change', cb)
       return () => m.removeEventListener('change', cb)
     },
-    () => window.matchMedia('(min-width: 1280px)').matches,
+    () => window.matchMedia(q).matches,
     () => false,
   )
 }
@@ -121,8 +123,6 @@ export default function BarrierPage() {
   const [game, setGame] = useState<State | null>(null)
   const [muted, setMuted] = useState(sfx.muted)
   const [feed, setFeed] = useState<BotMove[]>([])
-  const wide = useWide()
-  const fit = wide && !!game
   const [prevGame, setPrevGame] = useState<State | null>(null)
   if (game !== prevGame) {
     setPrevGame(game)
@@ -164,21 +164,12 @@ export default function BarrierPage() {
     )
 
   return (
-    <div className={`game-bg flex flex-col ${fit ? 'h-dvh overflow-hidden' : 'min-h-dvh'}`}>
-      <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-2 sm:py-3 shrink-0">
-        <a href="#" className="inline-flex items-center gap-1.5 text-ink/60 hover:text-ink text-sm transition-colors">
-          <Home size={16} /> หน้าแรก
-        </a>
-        <div className="flex items-center gap-2">
-          {game && (
-            <button
-              type="button"
-              onClick={() => setGame(null)}
-              className="inline-flex items-center gap-1.5 text-ink/60 hover:text-ink text-sm rounded-full px-3 py-1.5 hover:bg-ink/5"
-            >
-              <RotateCcw size={14} /> เริ่มใหม่
-            </button>
-          )}
+    <div className={`flex flex-col ${game ? 'arena h-dvh overflow-hidden' : 'game-bg min-h-dvh'}`}>
+      {!game && (
+        <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-2 sm:py-3 shrink-0">
+          <a href="#" className="inline-flex items-center gap-1.5 text-ink/60 hover:text-ink text-sm transition-colors">
+            <Home size={16} /> หน้าแรก
+          </a>
           <button
             type="button"
             onClick={() => setMuted(sfx.toggleMute())}
@@ -188,10 +179,14 @@ export default function BarrierPage() {
             {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
           </button>
         </div>
-      </div>
+      )}
 
-      <div className={`flex-1 px-3 sm:px-6 ${fit ? 'min-h-0 pb-3' : 'pb-6'}`}>
-        {game ? <Board game={game} setGame={setGame} hints={cfg.hints} onAgain={start} feed={feed} wide={wide} /> : <Setup cfg={cfg} setCfg={setCfg} onStart={start} />}
+      <div className={`flex-1 ${game ? 'min-h-0' : 'px-3 sm:px-6 pb-6'}`}>
+        {game ? (
+          <Board game={game} setGame={setGame} hints={cfg.hints} onAgain={start} feed={feed} muted={muted} onMute={() => setMuted(sfx.toggleMute())} onQuit={() => setGame(null)} />
+        ) : (
+          <Setup cfg={cfg} setCfg={setCfg} onStart={start} />
+        )}
       </div>
     </div>
   )
@@ -628,11 +623,12 @@ function Setup({ cfg, setCfg, onStart }: { cfg: Config; setCfg: (c: Config) => v
 
 /* ----------------------------------------------------------------- กระดานเกม */
 
-function Board({ game, setGame, hints, onAgain, feed, wide }: { game: State; setGame: SetGame; hints: boolean; onAgain: () => void; feed: BotMove[]; wide: boolean }) {
+function Board({ game, setGame, hints, onAgain, feed, muted, onMute, onQuit }: { game: State; setGame: SetGame; hints: boolean; onAgain: () => void; feed: BotMove[]; muted: boolean; onMute: () => void; onQuit: () => void }) {
   const me = game.human as Side
   const a = actor(game)
   const mine = a === me && game.phase !== 'over'
   const choosing = mine && (game.phase === 'p-turn' || game.phase === 'b-respond') && !game.frozen
+  const dock = useMedia('(min-width: 1024px)')
 
   // การ์ดที่เลือกไว้ — ผูกกับตา+เฟส จึงล้างเองเมื่อขึ้นตา/เฟสใหม่ ไม่ต้องใช้ effect
   const key = `${game.turn}-${game.phase}-${game.log.length}`
@@ -640,15 +636,39 @@ function Board({ game, setGame, hints, onAgain, feed, wide }: { game: State; set
   const selectedId = sel && sel.key === key ? sel.id : null
   const onSelect = (id: number) => setSel({ key, id })
 
+  const tableRef = useRef<HTMLDivElement>(null)
+  const [drag, setDrag] = useState<'off' | 'on' | 'over'>('off')
+
   const hand = me === 'P' ? game.pHand : game.bHand
+  const pct = Math.min(100, (game.score / game.target) * 100)
 
-  const handPanel = (selectable: boolean, fit = false) => (
-    <HandPanel game={game} hand={hand} me={me} selectedId={selectable ? selectedId : null} onSelect={selectable ? onSelect : undefined} highlight={selectable} fit={fit} />
-  )
+  // หน้าต่างบังคับตอบ (ถูกปิด · ข่าวลือ · ตัดงบ · จบเกม) ขึ้นกลางจอ
+  const modal =
+    game.phase === 'over' ||
+    (game.phase === 'counter' && game.pending?.kind === 'counter') ||
+    (game.phase === 'negate' && game.pending?.kind === 'negate') ||
+    (a === me && me === 'P' && !!game.frozen)
+  const sheetOn = a === me && !modal && game.phase !== 'over'
+  const entry = entryOf(game, game.ctx)
 
-  const stageBlock = (
+  // ปล่อยการ์ดลงโต๊ะ = เล่นการ์ดนั้นเลยถ้าเจตนาชัด (มาตรการ · ด่านที่ปิดได้ · ไอเท็ม) ที่เหลือเปิดแผงให้เลือกวิธีเล่น
+  const onDrop = (c: Card) => {
+    if (!choosing) return
+    sfx.drop()
+    if (me === 'P') {
+      if (c.kind === 'measure') return setGame((g) => g && playMeasure(g, c.id))
+      if (c.kind === 'pitem') return setGame((g) => g && playPItem(g, c.id))
+    } else {
+      if (c.kind === 'block' && legalBlocks(game).some((b) => b.id === c.id)) return setGame((g) => g && bRespond(g, { t: 'block', cardId: c.id }))
+      if (c.kind === 'bitem') return setGame((g) => g && bRespond(g, { t: 'item', cardId: c.id }))
+      if (c.kind === 'rumor' || c.kind === 'wipe' || c.kind === 'freeze') return setGame((g) => g && bRespond(g, { t: 'special', cardId: c.id }))
+    }
+    onSelect(c.id)
+  }
+
+  const stage = (
     <motion.div
-      key={`${game.phase}-${actor(game)}-${game.turn}-${game.pending?.kind ?? ''}-${game.frozen ? 1 : 0}`}
+      key={`${game.phase}-${a}-${game.turn}-${game.pending?.kind ?? ''}-${game.frozen ? 1 : 0}`}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
@@ -657,316 +677,365 @@ function Board({ game, setGame, hints, onAgain, feed, wide }: { game: State; set
     </motion.div>
   )
 
-  // จอกว้าง: กระดานสองฝั่ง — ซ้าย = ฝ่ายผลักดัน · ขวา = ฝ่ายต่อต้าน · กลาง = คะแนน โต๊ะ และแผงการกระทำ
-  if (wide) {
-    const sidePanel = (s: Side) => (
-      <aside className="min-h-0 overflow-y-auto rounded-[2rem] pb-1" aria-label={s === 'P' ? 'ฝั่งฝ่ายผลักดัน' : 'ฝั่งฝ่ายต่อต้าน'}>
-        {s === me ? handPanel(choosing, true) : <OpponentPanel game={game} me={me} feed={feed} narrow />}
-      </aside>
-    )
-    return (
-      <div className="h-full max-w-[1700px] mx-auto grid grid-cols-[clamp(22rem,27vw,30rem)_minmax(0,1fr)_clamp(22rem,27vw,30rem)] gap-3">
-        {sidePanel('P')}
-        <div className="min-h-0 min-w-0 flex flex-col gap-3">
-          <StatusBar game={game} me={me} />
-          <div className="flex-1 min-h-[7rem] overflow-y-auto rounded-[2rem]">
-            <TableView game={game} />
+  return (
+    <div className="relative h-full flex flex-col" style={{ ['--clean' as string]: pct / 100 }}>
+      <div className="arena-sky" style={{ backgroundImage: `url(${skylineUrl})` }} aria-hidden />
+      <div className="arena-smog" aria-hidden />
+      <div className="arena-clean" aria-hidden />
+
+      <Hud game={game} me={me} muted={muted} onMute={onMute} onQuit={onQuit} />
+      <OpponentSeat game={game} me={me} feed={feed} />
+
+      {/* โต๊ะ + แผงการกระทำ (จอกว้างจอดไว้ข้างโต๊ะ) */}
+      <div className="relative z-10 flex-1 min-h-0 w-full max-w-[1400px] mx-auto flex gap-3 px-3 pb-2">
+        <div ref={tableRef} className="flex-1 min-w-0 min-h-0">
+          <TableView game={game} drag={drag} logLine={game.log[game.log.length - 1]} />
+        </div>
+        {dock && sheetOn && (
+          <aside className="sheet w-[25rem] shrink-0 min-h-0 overflow-y-auto p-4" aria-label="การกระทำของคุณ">
+            {stage}
+          </aside>
+        )}
+      </div>
+
+      {/* จอแคบ: แถบบอกสถานะตาเรา · เลือกการ์ดแล้วแผงเด้งขึ้นเหนือมือ */}
+      {!dock && sheetOn && selectedId === null && (
+        <div className="relative z-20 mx-3 mb-1 rounded-2xl bg-black/40 border border-white/15 px-3 py-2 text-sm flex items-center gap-2">
+          <span className="flex-1 min-w-0 leading-snug">
+            {me === 'P' ? '👆 ตาของคุณ — ลากการ์ดขึ้นโต๊ะ หรือแตะการ์ดเพื่อดูรายละเอียด' : entry ? `ฝ่ายผลักดันวาง ${entry.card.emoji} ${entry.card.name} — ลากด่านขึ้นโต๊ะเพื่อปิด` : 'ตาของคุณ — ลากการ์ดขึ้นโต๊ะ หรือแตะเพื่อเลือก'}
+          </span>
+          {me === 'B' && (
+            <button type="button" onClick={() => setGame((g) => g && bRespond(g, { t: 'pass' }))} className="shrink-0 rounded-full bg-white/15 border border-white/25 px-3 py-1 text-xs font-medium">
+              ผ่าน
+            </button>
+          )}
+        </div>
+      )}
+      {!dock && sheetOn && selectedId !== null && (
+        <div className="fixed inset-x-2 bottom-[34dvh] z-40 sheet max-h-[52dvh] overflow-y-auto p-3">
+          <button type="button" onClick={() => setSel(null)} className="absolute right-2 top-2 rounded-full bg-ink/10 px-2.5 py-0.5 text-sm" aria-label="ปิด">
+            ✕
+          </button>
+          {stage}
+        </div>
+      )}
+
+      {/* มือ — การ์ดเรียงเป็นพัดที่ขอบล่าง */}
+      <div className="relative z-30 shrink-0 h-[34dvh] max-h-[22rem] min-h-[11rem]">
+        <HandFan game={game} hand={hand} me={me} selectedId={selectedId} interactive={choosing} onSelect={onSelect} onDrop={onDrop} onDragState={setDrag} tableRef={tableRef} />
+      </div>
+
+      {modal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-[2px]">
+          <motion.div initial={{ opacity: 0, scale: 0.92, y: 24 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 26 }} className="sheet w-full max-w-3xl max-h-[88dvh] overflow-y-auto p-4 sm:p-6">
+            {stage}
+          </motion.div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** แถบบนสุด: ปุ่มเมนู · คะแนน + หลอดคาร์บอน · ตา · ไอเท็มของเรา */
+function Hud({ game, me, muted, onMute, onQuit }: { game: State; me: Side; muted: boolean; onMute: () => void; onQuit: () => void }) {
+  const pct = Math.min(100, (game.score / game.target) * 100)
+  const preview = turnScore(game, game.ctx)
+  return (
+    <div className="relative z-10 px-3 pt-2 pb-1">
+      <div className="mx-auto max-w-[1400px] flex items-center gap-2 sm:gap-4">
+        <a href="#" aria-label="หน้าแรก" className="hud-btn">
+          <Home size={18} />
+        </a>
+        <button type="button" onClick={onQuit} aria-label="เริ่มใหม่" className="hud-btn">
+          <RotateCcw size={18} />
+        </button>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-2">
+            <span className="text-[11px] sm:text-xs text-white/60 whitespace-nowrap">คะแนนลดคาร์บอน</span>
+            <AnimatePresence mode="popLayout">
+              <motion.span
+                key={game.score}
+                initial={{ y: -12, opacity: 0, scale: 1.3 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: 12, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 350, damping: 24 }}
+                className="font-display text-2xl sm:text-3xl tabular leading-none text-amber-200"
+              >
+                {game.score}
+              </motion.span>
+            </AnimatePresence>
+            <span className="text-sm text-white/55 tabular">/ {game.target}</span>
           </div>
-          <div className="pop-card p-4 max-h-[55%] overflow-y-auto shrink-0">{stageBlock}</div>
-          <div className="rounded-2xl bg-surface/80 border border-line px-4 py-2 text-sm text-ink/70 leading-snug shrink-0" aria-live="polite">
-            {game.log.slice(-2).map((l, i, arr) => (
-              <div key={game.log.length - arr.length + i} className={i === arr.length - 1 ? 'text-ink font-medium' : ''}>
-                {l}
-              </div>
+          <div className="relative mt-1 h-3.5 rounded-full bg-black/45 border border-white/20 overflow-hidden" role="progressbar" aria-valuenow={game.score} aria-valuemax={game.target}>
+            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: 'linear-gradient(90deg,#f59e0b,#84cc16 60%,#22c55e)' }} />
+            {[25, 50, 75].map((t) => (
+              <span key={t} className="absolute top-0 h-full w-px bg-white/25" style={{ left: `${t}%` }} />
             ))}
           </div>
         </div>
-        {sidePanel('B')}
+        <div className="text-right leading-tight shrink-0">
+          <div className="text-xs sm:text-sm text-white/80">ตาที่ {game.turn}</div>
+          <div className="text-xs sm:text-sm font-medium text-amber-200 whitespace-nowrap">ตานี้ +{preview}</div>
+        </div>
+        <button type="button" onClick={onMute} aria-label={muted ? 'เปิดเสียง' : 'ปิดเสียง'} className="hud-btn">
+          {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+        </button>
       </div>
-    )
-  }
+      <div className="mx-auto max-w-[1400px] mt-1.5 flex flex-wrap gap-1.5 items-center min-h-6">
+        <span className="text-xs text-white/50">ไอเท็มของคุณ</span>
+        {(me === 'P' ? game.pItems : game.bItems).map((i, k) => (
+          <span key={k} className="hud-pill" title={ITEM_META[i].desc}>
+            {ITEM_META[i].emoji} {ITEM_META[i].name}
+          </span>
+        ))}
+        {me === 'B' && game.trap && (
+          <span className="hud-pill" title="ด่านคว่ำของคุณ จะเปิดเมื่อฝ่ายผลักดันวางมาตรการใบต่อไป">
+            🂠 ด่านคว่ำ: {game.trap.name}
+          </span>
+        )}
+        {game.frozen && <span className="hud-pill border-red-300/60 bg-red-500/30">✂️ ตาหน้าถูกตัดงบ</span>}
+      </div>
+    </div>
+  )
+}
 
+/** คู่ต่อสู้ (บอท) นั่งอยู่ฝั่งตรงข้าม: หน้าตัวละคร · การ์ดคว่ำในมือ · บับเบิลบอกสิ่งที่เพิ่งทำ */
+function OpponentSeat({ game, me, feed }: { game: State; me: Side; feed: BotMove[] }) {
+  const opp: Side = me === 'P' ? 'B' : 'P'
+  const hand = opp === 'P' ? game.pHand : game.bHand
+  const items = opp === 'P' ? game.pItems : game.bItems
+  const thinking = actor(game) === opp && game.phase !== 'over'
+  const last = feed[feed.length - 1]
+  const roomy = useMedia('(min-width: 640px)')
+  const shown = Math.min(hand.length, 7)
+  const bw = roomy ? 4.2 : 2.5
+  const name = opp === 'P' ? 'ฝ่ายผลักดัน (บอท)' : 'ฝ่ายต่อต้าน (บอท)'
   return (
-    <div className="max-w-6xl mx-auto lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-4 lg:items-start">
-      <div className="space-y-3 min-w-0">
-        <OpponentPanel game={game} me={me} feed={feed} collapsible />
-        <StatusBar game={game} me={me} />
-        <TableView game={game} />
-
-        {/* จอแคบ: ถ้าถึงตาเลือกการ์ด ให้มือขึ้นมาอยู่เหนือแผงการกระทำ */}
-        {choosing && <div className="lg:hidden">{handPanel(true)}</div>}
-
-        <div className="pop-card p-4 sm:p-6 min-h-[12rem] overflow-hidden">
-          <motion.div
-            key={`${game.phase}-${actor(game)}-${game.turn}-${game.pending?.kind ?? ''}-${game.frozen ? 1 : 0}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-          >
-            <Stage game={game} me={me} hints={hints} selectedId={selectedId} setGame={setGame} onAgain={onAgain} />
-          </motion.div>
+    <div className="relative z-10 px-3 pb-2">
+      <div className="mx-auto max-w-[1400px] flex items-center gap-3 sm:gap-5">
+        <div className="shrink-0 flex items-center gap-3">
+          <div className={`rounded-full p-1 bg-white/10 ${thinking ? 'ring-4 ring-amber-300/80 animate-pulse' : 'ring-2 ring-white/25'}`}>
+            <img src={opp === 'P' ? avatarPusherUrl : avatarBlockerUrl} alt="" className="size-14 sm:size-20 rounded-full" />
+          </div>
+          <div className="hidden sm:block leading-tight">
+            <div className="font-display text-lg">{name}</div>
+            <div className="text-xs text-white/60">{opp === 'P' ? 'ผู้ริเริ่มโครงการ' : 'ผู้คัดค้าน'}</div>
+            <div className="text-xs mt-1 text-amber-200">
+              {thinking ? 'กำลังคิด…' : 'รอคุณ'} · ถือ {hand.length} ใบ
+            </div>
+          </div>
         </div>
 
-        <div className="rounded-2xl bg-surface/80 border border-line px-4 py-2.5 text-sm text-ink/70 leading-relaxed overflow-hidden" aria-live="polite">
+        {/* การ์ดคว่ำในมือบอท */}
+        <div className="relative shrink-0" style={{ width: `${bw + (shown - 1) * bw * 0.45}rem`, height: `${bw * 1.364 + 0.4}rem` }} aria-label={`บอทถือการ์ด ${hand.length} ใบ`}>
           <AnimatePresence initial={false}>
-            {game.log.slice(-4).map((l, i, arr) => (
+            {hand.slice(0, shown).map((c, i) => (
               <motion.div
-                key={game.log.length - arr.length + i}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.2 }}
-                className={i === arr.length - 1 ? 'text-ink font-medium' : ''}
+                key={c.id}
+                className="absolute top-0"
+                initial={{ opacity: 0, y: -30 }}
+                animate={{ opacity: 1, y: thinking ? -4 : 0, rotate: (i - (shown - 1) / 2) * 4 }}
+                exit={{ opacity: 0, y: 30 }}
+                style={{ left: `${i * bw * 0.45}rem`, zIndex: i }}
               >
-                {l}
+                <CardBack side={opp} width={`${bw}rem`} label="" />
               </motion.div>
             ))}
           </AnimatePresence>
         </div>
 
-        {!choosing && <div className="lg:hidden">{handPanel(false)}</div>}
-      </div>
-
-      <aside className="hidden lg:block sticky top-3 max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-[2rem]">{handPanel(choosing)}</aside>
-    </div>
-  )
-}
-
-function StatusBar({ game, me }: { game: State; me: Side }) {
-  const pct = Math.min(100, (game.score / game.target) * 100)
-  const preview = turnScore(game, game.ctx)
-  return (
-    <div className="pop-card p-4">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <div className="text-xs text-ink/60">คะแนนรวมของฝ่ายผลักดัน · เป้า {game.target}</div>
-          <div className="font-display text-4xl text-ink tabular leading-none mt-1">
-            <AnimatePresence mode="popLayout">
-              <motion.span
-                key={game.score}
-                initial={{ y: -14, opacity: 0, scale: 1.2 }}
-                animate={{ y: 0, opacity: 1, scale: 1 }}
-                exit={{ y: 14, opacity: 0 }}
-                transition={{ type: 'spring', stiffness: 350, damping: 24 }}
-                className="inline-block"
-              >
-                {game.score}
-              </motion.span>
-            </AnimatePresence>
-            <span className="text-lg text-ink/45"> / {game.target}</span>
-          </div>
-        </div>
-        <div className="text-right text-base text-ink/75 leading-relaxed">
-          <div>
-            ตาที่ {game.turn} · กองฝ่ายผลักดันเหลือ {game.pDeck.length} ใบ
-          </div>
-          <div className="font-medium text-ink/85">ตานี้จะได้ +{preview} (ถ้านับตอนนี้)</div>
-        </div>
-      </div>
-      <div className="mt-3 h-3 rounded-full bg-ink/10 overflow-hidden" role="progressbar" aria-valuenow={game.score} aria-valuemax={game.target}>
-        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: pct >= 100 ? '#16a34a' : 'oklch(53% 0.15 152)' }} />
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2 items-center text-sm">
-        <span className="text-ink/60">ไอเท็มของคุณ:</span>
-        {me === 'P' &&
-          game.pItems.map((i, k) => (
-            <Chip key={`p${k}`} tone="green" big title={ITEM_META[i].desc}>
-              🌱 {ITEM_META[i].emoji} {ITEM_META[i].name}
-            </Chip>
-          ))}
-        {me === 'B' &&
-          game.bItems.map((i, k) => (
-            <Chip key={`b${k}`} tone="red" big title={ITEM_META[i].desc}>
-              ⛔ {ITEM_META[i].emoji} {ITEM_META[i].name}
-            </Chip>
-          ))}
-        {me === 'B' && game.trap && (
-          <Chip tone="amber" big title="ด่านคว่ำของคุณ จะเปิดเมื่อฝ่ายผลักดันวางมาตรการใบต่อไป">
-            🂠 ด่านคว่ำของคุณ: {game.trap.name}
-          </Chip>
-        )}
-        {game.frozen && (
-          <Chip tone="red" big>
-            ✂️ ตาหน้าถูกตัดงบ
-          </Chip>
-        )}
-      </div>
-    </div>
-  )
-}
-
-/** แผงของคู่ต่อสู้ (บอท): การ์ดในมือ (เห็นแค่หลังการ์ด) · ไอเท็มถาวร · ด่านคว่ำ · สิ่งที่เพิ่งทำ */
-function OpponentPanel({ game, me, feed, narrow, collapsible }: { game: State; me: Side; feed: BotMove[]; narrow?: boolean; collapsible?: boolean }) {
-  const opp: Side = me === 'P' ? 'B' : 'P'
-  const hand = opp === 'P' ? game.pHand : game.bHand
-  const deck = opp === 'P' ? game.pDeck : game.bDeck
-  const items = opp === 'P' ? game.pItems : game.bItems
-  const thinking = actor(game) === opp && game.phase !== 'over'
-  const last = feed[feed.length - 1]
-  const older = feed.slice(-3, -1).reverse()
-  const name = opp === 'P' ? 'ฝ่ายผลักดัน' : 'ฝ่ายต่อต้าน'
-  const shown = Math.min(hand.length, 6)
-  // บนมือถือ: ย่อเก็บเป็นแถบบาง ๆ ไว้ก่อน ไม่กินที่จอจนต้องเลื่อนนาน เปิดดูรายละเอียดได้ตอนอยากรู้
-  const [open, setOpen] = useState(!collapsible)
-  const header = (
-    <div className="flex items-center justify-between gap-2 flex-wrap">
-      <div className="font-medium text-ink flex items-center gap-2">
-        <span className="text-2xl" aria-hidden>
-          🤖
-        </span>
-        {opp === 'P' ? '🌱' : '⛔'} {name} (บอท)
-      </div>
-      <div className="text-xs text-ink/60 flex items-center gap-1">
-        {thinking ? (
-          <span className="inline-flex items-center gap-1 text-amber-800 font-medium">
-            กำลังคิด<span className="animate-pulse">…</span>
-          </span>
-        ) : (
-          'รอคุณ'
-        )}
-        {' · '}ถือ {hand.length} ใบ · กองจั่วเหลือ {deck.length}
-        {collapsible && <span className="text-ink/40 ml-1">{open ? '▲' : '▼'}</span>}
-      </div>
-    </div>
-  )
-
-  if (collapsible) {
-    return (
-      <div className={`pop-card p-3 ${thinking ? 'ring-4 ring-amber-300/60' : ''}`}>
-        <button type="button" onClick={() => setOpen((v) => !v)} className="w-full text-left">
-          {header}
-        </button>
-        {!open && last && <div className="mt-1 text-xs text-ink/60 truncate">{name}เพิ่งทำ: {last.lines[0] ?? ''}</div>}
-        {open && <div className="mt-3">{renderOpponentBody()}</div>}
-      </div>
-    )
-  }
-
-  return (
-    <div className={`pop-card p-3 sm:p-4 ${thinking ? 'ring-4 ring-amber-300/60' : ''}`}>
-      {header}
-      {renderOpponentBody()}
-    </div>
-  )
-
-  function renderOpponentBody() {
-    return (
-      <>
-      <div className={`mt-3 flex gap-x-5 gap-y-4 items-start ${narrow ? 'flex-col' : 'flex-wrap'}`}>
-        <div>
-          <div className={narrow ? 'text-sm text-ink/55 mb-2' : 'text-[11px] text-ink/50 mb-1'}>การ์ดในมือ (ไม่เห็นหน้า)</div>
-          <div className="flex pl-1">
-            {hand.length === 0 && <span className="text-sm text-ink/45">ไม่มีการ์ดในมือ</span>}
-            <AnimatePresence initial={false}>
-              {hand.slice(0, shown).map((c, i) => (
-                <motion.div
-                  key={c.id}
-                  layout
-                  initial={{ opacity: 0, y: -16 }}
-                  animate={{ opacity: 1, y: thinking ? -3 : 0 }}
-                  exit={{ opacity: 0, y: 16 }}
-                  style={{ marginLeft: i === 0 ? 0 : narrow ? -32 : -18, zIndex: i, rotate: (i - (shown - 1) / 2) * 3 }}
-                >
-                  <CardBack side={opp} width={narrow ? '7.5rem' : '5rem'} />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-        </div>
-
-        <div className={narrow ? 'min-w-[12rem] w-full' : 'min-w-[8rem]'}>
-          <div className={narrow ? 'text-sm text-ink/55 mb-2' : 'text-[11px] text-ink/50 mb-1'}>ไอเท็มถาวร · ด่านคว่ำ</div>
-          <div className={`flex flex-wrap ${narrow ? 'gap-2.5' : 'gap-1.5'}`}>
-            {items.map((i, k) => (
-              <div
-                key={k}
-                className={`rounded-xl border-2 ${narrow ? 'px-3.5 py-2.5 max-w-full' : 'px-2 py-1 max-w-[11rem]'}`}
-                style={{ background: '#fff3e0', borderColor: '#b4530955' }}
-                title={ITEM_META[i].desc}
-              >
-                <div className={`font-medium text-ink leading-tight ${narrow ? 'text-lg' : 'text-sm'}`}>
-                  {ITEM_META[i].emoji} {ITEM_META[i].name}
-                </div>
-                <div className={`text-ink/65 leading-snug ${narrow ? 'text-sm mt-0.5' : 'text-[11px]'}`}>{ITEM_META[i].desc}</div>
-              </div>
-            ))}
-            {opp === 'B' && game.trap && (
-              <div className={`flex items-center rounded-xl border-2 border-dashed border-amber-400 bg-amber-50 ${narrow ? 'gap-3 px-3.5 py-2.5' : 'gap-1.5 px-2 py-1'}`}>
-                <CardBack side="B" width={narrow ? '3.25rem' : '2.25rem'} />
-                <div className={`text-amber-900 leading-tight ${narrow ? 'text-base' : 'text-xs'}`}>
-                  <b>ด่านคว่ำ 1 ใบ</b>
-                  <br />
-                  เปิดเมื่อคุณวางมาตรการใบหน้า
-                </div>
-              </div>
-            )}
-            {items.length === 0 && !(opp === 'B' && game.trap) && <span className="text-sm text-ink/45">ยังไม่มี</span>}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-4 border-t border-line pt-3">
-        <div className={narrow ? 'text-sm text-ink/55 mb-2' : 'text-[11px] text-ink/50 mb-1'}>{name}เพิ่งทำ</div>
-        <AnimatePresence mode="wait" initial={false}>
-          {last ? (
+        {/* บับเบิล: สิ่งที่บอทเพิ่งทำ */}
+        <div className="flex-1 min-w-0 flex items-center gap-2">
+          <AnimatePresence mode="wait" initial={false}>
             <motion.div
-              key={last.id}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
+              key={last?.id ?? (thinking ? 'think' : 'idle')}
+              initial={{ opacity: 0, scale: 0.9, x: -8 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              className={narrow ? 'flex flex-col gap-3 items-start' : 'flex gap-3 items-start'}
+              transition={{ duration: 0.2 }}
+              className="relative rounded-2xl bg-white text-ink px-3 py-2 text-xs sm:text-sm leading-snug shadow-lg min-w-0"
             >
-              <div className="flex gap-2 shrink-0 flex-wrap">
-                {last.cards.length === 0 && (
-                  <div className="text-2xl self-center" aria-hidden>
-                    🤚
-                  </div>
-                )}
-                {last.cards.map(({ card, hidden }) => (
-                  <div key={card.id} className={narrow ? 'w-40' : 'w-32'}>
-                    {hidden ? <CardBack side={last.side} width="100%" label="วางคว่ำ" /> : <GameCard card={card} />}
-                  </div>
-                ))}
-              </div>
-              <div className={`text-ink leading-relaxed min-w-0 ${narrow ? 'text-base' : 'text-sm'}`}>
-                <div className={narrow ? 'text-sm text-ink/55' : 'text-[11px] text-ink/50'}>ตาที่ {last.turn}</div>
-                {last.lines.map((l, i) => (
-                  <div key={i}>{l}</div>
-                ))}
-                {last.cards.some((c) => c.hidden) && <div className="text-amber-800 text-xs mt-0.5">การ์ดที่วางคว่ำ คุณจะเห็นหน้าการ์ดเมื่อถูกเปิดเท่านั้น</div>}
-              </div>
+              <span className="absolute -left-1.5 top-4 size-3 rotate-45 bg-white" aria-hidden />
+              {thinking ? (
+                <span>
+                  กำลังคิด<span className="animate-pulse">…</span>
+                </span>
+              ) : last ? (
+                <>
+                  <div className="text-[10px] text-ink/50">ตาที่ {last.turn}</div>
+                  {last.lines.slice(0, 2).map((l, i) => (
+                    <div key={i} className="line-clamp-2">
+                      {l}
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <span>พร้อมแล้ว เริ่มเลย</span>
+              )}
             </motion.div>
-          ) : (
-            <div className="text-sm text-ink/45">ยังไม่ได้เล่น</div>
-          )}
-        </AnimatePresence>
-        {older.length > 0 && (
-          <div className={`mt-2 text-ink/50 space-y-0.5 ${narrow ? 'text-sm' : 'text-xs'}`}>
-            {older.map((m) => (
-              <div key={m.id}>
-                ตาที่ {m.turn}: {m.lines[0] ?? ''}
-              </div>
+          </AnimatePresence>
+          {!thinking &&
+            last?.cards.slice(0, 2).map(({ card, hidden }) => (
+              <motion.div key={card.id} initial={{ opacity: 0, y: -16, rotate: -6 }} animate={{ opacity: 1, y: 0, rotate: 0 }} className="shrink-0 w-14 sm:w-20 rounded-[5.73%/4.2%] overflow-hidden shadow-lg">
+                {hidden ? <CardBack side={last.side} width="100%" label="" /> : <PrintFace card={card} />}
+              </motion.div>
             ))}
-          </div>
-        )}
+        </div>
       </div>
-      </>
-    )
+      {(items.length > 0 || (opp === 'B' && game.trap)) && (
+        <div className="mx-auto max-w-[1400px] mt-1.5 hidden sm:flex flex-wrap gap-1.5 items-center">
+          <span className="text-xs text-white/50">ของบอท</span>
+          {items.map((i, k) => (
+            <span key={k} className="hud-pill" title={ITEM_META[i].desc}>
+              {ITEM_META[i].emoji} {ITEM_META[i].name}
+            </span>
+          ))}
+          {opp === 'B' && game.trap && <span className="hud-pill border-dashed">🂠 ด่านคว่ำ 1 ใบ (เปิดเมื่อคุณวางมาตรการใบหน้า)</span>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** มือของเรา: การ์ดเรียงเป็นพัดที่ขอบล่าง ชี้แล้วยกขึ้นขยายให้อ่าน · ลากขึ้นโต๊ะเพื่อเล่น */
+function HandFan({
+  game,
+  hand,
+  me,
+  selectedId,
+  interactive,
+  onSelect,
+  onDrop,
+  onDragState,
+  tableRef,
+}: {
+  game: State
+  hand: Card[]
+  me: Side
+  selectedId: number | null
+  interactive: boolean
+  onSelect: (id: number) => void
+  onDrop: (c: Card) => void
+  onDragState: (s: 'off' | 'on' | 'over') => void
+  tableRef: React.RefObject<HTMLDivElement | null>
+}) {
+  const [ref, box] = useBox(true)
+  const n = hand.length
+  const W = box?.w ?? 0
+  const cw = box && box.w > 0 && box.h > 0 ? Math.floor(Math.min((box.h * 1.2) / (952 / 698), 220, box.w * 0.42)) : 120
+  const step = n > 1 ? Math.min(cw * 0.92, (W - cw - 16) / (n - 1)) : 0
+  const max = me === 'P' ? handMax(game) : 4
+  return (
+    <div ref={ref} className="relative h-full">
+      <div className="absolute left-3 top-0 z-0 text-xs text-white/60 pointer-events-none">
+        {me === 'P' ? '🌱' : '⛔'} การ์ดในมือ {n}/{max}
+        {interactive && <span className="text-amber-200"> · ลากขึ้นโต๊ะเพื่อเล่น</span>}
+      </div>
+      <AnimatePresence initial>
+        {hand.map((c, i) => (
+          <FanCard key={c.id} card={c} i={i} n={n} cw={cw} step={step} selected={selectedId === c.id} interactive={interactive} onSelect={onSelect} onDrop={onDrop} onDragState={onDragState} tableRef={tableRef} />
+        ))}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+function FanCard({
+  card,
+  i,
+  n,
+  cw,
+  step,
+  selected,
+  interactive,
+  onSelect,
+  onDrop,
+  onDragState,
+  tableRef,
+}: {
+  card: Card
+  i: number
+  n: number
+  cw: number
+  step: number
+  selected: boolean
+  interactive: boolean
+  onSelect: (id: number) => void
+  onDrop: (c: Card) => void
+  onDragState: (s: 'off' | 'on' | 'over') => void
+  tableRef: React.RefObject<HTMLDivElement | null>
+}) {
+  const fine = useFinePointer()
+  const dragged = useRef(false)
+  const off = i - (n - 1) / 2
+  const H = cw * (952 / 698)
+  const ang = Math.min(4.5, 26 / Math.max(n, 1))
+  const inTable = (p: { x: number; y: number }) => {
+    const r = tableRef.current?.getBoundingClientRect()
+    return !!r && p.x >= r.left && p.x <= r.right && p.y >= r.top && p.y <= r.bottom
   }
+  return (
+    <motion.button
+      type="button"
+      aria-label={describe(card).name}
+      aria-pressed={selected}
+      className="absolute bottom-0 left-1/2 outline-none focus-visible:ring-4 ring-amber-300 rounded-[5.73%/4.2%]"
+      style={{ width: cw, marginLeft: -cw / 2, transformOrigin: '50% 100%', zIndex: selected ? 30 : i, touchAction: 'manipulation' }}
+      initial={{ opacity: 0, x: 0, y: H * 0.8, rotate: 0, scale: 0.8 }}
+      animate={{
+        opacity: interactive ? 1 : 0.82,
+        x: off * step,
+        y: selected ? -H * 0.12 : H * 0.16 + off * off * 3,
+        rotate: selected ? 0 : off * ang,
+        scale: selected ? 1.04 : 1,
+      }}
+      exit={{ opacity: 0, y: -H * 0.6, scale: 0.85 }}
+      transition={{ type: 'spring', stiffness: 260, damping: 26, delay: Math.min(i, 8) * 0.05 }}
+      whileHover={interactive && fine ? { y: -H * 0.52, rotate: 0, scale: 1.38, zIndex: 60 } : undefined}
+      drag={interactive && fine}
+      dragSnapToOrigin
+      dragMomentum={false}
+      dragElastic={0.6}
+      whileDrag={{ scale: 1.12, rotate: 0, zIndex: 90, cursor: 'grabbing' }}
+      onDragStart={() => {
+        dragged.current = true
+        onDragState('on')
+      }}
+      onDrag={(_, info) => onDragState(inTable(info.point) ? 'over' : 'on')}
+      onDragEnd={(_, info) => {
+        const ok = inTable(info.point)
+        onDragState('off')
+        if (ok) onDrop(card)
+        setTimeout(() => {
+          dragged.current = false
+        }, 0)
+      }}
+      onClick={() => {
+        if (!dragged.current && interactive) onSelect(card.id)
+      }}
+    >
+      <div className={`card-tilt shadow-[0_10px_24px_rgba(0,0,0,0.5)] ${selected ? 'ring-4 ring-amber-300' : ''}`}>
+        <PrintFace card={card} />
+        <div className="card-glare" aria-hidden />
+      </div>
+    </motion.button>
+  )
 }
 
 /** โต๊ะของฝ่ายผลักดัน: มาตรการที่ยังรอด + ตัวเสริมที่ประกบ + ความคืบหน้าของระบบครบวงจร */
-function TableView({ game }: { game: State }) {
+function TableView({ game, drag, logLine }: { game: State; drag: 'off' | 'on' | 'over'; logLine?: string }) {
   const counts = catCounts(game)
   const combos = comboCats(game)
   const deckLeft = game.pDeck.length
+  const glow = drag === 'over' ? 'ring-4 ring-emerald-300 shadow-[0_0_44px_rgba(110,231,183,0.6)]' : drag === 'on' ? 'outline outline-2 outline-dashed outline-emerald-200/70 -outline-offset-8' : ''
   return (
-    <div className="felt min-h-full p-4 sm:p-5" style={{ ['--felt-tile' as string]: `url(${feltUrl})` }}>
-      <div className="flex items-start justify-between gap-3 mb-3">
+    <div className={`felt h-full min-h-0 flex flex-col p-3 sm:p-4 transition-shadow ${glow}`} style={{ ['--felt-tile' as string]: `url(${feltUrl})` }}>
+      <div className="flex items-start justify-between gap-3 mb-2 shrink-0">
         <div className="min-w-0">
-          <div className="font-display text-lg leading-tight">🌱 โต๊ะของฝ่ายผลักดัน</div>
-          <div className="felt-muted text-sm">{game.table.length} มาตรการที่รอด</div>
-          <div className="flex flex-wrap gap-1.5 mt-2">
+          <div className="font-display text-base sm:text-lg leading-tight">
+            🌱 โต๊ะของฝ่ายผลักดัน <span className="felt-muted text-sm font-sans">· {game.table.length} มาตรการที่รอด</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5 mt-1.5">
             {(Object.keys(CATS) as (keyof typeof CATS)[]).map((k) => (
               <Chip key={k} tone={counts[k] >= 3 ? 'green' : 'plain'} title="มาตรการหมวดเดียวกันรอด ≥ 3 ใบ = ระบบครบวงจร +2 แต้ม/ตา">
                 {CATS[k].emoji} {counts[k]}/3{counts[k] >= 3 && ' ✓ +2'}
@@ -974,27 +1043,40 @@ function TableView({ game }: { game: State }) {
             ))}
           </div>
         </div>
-        {/* กองจั่วของฝ่ายผลักดัน */}
         <div className="shrink-0 text-center" title={`กองจั่วเหลือ ${deckLeft} ใบ`}>
-          <div className="relative" style={{ width: '3.6rem', height: `${3.6 * (952 / 698) + 0.4}rem` }}>
+          <div className="relative" style={{ width: '2.6rem', height: `${2.6 * (952 / 698) + 0.3}rem` }}>
             {[2, 1, 0].map((n) => (
               <div key={n} className="absolute" style={{ left: n * 2, top: -n * 2, opacity: deckLeft > n * 4 ? 1 : 0 }}>
-                <CardBack side="P" width="3.6rem" label="" />
+                <CardBack side="P" width="2.6rem" label="" />
               </div>
             ))}
           </div>
-          <div className="felt-muted text-xs mt-1 tabular">กองจั่ว {deckLeft}</div>
+          <div className="felt-muted text-[11px] mt-0.5 tabular">กองจั่ว {deckLeft}</div>
         </div>
       </div>
-      {game.table.length === 0 ? (
-        <div className="felt-muted text-sm py-6 text-center">ยังไม่มีมาตรการบนโต๊ะ — มาตรการที่รอดจะได้แต้มทุกตา</div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-          <AnimatePresence initial={false}>
-            {game.table.map((e) => (
-              <EntryTile key={e.id} e={e} isNew={e.id === game.ctx} inCombo={combos.includes(e.card.cat)} />
-            ))}
-          </AnimatePresence>
+      <div className="relative flex-1 min-h-0 overflow-y-auto">
+        {game.table.length === 0 ? (
+          <div className="felt-muted text-sm h-full min-h-[5rem] flex items-center justify-center text-center px-4">ยังไม่มีมาตรการบนโต๊ะ — ลากมาตรการจากมือมาวางที่นี่ มาตรการที่รอดจะได้แต้มทุกตา</div>
+        ) : (
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2.5 pb-1">
+            <AnimatePresence initial={false}>
+              {game.table.map((e) => (
+                <EntryTile key={e.id} e={e} isNew={e.id === game.ctx} inCombo={combos.includes(e.card.cat)} />
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
+        <AnimatePresence>
+          {drag !== 'off' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <span className={`rounded-full px-5 py-2 font-display text-lg ${drag === 'over' ? 'bg-emerald-300 text-emerald-950' : 'bg-black/40 text-white/80'}`}>{drag === 'over' ? 'ปล่อยเพื่อเล่น' : 'ลากมาวางที่โต๊ะ'}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+      {logLine && (
+        <div className="mt-2 shrink-0 rounded-xl bg-black/30 px-3 py-1.5 text-xs sm:text-sm text-white/85 truncate" aria-live="polite">
+          {logLine}
         </div>
       )}
     </div>
@@ -1036,60 +1118,6 @@ function EntryTile({ e, isNew, inCombo }: { e: Entry; isNew: boolean; inCombo: b
       </div>
       {(shielded || inCombo) && <div className="text-[10px] text-accent-deep">{shielded ? '🛡 กันเปลี่ยนคนทำ' : '🛡 อยู่ในระบบครบวงจร'}</div>}
     </motion.div>
-  )
-}
-
-function HandPanel({
-  game,
-  hand,
-  me,
-  selectedId,
-  onSelect,
-  highlight,
-  fit,
-}: {
-  game: State
-  hand: Card[]
-  me: Side
-  selectedId: number | null
-  onSelect?: (id: number) => void
-  highlight: boolean
-  /** จอกว้าง: ขยายการ์ดให้เต็มพื้นที่แผงข้าง */
-  fit?: boolean
-}) {
-  const max = me === 'P' ? handMax(game) : 4
-  const [boxRef, box] = useBox(!!fit && hand.length > 0)
-  const GAP = 10
-  let gridStyle: React.CSSProperties | undefined
-  if (fit && box && box.w > 0 && box.h > 0) {
-    const rows = Math.max(1, Math.ceil(hand.length / 2))
-    const byW = (box.w - GAP) / 2
-    const byH = ((box.h - GAP * (rows - 1)) / rows) * (698 / 952)
-    const cw = Math.max(90, Math.min(byW, byH, 270))
-    gridStyle = { gridTemplateColumns: `repeat(2, ${Math.floor(cw)}px)`, justifyContent: 'center', alignContent: 'center', gap: GAP, height: '100%' }
-  }
-  return (
-    <div className={`pop-card p-3 sm:p-4 ${fit ? 'h-full flex flex-col' : ''} ${highlight ? 'ring-4 ring-accent/30' : ''}`}>
-      <div className="flex items-center justify-between gap-2 mb-1">
-        <span className="font-medium text-ink">
-          {me === 'P' ? '🌱' : '⛔'} การ์ดในมือคุณ ({hand.length}/{max})
-        </span>
-      </div>
-      {highlight && <p className="text-sm text-accent-deep font-medium mb-1">👇 แตะการ์ดเพื่อดูรายละเอียดและเลือกว่าจะทำอะไร</p>}
-      {hand.length === 0 ? (
-        <div className="text-ink/50 text-sm py-6 text-center">ไม่มีการ์ดในมือ</div>
-      ) : (
-        <div ref={boxRef} className={fit ? 'flex-1 min-h-0 pt-2' : undefined}>
-        <div className={fit ? 'grid' : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2.5 pt-2'} style={gridStyle}>
-          <AnimatePresence initial={false}>
-            {hand.map((c, i) => (
-              <GameCard key={c.id} card={c} index={i} selected={selectedId === c.id} onClick={onSelect ? () => onSelect(c.id) : undefined} />
-            ))}
-          </AnimatePresence>
-        </div>
-        </div>
-      )}
-    </div>
   )
 }
 
