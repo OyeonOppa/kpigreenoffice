@@ -217,6 +217,7 @@ body {
   background:
     radial-gradient(circle at 15% 12%, rgba(255, 255, 255, 0.22) 0 12.9cqw, transparent 13.2cqw),
     radial-gradient(circle at 88% 90%, rgba(255, 255, 255, 0.16) 0 18.6cqw, transparent 18.9cqw),
+    var(--back-pattern, none) center / 11cqw,
     linear-gradient(160deg, var(--b1), var(--b2));
   border-color: var(--b3);
   color: #fff;
@@ -228,4 +229,123 @@ body {
 @container (max-width: 130px) {
   .pc-bsub, .pc-borg { display: none; }
   .pc-bname { font-size: 12cqw; }
+}
+
+/* ---------------------------------------------------------------------------
+   โต๊ะสักหลาด + การ์ดที่มีน้ำหนัก (หน้า #/barrier)
+--------------------------------------------------------------------------- */
+.felt {
+  position: relative;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.1), transparent 60%),
+    radial-gradient(100% 100% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.3)),
+    var(--felt-tile, #1f5a43);
+  border: 0.45rem solid #6b4a2b;
+  border-radius: 2rem;
+  box-shadow:
+    inset 0 0 0 2px rgba(0, 0, 0, 0.25),
+    inset 0 1.2rem 2.5rem rgba(0, 0, 0, 0.28),
+    0 3px 0 0 #4a3219,
+    0 20px 40px -18px rgba(30, 20, 10, 0.55);
+  color: #f1f7f3;
+}
+.felt .felt-muted { color: rgba(241, 247, 243, 0.7); }
+
+/* การ์ดเอียงตามเมาส์ + แสงสะท้อน */
+.card-tilt {
+  position: relative;
+  border-radius: 5.73% / 4.2%;
+  transform: perspective(700px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.18s ease-out;
+  will-change: transform;
+}
+.card-glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  background: radial-gradient(circle at var(--gx, 50%) var(--gy, 0%), rgba(255, 255, 255, 0.5), transparent 55%);
+  mix-blend-mode: soft-light;
+}
+.card-tilt:hover .card-glare { opacity: 1; }
+.card-shadow-lift { filter: drop-shadow(0 14px 12px rgba(20, 30, 20, 0.28)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .card-tilt { transform: none !important; transition: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   ฉากเกมเต็มจอ (#/barrier ตอนเล่น) — ฟ้าหมอกควันจางลงเมื่อคะแนนขึ้น (--clean 0..1)
+--------------------------------------------------------------------------- */
+.arena {
+  position: relative;
+  background: linear-gradient(180deg, #0e2a2e 0%, #11363a 48%, #0a211e 100%);
+  color: #fff;
+}
+.arena-sky {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 46%;
+  background-repeat: no-repeat;
+  background-position: center bottom;
+  background-size: cover;
+  opacity: 0.55;
+  pointer-events: none;
+}
+.arena-smog,
+.arena-clean {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: opacity 1.4s ease;
+}
+.arena-smog {
+  opacity: calc((1 - var(--clean, 0)) * 0.9);
+  background:
+    radial-gradient(60% 40% at 18% 8%, rgba(160, 125, 80, 0.55), transparent 70%),
+    radial-gradient(55% 35% at 82% 16%, rgba(120, 105, 90, 0.5), transparent 70%),
+    linear-gradient(180deg, rgba(125, 95, 65, 0.35), transparent 60%);
+  animation: smog-drift 18s ease-in-out infinite alternate;
+}
+.arena-clean {
+  opacity: calc(var(--clean, 0) * 0.9);
+  background: radial-gradient(80% 50% at 50% 0%, rgba(110, 231, 183, 0.32), transparent 70%);
+}
+@keyframes smog-drift {
+  to { transform: translateX(3%) scale(1.05); }
+}
+.hud-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.85);
+  transition: background 0.15s;
+}
+.hud-btn:hover { background: rgba(255, 255, 255, 0.2); }
+.hud-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+.sheet {
+  background: #fbf7ee;
+  color: var(--color-ink);
+  border: 4px solid #e5d9bd;
+  border-radius: 1.5rem;
+  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.6);
+}
+@media (prefers-reduced-motion: reduce) {
+  .arena-smog { animation: none; }
 }
