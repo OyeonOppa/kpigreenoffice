@@ -164,24 +164,19 @@ export default function BarrierPage() {
     )
 
   return (
-    <div className={`flex flex-col ${game ? 'arena h-dvh overflow-hidden' : 'game-bg min-h-dvh'}`}>
+    <div className={`arena flex flex-col h-dvh ${game ? 'overflow-hidden' : 'overflow-y-auto'}`}>
       {!game && (
-        <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-2 sm:py-3 shrink-0">
-          <a href="#" className="inline-flex items-center gap-1.5 text-ink/60 hover:text-ink text-sm transition-colors">
+        <div className="relative z-20 flex items-center justify-between gap-3 px-4 sm:px-6 py-3 shrink-0">
+          <a href="#" className="hud-btn !px-4 !py-1.5 text-sm gap-1.5">
             <Home size={16} /> หน้าแรก
           </a>
-          <button
-            type="button"
-            onClick={() => setMuted(sfx.toggleMute())}
-            aria-label={muted ? 'เปิดเสียง' : 'ปิดเสียง'}
-            className="rounded-full p-2 text-ink/60 hover:text-ink hover:bg-ink/5 transition-colors"
-          >
+          <button type="button" onClick={() => setMuted(sfx.toggleMute())} aria-label={muted ? 'เปิดเสียง' : 'ปิดเสียง'} className="hud-btn">
             {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
           </button>
         </div>
       )}
 
-      <div className={`flex-1 ${game ? 'min-h-0' : 'px-3 sm:px-6 pb-6'}`}>
+      <div className={`flex-1 flex flex-col ${game ? 'min-h-0' : ''}`}>
         {game ? (
           <Board game={game} setGame={setGame} hints={cfg.hints} onAgain={start} feed={feed} muted={muted} onMute={() => setMuted(sfx.toggleMute())} onQuit={() => setGame(null)} />
         ) : (
@@ -501,122 +496,236 @@ function Chip({ children, tone = 'plain', title, big }: { children: ReactNode; t
 
 /* ----------------------------------------------------------------- หน้าตั้งค่า */
 
+type Step = 'title' | 'side' | 'contract' | 'item'
+
+function MenuBtn({ children, onClick, primary }: { children: ReactNode; onClick: () => void; primary?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`pop-btn w-full px-6 py-3.5 text-lg font-medium ${primary ? 'bg-accent text-white' : 'bg-white/10 text-white border-2 border-white/25'}`}
+      style={{ ['--pop-shadow' as string]: primary ? 'oklch(38% 0.12 152)' : 'rgba(0,0,0,0.45)' }}
+    >
+      {children}
+    </button>
+  )
+}
+
+/** ปุ่มเลือกแบบการ์ดกระจกบนฉากมืด */
+function PickCard({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <motion.button
+      type="button"
+      aria-pressed={selected}
+      onClick={onClick}
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.98 }}
+      className={`text-left rounded-3xl border-2 p-4 sm:p-5 transition-colors ${selected ? 'border-amber-300 bg-white/20 ring-4 ring-amber-300/30' : 'border-white/20 bg-white/10 hover:bg-white/15'}`}
+    >
+      {children}
+    </motion.button>
+  )
+}
+
+/** เมนูเกม: หน้าชื่อเกม → เลือกฝ่าย → เลือกการ์ดสัญญา → เลือกไอเท็ม → เริ่ม */
 function Setup({ cfg, setCfg, onStart }: { cfg: Config; setCfg: (c: Config) => void; onStart: () => void }) {
+  const [step, setStep] = useState<Step>('title')
+  const [howto, setHowto] = useState(false)
   const items = cfg.side === 'P' ? P_ITEM_IDS : B_ITEM_IDS
   const current = cfg.side === 'P' ? cfg.pItem : cfg.bItem
   const setItem = (id: PItem | BItem) => (cfg.side === 'P' ? setCfg({ ...cfg, pItem: id as PItem }) : setCfg({ ...cfg, bItem: id as BItem }))
+  const back = () => setStep(step === 'item' ? 'contract' : step === 'contract' ? 'side' : 'title')
+  const n = step === 'side' ? 1 : step === 'contract' ? 2 : 3
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => e.key === 'Escape' && setHowto(false)
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [])
+
+  const slide = { initial: { opacity: 0, x: 40 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -40 }, transition: { duration: 0.22 } }
 
   return (
-    <div className="max-w-3xl mx-auto pop-card p-6 sm:p-9">
-      <div className="text-center">
-        <div className="text-6xl mb-2" aria-hidden>
-          🔑⛔
-        </div>
-        <h1 className="font-display text-3xl sm:text-4xl text-ink tracking-tight">ฝ่าด่านลดคาร์บอน</h1>
-        <p className="text-ink/65 mt-2">เกมการ์ดสองฝ่าย ผลักดัน vs ต่อต้าน — เล่นกับบอท</p>
+    <div className="relative flex-1 flex flex-col" style={{ ['--clean' as string]: 0.3 }}>
+      <div className="fixed inset-0 pointer-events-none" aria-hidden>
+        <div className="arena-sky" style={{ backgroundImage: `url(${skylineUrl})` }} />
+        <div className="arena-smog" />
+        <div className="arena-clean" />
       </div>
 
-      <div className="mt-6 grid sm:grid-cols-2 gap-3 text-ink/85 leading-relaxed">
-        <div className="rounded-2xl border-2 border-green-200 bg-green-50/60 p-4">
-          <b>🌱 ฝ่ายผลักดัน</b>
-          <br />
-          วางมาตรการลดคาร์บอนทีละใบ ถ้า <b>รอดจากด่าน</b> จะได้แต้มทุกตาไปจนจบเกม ถึงเป้าตามการ์ดสัญญาถือว่าชนะ
-        </div>
-        <div className="rounded-2xl border-2 border-red-200 bg-red-50/60 p-4">
-          <b>⛔ ฝ่ายต่อต้าน</b>
-          <br />
-          เป็นตัวแทนอุปสรรคจริง วางการ์ด <b>ด่าน</b> ขวางมาตรการที่เพิ่งวาง ให้ไม่ถึงเป้า
-        </div>
-      </div>
-
-      <div className="mt-5 rounded-2xl border border-line bg-surface p-4">
-        <div className="font-medium text-ink mb-2">หัวใจของเกม: ด่านแต่ละแบบ แก้ด้วยกุญแจที่ตรงกัน</div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm text-ink/85">
-          {ICON_IDS.map((i) => (
-            <div key={i}>
-              {ICONS[i].emoji} <b>{ICONS[i].name}</b> → {KEYS[i].emoji} {KEYS[i].name}
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center w-full max-w-4xl mx-auto px-4 pb-8">
+        {step !== 'title' && (
+          <div className="w-full flex items-center justify-between mb-4">
+            <button type="button" onClick={back} className="hud-btn !px-4 !py-1.5 text-sm gap-1">
+              ← ย้อนกลับ
+            </button>
+            <div className="flex items-center gap-2" aria-label={`ขั้นที่ ${n} จาก 3`}>
+              {[1, 2, 3].map((i) => (
+                <span key={i} className={`h-2.5 rounded-full transition-all ${i === n ? 'w-8 bg-amber-300' : i < n ? 'w-2.5 bg-amber-300/70' : 'w-2.5 bg-white/25'}`} />
+              ))}
             </div>
-          ))}
-          <div>
-            (ทุกด่าน) → {KEYS.W.emoji} {KEYS.W.name}
+          </div>
+        )}
+
+        <AnimatePresence mode="wait" initial={false}>
+          {step === 'title' && (
+            <motion.div key="title" {...slide} className="w-full text-center">
+              <div className="relative h-44 sm:h-52 mb-2 flex justify-center items-end">
+                <motion.div className="absolute" style={{ left: 'calc(50% - 8.5rem)', bottom: 0 }} initial={{ rotate: -20, y: 30, opacity: 0 }} animate={{ rotate: -12, y: [0, -8, 0], opacity: 1 }} transition={{ y: { repeat: Infinity, duration: 4, ease: 'easeInOut' } }}>
+                  <CardBack side="P" width="7.5rem" />
+                </motion.div>
+                <motion.div className="absolute" style={{ left: 'calc(50% + 1rem)', bottom: 0 }} initial={{ rotate: 20, y: 30, opacity: 0 }} animate={{ rotate: 12, y: [0, -8, 0], opacity: 1 }} transition={{ y: { repeat: Infinity, duration: 4.6, ease: 'easeInOut' } }}>
+                  <CardBack side="B" width="7.5rem" />
+                </motion.div>
+              </div>
+              <h1 className="font-display text-4xl sm:text-6xl tracking-tight drop-shadow-lg">ฝ่าด่านลดคาร์บอน</h1>
+              <p className="text-white/70 mt-2 sm:text-lg">เกมการ์ดสองฝ่าย ผลักดัน vs ต่อต้าน — เล่นกับบอท</p>
+              <div className="mt-8 flex flex-col gap-3 max-w-xs mx-auto">
+                <MenuBtn primary onClick={() => setStep('side')}>
+                  เริ่มเกมใหม่
+                </MenuBtn>
+                <MenuBtn onClick={() => setHowto(true)}>วิธีเล่น</MenuBtn>
+              </div>
+              <p className="mt-10 text-xs text-white/45 max-w-xl mx-auto leading-relaxed">
+                ต้นแบบสำหรับทดลองเล่น · ได้แรงบันดาลใจด้านโครงสร้างจากเกม Bangkok's Big Brother: เราจะทำตามสัญญา ของ iLaw · ความรู้บนการ์ดเป็นหลักการทั่วไป ควรให้ผู้เชี่ยวชาญตรวจอีกครั้งก่อนเผยแพร่จริง
+              </p>
+            </motion.div>
+          )}
+
+          {step === 'side' && (
+            <motion.div key="side" {...slide} className="w-full">
+              <h2 className="font-display text-3xl text-center mb-5">คุณจะเล่นฝ่ายไหน</h2>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {(['P', 'B'] as Side[]).map((sd) => (
+                  <PickCard
+                    key={sd}
+                    selected={cfg.side === sd}
+                    onClick={() => {
+                      setCfg({ ...cfg, side: sd })
+                      setStep('contract')
+                    }}
+                  >
+                    <div className="flex items-center gap-4">
+                      <img src={sd === 'P' ? avatarPusherUrl : avatarBlockerUrl} alt="" className="size-20 sm:size-24 rounded-full ring-2 ring-white/30 shrink-0" />
+                      <div>
+                        <div className="font-display text-2xl">{sd === 'P' ? '🌱 ฝ่ายผลักดัน' : '⛔ ฝ่ายต่อต้าน'}</div>
+                        <div className="text-sm text-white/60">{sd === 'P' ? 'ลงมือทำ' : 'ขวางทาง'}</div>
+                      </div>
+                    </div>
+                    <p className="mt-3 text-white/85 leading-relaxed text-sm sm:text-base">
+                      {sd === 'P' ? (
+                        <>
+                          วางมาตรการลดคาร์บอนทีละใบ ถ้า <b>รอดจากด่าน</b> จะได้แต้มทุกตาไปจนจบเกม ถึงเป้าตามการ์ดสัญญาถือว่าชนะ
+                        </>
+                      ) : (
+                        <>
+                          เป็นตัวแทนอุปสรรคจริง วางการ์ด <b>ด่าน</b> ขวางมาตรการที่เพิ่งวาง ให้ไม่ถึงเป้า
+                        </>
+                      )}
+                    </p>
+                  </PickCard>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {step === 'contract' && (
+            <motion.div key="contract" {...slide} className="w-full">
+              <h2 className="font-display text-3xl text-center">เลือกการ์ดสัญญา</h2>
+              <p className="text-center text-white/60 text-sm mt-1 mb-5">เป้าคะแนนที่ฝ่ายผลักดันต้องทำให้ถึง</p>
+              <div className="grid sm:grid-cols-3 gap-4">
+                {CONTRACTS.map((c) => (
+                  <PickCard
+                    key={c.id}
+                    selected={cfg.target === c.target}
+                    onClick={() => {
+                      setCfg({ ...cfg, target: c.target })
+                      setStep('item')
+                    }}
+                  >
+                    <div className="text-4xl" aria-hidden>
+                      {c.emoji}
+                    </div>
+                    <div className="font-display text-xl mt-2">{c.name}</div>
+                    <div className="text-amber-200 font-medium">เป้า {c.target} แต้ม</div>
+                    <div className="text-sm text-white/65 mt-1">{c.note}</div>
+                  </PickCard>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {step === 'item' && (
+            <motion.div key="item" {...slide} className="w-full">
+              <h2 className="font-display text-3xl text-center">เลือกไอเท็มเริ่มเกม</h2>
+              <p className="text-center text-white/60 text-sm mt-1 mb-5">วางแล้วอยู่ทั้งเกม ปิดไม่ได้ · เล่นฝ่าย{cfg.side === 'P' ? 'ผลักดัน' : 'ต่อต้าน'} · เป้า {cfg.target} แต้ม</p>
+              <div className="grid sm:grid-cols-3 gap-4">
+                {items.map((id) => (
+                  <PickCard key={id} selected={current === id} onClick={() => setItem(id)}>
+                    <div className="text-3xl" aria-hidden>
+                      {ITEM_META[id].emoji}
+                    </div>
+                    <div className="font-display text-lg mt-1">{ITEM_META[id].name}</div>
+                    <div className="text-sm text-white/70 leading-snug mt-1">{ITEM_META[id].desc}</div>
+                  </PickCard>
+                ))}
+              </div>
+              <p className="text-xs text-white/50 mt-2 text-center">บอทจะสุ่มไอเท็มของตัวเอง อีก 2 ใบที่ไม่ได้เลือกจะสับเข้ากองและอาจจั่วได้ภายหลัง</p>
+
+              <label className="mt-5 flex items-start gap-3 cursor-pointer max-w-xl mx-auto">
+                <input type="checkbox" checked={cfg.hints} onChange={(e) => setCfg({ ...cfg, hints: e.target.checked })} className="mt-1 w-5 h-5 accent-[oklch(53%_0.15_152)]" />
+                <span className="text-white/85 text-sm leading-relaxed">
+                  <b>โหมดช่วยจำ</b> เมื่อเลือกการ์ดจะบอกว่ากุญแจในมือแก้ด่านของใบนั้นได้ไหม (ปิดไว้ถ้าอยากเล่นแบบท้าทาย)
+                </span>
+              </label>
+              <div className="mt-6 max-w-xs mx-auto">
+                <MenuBtn primary onClick={onStart}>
+                  เริ่มเล่น
+                </MenuBtn>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {howto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-[2px]" onClick={() => setHowto(false)}>
+          <div className="sheet relative w-full max-w-2xl max-h-[92dvh] overflow-y-auto p-5 sm:p-7" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setHowto(false)} className="absolute right-3 top-3 rounded-full bg-ink/10 hover:bg-ink/20 px-2.5 py-0.5 text-sm" aria-label="ปิด (Esc)">
+              ✕
+            </button>
+            <h2 className="font-display text-2xl mb-3">วิธีเล่น</h2>
+            <div className="grid sm:grid-cols-2 gap-3 leading-relaxed text-sm">
+              <div className="rounded-2xl border-2 border-green-200 bg-green-50/60 p-3">
+                <b>🌱 ฝ่ายผลักดัน</b>
+                <br />
+                วางมาตรการลดคาร์บอนทีละใบ ถ้า <b>รอดจากด่าน</b> จะได้แต้มทุกตาไปจนจบเกม ถึงเป้าตามการ์ดสัญญาถือว่าชนะ
+              </div>
+              <div className="rounded-2xl border-2 border-red-200 bg-red-50/60 p-3">
+                <b>⛔ ฝ่ายต่อต้าน</b>
+                <br />
+                เป็นตัวแทนอุปสรรคจริง วางการ์ด <b>ด่าน</b> ขวางมาตรการที่เพิ่งวาง ให้ไม่ถึงเป้า
+              </div>
+            </div>
+            <div className="mt-4 rounded-2xl border border-line bg-white p-3">
+              <div className="font-medium mb-2">หัวใจของเกม: ด่านแต่ละแบบ แก้ด้วยกุญแจที่ตรงกัน</div>
+              <div className="grid sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                {ICON_IDS.map((i) => (
+                  <div key={i}>
+                    {ICONS[i].emoji} <b>{ICONS[i].name}</b> → {KEYS[i].emoji} {KEYS[i].name}
+                  </div>
+                ))}
+                <div>
+                  (ทุกด่าน) → {KEYS.W.emoji} {KEYS.W.name}
+                </div>
+              </div>
+            </div>
+            <p className="mt-4 text-sm text-ink/70 leading-relaxed">
+              ในเกม: <b>ลากการ์ดขึ้นไปวางที่โต๊ะ</b> เพื่อเล่น หรือแตะการ์ดเพื่อดูรายละเอียดก่อน (จอสัมผัสใช้แตะอย่างเดียว) กด Esc เพื่อปิดหน้าต่างรายละเอียด
+            </p>
           </div>
         </div>
-      </div>
-
-      <div className="mt-6">
-        <div className="text-sm text-ink/70 mb-2">คุณจะเล่นฝ่ายไหน</div>
-        <div className="grid grid-cols-2 gap-2">
-          {(['P', 'B'] as Side[]).map((s) => (
-            <button
-              key={s}
-              type="button"
-              aria-pressed={cfg.side === s}
-              onClick={() => setCfg({ ...cfg, side: s })}
-              className={`pop-btn px-4 py-3 text-sm font-medium border-2 ${cfg.side === s ? 'bg-accent text-white border-accent' : 'bg-surface text-ink border-line'}`}
-              style={{ ['--pop-shadow' as string]: cfg.side === s ? 'oklch(38% 0.12 152)' : 'oklch(85% 0.02 152)' }}
-            >
-              {s === 'P' ? '🌱 ผลักดัน (ลงมือทำ)' : '⛔ ต่อต้าน (ขวางทาง)'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-5">
-        <div className="text-sm text-ink/70 mb-2">การ์ดสัญญา (เป้าคะแนนของฝ่ายผลักดัน)</div>
-        <div className="grid sm:grid-cols-3 gap-2">
-          {CONTRACTS.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              aria-pressed={cfg.target === c.target}
-              onClick={() => setCfg({ ...cfg, target: c.target })}
-              className={`rounded-2xl border-2 p-3 text-left transition-all ${cfg.target === c.target ? 'border-accent bg-green-50 ring-4 ring-accent/20' : 'border-line bg-surface hover:border-accent/50'}`}
-            >
-              <div className="font-medium text-ink">
-                {c.emoji} {c.name}
-              </div>
-              <div className="text-accent-deep font-medium">เป้า {c.target} แต้ม</div>
-              <div className="text-xs text-ink/60">{c.note}</div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-5">
-        <div className="text-sm text-ink/70 mb-2">เลือกไอเท็มถาวรเริ่มเกมของคุณ (วางแล้วอยู่ทั้งเกม ปิดไม่ได้)</div>
-        <div className="grid sm:grid-cols-3 gap-2">
-          {items.map((id) => (
-            <button
-              key={id}
-              type="button"
-              aria-pressed={current === id}
-              onClick={() => setItem(id)}
-              className={`rounded-2xl border-2 p-3 text-left transition-all ${current === id ? 'border-accent bg-green-50 ring-4 ring-accent/20' : 'border-line bg-surface hover:border-accent/50'}`}
-            >
-              <div className="font-medium text-ink">
-                {ITEM_META[id].emoji} {ITEM_META[id].name}
-              </div>
-              <div className="text-xs text-ink/65 leading-snug mt-0.5">{ITEM_META[id].desc}</div>
-            </button>
-          ))}
-        </div>
-        <p className="text-xs text-ink/50 mt-1.5">บอทจะสุ่มไอเท็มของตัวเอง อีก 2 ใบที่ไม่ได้เลือกจะสับเข้ากองและอาจจั่วได้ภายหลัง</p>
-      </div>
-
-      <label className="mt-5 flex items-start gap-3 cursor-pointer">
-        <input type="checkbox" checked={cfg.hints} onChange={(e) => setCfg({ ...cfg, hints: e.target.checked })} className="mt-1 w-5 h-5 accent-[oklch(53%_0.15_152)]" />
-        <span className="text-ink/85 text-sm leading-relaxed">
-          <b>โหมดช่วยจำ</b> เมื่อเลือกการ์ดจะบอกว่ากุญแจในมือแก้ด่านของใบนั้นได้ไหม (ปิดไว้ถ้าอยากเล่นแบบท้าทาย)
-        </span>
-      </label>
-
-      <button type="button" onClick={onStart} className="pop-btn mt-7 w-full bg-accent text-white py-4 text-lg font-medium">
-        เริ่มเล่น
-      </button>
-      <p className="mt-4 text-xs text-ink/50 text-center leading-relaxed">
-        ต้นแบบสำหรับทดลองเล่น · ได้แรงบันดาลใจด้านโครงสร้างจากเกม Bangkok's Big Brother: เราจะทำตามสัญญา ของ iLaw ·
-        ความรู้บนการ์ดเป็นหลักการทั่วไป ควรให้ผู้เชี่ยวชาญตรวจอีกครั้งก่อนเผยแพร่จริง
-      </p>
+      )}
     </div>
   )
 }
@@ -1334,7 +1443,7 @@ function BActions({ game, card, setGame }: { game: State; card: Card | null; set
 
   return (
     <div>
-      <Heading>ตาของคุณ (ฝ่ายต่อต้าน) — ตอบได้ 1 ใบ หรือผ่าน</Heading>
+      <Heading>ตาของคุณ — ตอบ 1 ใบ หรือผ่าน</Heading>
       {entry ? (
         <div className="mb-3 rounded-xl border-2 border-green-200 bg-green-50/70 p-3 text-sm">
           ฝ่ายผลักดันเพิ่งวาง <b>{entry.card.emoji} {entry.card.name}</b> ({entry.card.pts} แต้ม) — ด่านที่ปิดได้:{' '}
@@ -1347,9 +1456,7 @@ function BActions({ game, card, setGame }: { game: State; card: Card | null; set
         <div className="mb-3 rounded-xl border border-line bg-surface p-3 text-sm text-ink/70">ฝ่ายผลักดันไม่ได้วางมาตรการในตานี้ — ปิดอะไรไม่ได้ เล่นการ์ดพิเศษ ไอเท็ม หรือตั้งด่านคว่ำได้</div>
       )}
 
-      {!card || !d ? (
-        <p className="text-ink/65 leading-relaxed text-sm">ลากการ์ดขึ้นโต๊ะ หรือแตะการ์ดในมือเพื่อดูรายละเอียดและเลือกเล่น · ไม่อยากเล่นการ์ดในตานี้กด “ผ่าน”</p>
-      ) : (
+      {!card || !d ? null : (
         <div className="flex gap-3 sm:gap-5 items-start">
           <div className="shrink-0 w-32 sm:w-56">
             <GameCard card={card} />
