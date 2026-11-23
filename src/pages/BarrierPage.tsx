@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Home, RotateCcw, Volume2, VolumeX } from 'lucide-react'
+import feltUrl from '../barrier/art/felt.svg'
+import backUrl from '../barrier/art/card-back.svg'
 import {
   B_ITEM_IDS,
   CATS,
@@ -359,6 +361,7 @@ function CardBack({ side, width = '5rem', label }: { side: Side; width?: string;
     ['--b1' as string]: p ? '#4ade80' : '#94a3b8',
     ['--b2' as string]: p ? '#15803d' : '#475569',
     ['--b3' as string]: p ? '#14532d' : '#1e293b',
+    ['--back-pattern' as string]: `url(${backUrl})`,
     width,
   }
   return (
@@ -373,47 +376,115 @@ function CardBack({ side, width = '5rem', label }: { side: Side; width?: string;
   )
 }
 
+/** เมาส์จริง (ไม่ใช่จอสัมผัส) — ใช้เปิดการลากการ์ด เพราะการลากบนจอสัมผัสจะบล็อกการเลื่อนหน้า */
+function useFinePointer() {
+  return useSyncExternalStore(
+    (cb) => {
+      const m = window.matchMedia('(pointer: fine)')
+      m.addEventListener('change', cb)
+      return () => m.removeEventListener('change', cb)
+    },
+    () => window.matchMedia('(pointer: fine)').matches,
+    () => false,
+  )
+}
+
 function GameCard({
   card,
   selected,
   onClick,
   disabled,
   big,
+  index = 0,
 }: {
   card: Card
   selected?: boolean
   onClick?: () => void
   disabled?: boolean
   big?: boolean
+  /** ลำดับในมือ — ใช้หน่วงแอนิเมชันแจกการ์ดให้ไล่ทีละใบ */
+  index?: number
 }) {
   const d = describe(card)
-  const cls = `block rounded-[5.73cqw] ${big ? 'w-72 max-w-full lg:w-56 [@media(max-height:800px)]:lg:w-44' : 'w-full'} ${selected ? 'shadow-lg ring-4' : 'shadow-sm'} ${disabled ? 'opacity-45' : ''}`
-  const style = { ['--tw-ring-color' as string]: `${d.color}55` }
+  const fine = useFinePointer()
+  const tiltRef = useRef<HTMLDivElement>(null)
+  const dragged = useRef(false)
+  const cls = `block rounded-[5.73cqw] ${big ? 'w-72 max-w-full lg:w-56 [@media(max-height:800px)]:lg:w-44' : 'w-full'} ${disabled ? 'opacity-45' : ''}`
+  const ringStyle = { ['--tw-ring-color' as string]: `${d.color}55` }
+  const style = { transformPerspective: 900 }
+
+  const onMove = (e: React.PointerEvent) => {
+    const el = tiltRef.current
+    if (!el || e.pointerType === 'touch' || disabled) return
+    const r = el.getBoundingClientRect()
+    const x = (e.clientX - r.left) / r.width
+    const y = (e.clientY - r.top) / r.height
+    el.style.setProperty('--rx', `${((0.5 - y) * 12).toFixed(1)}deg`)
+    el.style.setProperty('--ry', `${((x - 0.5) * 12).toFixed(1)}deg`)
+    el.style.setProperty('--gx', `${(x * 100).toFixed(0)}%`)
+    el.style.setProperty('--gy', `${(y * 100).toFixed(0)}%`)
+  }
+  const onLeave = () => {
+    const el = tiltRef.current
+    if (!el) return
+    el.style.setProperty('--rx', '0deg')
+    el.style.setProperty('--ry', '0deg')
+  }
+
+  const face = (
+    <div ref={tiltRef} className={`card-tilt ${selected ? 'shadow-lg ring-4' : 'shadow-sm'}`} style={ringStyle} onPointerMove={onMove} onPointerLeave={onLeave}>
+      <PrintFace card={card} />
+      <div className="card-glare" aria-hidden />
+    </div>
+  )
+
   const motionProps = {
     layout: true,
-    initial: { opacity: 0, scale: 0.85, y: 10 },
-    animate: { opacity: 1, scale: 1, y: selected ? -6 : 0 },
-    exit: { opacity: 0, scale: 0.8, y: -8 },
-    transition: { type: 'spring', stiffness: 420, damping: 30 } as const,
+    // แจกการ์ด: ลอยลงมาพร้อมพลิกหน้า ไล่ทีละใบ
+    initial: { opacity: 0, scale: 0.8, y: -70, rotateY: 80, rotateZ: -6 },
+    animate: { opacity: 1, scale: 1, y: selected ? -10 : 0, rotateY: 0, rotateZ: 0 },
+    exit: { opacity: 0, scale: 0.8, y: -30, rotateZ: 8 },
+    transition: { type: 'spring', stiffness: 320, damping: 26, delay: Math.min(index, 8) * 0.06 } as const,
   }
-  return onClick ? (
+  if (!onClick) {
+    return (
+      <motion.div className={cls} style={style} {...motionProps}>
+        {face}
+      </motion.div>
+    )
+  }
+  const canDrag = fine && !disabled
+  return (
     <motion.button
       type="button"
-      onClick={onClick}
-      className={`${cls} text-left`}
+      onClick={() => {
+        if (!dragged.current) onClick()
+      }}
+      className={`${cls} text-left ${selected ? 'card-shadow-lift' : ''}`}
       style={style}
       aria-pressed={selected}
       aria-label={d.name}
-      whileHover={disabled ? undefined : { y: -6, scale: 1.04 }}
+      whileHover={disabled ? undefined : { y: -8, scale: 1.04 }}
       whileTap={disabled ? undefined : { scale: 0.97 }}
+      // ลากการ์ดขึ้น/ออกจากมือแล้วปล่อย = เลือกการ์ดใบนี้ (เหมือนหยิบขึ้นมาวาง) · ปล่อยแล้วการ์ดเด้งกลับที่เดิม
+      drag={canDrag}
+      dragSnapToOrigin
+      dragElastic={0.3}
+      dragMomentum={false}
+      whileDrag={{ scale: 1.1, zIndex: 40, cursor: 'grabbing' }}
+      onDragStart={() => {
+        dragged.current = true
+      }}
+      onDragEnd={(_, info) => {
+        if (Math.hypot(info.offset.x, info.offset.y) > 60) onClick()
+        setTimeout(() => {
+          dragged.current = false
+        }, 0)
+      }}
       {...motionProps}
     >
-      <PrintFace card={card} />
+      {face}
     </motion.button>
-  ) : (
-    <motion.div className={cls} style={style} {...motionProps}>
-      <PrintFace card={card} />
-    </motion.div>
   )
 }
 
@@ -888,20 +959,35 @@ function OpponentPanel({ game, me, feed, narrow, collapsible }: { game: State; m
 function TableView({ game }: { game: State }) {
   const counts = catCounts(game)
   const combos = comboCats(game)
+  const deckLeft = game.pDeck.length
   return (
-    <div className="pop-card p-4">
-      <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
-        <div className="font-medium text-ink">🌱 โต๊ะของฝ่ายผลักดัน ({game.table.length} มาตรการที่รอด)</div>
-        <div className="flex flex-wrap gap-1.5">
-          {(Object.keys(CATS) as (keyof typeof CATS)[]).map((k) => (
-            <Chip key={k} tone={counts[k] >= 3 ? 'green' : 'plain'} title="มาตรการหมวดเดียวกันรอด ≥ 3 ใบ = ระบบครบวงจร +2 แต้ม/ตา">
-              {CATS[k].emoji} {counts[k]}/3{counts[k] >= 3 && ' ✓ +2'}
-            </Chip>
-          ))}
+    <div className="felt min-h-full p-4 sm:p-5" style={{ ['--felt-tile' as string]: `url(${feltUrl})` }}>
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="min-w-0">
+          <div className="font-display text-lg leading-tight">🌱 โต๊ะของฝ่ายผลักดัน</div>
+          <div className="felt-muted text-sm">{game.table.length} มาตรการที่รอด</div>
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {(Object.keys(CATS) as (keyof typeof CATS)[]).map((k) => (
+              <Chip key={k} tone={counts[k] >= 3 ? 'green' : 'plain'} title="มาตรการหมวดเดียวกันรอด ≥ 3 ใบ = ระบบครบวงจร +2 แต้ม/ตา">
+                {CATS[k].emoji} {counts[k]}/3{counts[k] >= 3 && ' ✓ +2'}
+              </Chip>
+            ))}
+          </div>
+        </div>
+        {/* กองจั่วของฝ่ายผลักดัน */}
+        <div className="shrink-0 text-center" title={`กองจั่วเหลือ ${deckLeft} ใบ`}>
+          <div className="relative" style={{ width: '3.6rem', height: `${3.6 * (952 / 698) + 0.4}rem` }}>
+            {[2, 1, 0].map((n) => (
+              <div key={n} className="absolute" style={{ left: n * 2, top: -n * 2, opacity: deckLeft > n * 4 ? 1 : 0 }}>
+                <CardBack side="P" width="3.6rem" label="" />
+              </div>
+            ))}
+          </div>
+          <div className="felt-muted text-xs mt-1 tabular">กองจั่ว {deckLeft}</div>
         </div>
       </div>
       {game.table.length === 0 ? (
-        <div className="text-ink/50 text-sm py-6 text-center">ยังไม่มีมาตรการบนโต๊ะ — มาตรการที่รอดจะได้แต้มทุกตา</div>
+        <div className="felt-muted text-sm py-6 text-center">ยังไม่มีมาตรการบนโต๊ะ — มาตรการที่รอดจะได้แต้มทุกตา</div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           <AnimatePresence initial={false}>
@@ -918,15 +1004,17 @@ function TableView({ game }: { game: State }) {
 function EntryTile({ e, isNew, inCombo }: { e: Entry; isNew: boolean; inCombo: boolean }) {
   const cat = CATS[e.card.cat]
   const shielded = e.att.some((a) => a.kind === 'meter')
+  // วางแต่ละใบเอียงต่างกันนิดหน่อยตาม id เหมือนวางการ์ดจริงบนโต๊ะ
+  const tilt = ((e.id * 37) % 7) - 3
   return (
     <motion.div
       layout
-      initial={{ scale: 0.8, opacity: 0, y: -12 }}
-      animate={{ scale: 1, opacity: 1, y: 0 }}
-      exit={{ scale: 0.85, opacity: 0 }}
-      transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-      className="rounded-2xl border-2 p-2.5 text-center flex flex-col items-center gap-1"
-      style={{ background: cat.tint, borderColor: isNew ? cat.color : `${cat.color}55`, boxShadow: isNew ? `0 0 0 3px ${cat.color}33` : undefined }}
+      initial={{ scale: 1.5, opacity: 0, y: -80, rotate: tilt * 4 }}
+      animate={{ scale: 1, opacity: 1, y: 0, rotate: tilt * 0.7 }}
+      exit={{ scale: 0.8, opacity: 0, y: 20, rotate: tilt * 5 }}
+      transition={{ type: 'spring', stiffness: 380, damping: 22 }}
+      className="rounded-2xl border-2 p-2.5 text-center flex flex-col items-center gap-1 text-ink"
+      style={{ background: cat.tint, borderColor: isNew ? cat.color : `${cat.color}55`, boxShadow: isNew ? `0 0 0 3px ${cat.color}66, 0 8px 14px rgba(0,0,0,.35)` : '0 5px 9px rgba(0,0,0,.3)' }}
     >
       <div className="text-4xl leading-none">{e.card.emoji}</div>
       <div className="text-sm font-medium text-ink leading-tight">{e.card.name}</div>
@@ -994,8 +1082,8 @@ function HandPanel({
         <div ref={boxRef} className={fit ? 'flex-1 min-h-0 pt-2' : undefined}>
         <div className={fit ? 'grid' : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2.5 pt-2'} style={gridStyle}>
           <AnimatePresence initial={false}>
-            {hand.map((c) => (
-              <GameCard key={c.id} card={c} selected={selectedId === c.id} onClick={onSelect ? () => onSelect(c.id) : undefined} />
+            {hand.map((c, i) => (
+              <GameCard key={c.id} card={c} index={i} selected={selectedId === c.id} onClick={onSelect ? () => onSelect(c.id) : undefined} />
             ))}
           </AnimatePresence>
         </div>
