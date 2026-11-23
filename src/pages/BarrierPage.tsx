@@ -1431,7 +1431,7 @@ function PCardPanel({ game, card, hints, setGame }: { game: State; card: Card; h
 
 /** แถบปุ่มที่ติดขอบล่างของหน้าต่างเสมอ — ไม่ต้องเลื่อนลงไปกด */
 function ActionFooter({ children }: { children: ReactNode }) {
-  return <div className="sticky bottom-0 z-10 -mx-4 -mb-4 mt-3 px-4 pt-3 pb-4 bg-[#fbf7ee] border-t border-[#e5d9bd]">{children}</div>
+  return <div className="sticky -bottom-4 z-10 -mx-4 -mb-4 mt-3 px-4 pt-3 pb-4 bg-[#fbf7ee] border-t border-[#e5d9bd]">{children}</div>
 }
 
 function BActions({ game, card, setGame }: { game: State; card: Card | null; setGame: SetGame }) {
@@ -1532,52 +1532,52 @@ function CounterPrompt({ game, setGame }: { game: State; setGame: SetGame }) {
   return (
     <div>
       <Heading>⛔ ฝ่ายต่อต้านวางด่านใส่มาตรการของคุณ</Heading>
-      <div className="flex flex-col sm:flex-row gap-4 items-start">
-        <div className="flex flex-wrap gap-3 items-start mx-auto sm:mx-0">
-          <div className="w-40 sm:w-56">
-            <GameCard card={p.block} />
-          </div>
-          <div className="text-3xl self-center">→</div>
-          <div className="w-40 sm:w-56">
-            <GameCard card={entry.card} />
-          </div>
+      <div className="flex items-center justify-center gap-2 sm:gap-4">
+        <div className="w-[36%] max-w-[13rem]">
+          <GameCard card={p.block} />
         </div>
-        <div className="flex-1 min-w-0 w-full">
-          <p className="text-ink leading-relaxed">
-            ด่าน <b>“{p.block.name}”</b> ตรงกับมาตรการ <b>{entry.card.name}</b> ที่ไอคอน{' '}
-            <span className="inline-flex gap-1 align-middle">{matched.map((i) => <IconChip key={i} i={i} />)}</span>
-          </p>
-          <p className="text-sm text-ink/65 mt-1">
-            ทิ้งกุญแจที่ตรงกันเพื่อให้การปิดไม่มีผล —{' '}
-            {matched.map((i) => `${ICONS[i].emoji} ต้องใช้ ${KEYS[i].emoji}${i === 'P' && game.bItems.includes('comfort') ? ' (🛋️ ต้องใช้ ⭐ เท่านั้น)' : ''}`).join(' · ')} หรือ ⭐
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {keys.map((k) => (
-              <button
-                key={k.id}
-                type="button"
-                onClick={() => {
-                  sfx.correct()
-                  setGame((g) => g && counter(g, k.id))
-                }}
-                className="rounded-2xl border-2 border-violet-300 bg-violet-50 px-4 py-2 text-left hover:border-violet-500 transition-colors"
-              >
-                <span className="text-2xl mr-1">{KEYS[k.k].emoji}</span>
-                <span className="font-medium text-ink">ใช้ {KEYS[k.k].name}</span>
-              </button>
-            ))}
-            <Btn
-              tone="plain"
-              onClick={() => {
-                sfx.wrong()
-                setGame((g) => g && counter(g, null))
-              }}
-            >
-              ปล่อยให้ปิด (มาตรการหายไป)
-            </Btn>
-          </div>
+        <div className="text-2xl sm:text-3xl shrink-0">→</div>
+        <div className="w-[36%] max-w-[13rem]">
+          <GameCard card={entry.card} />
         </div>
       </div>
+      <div className="mt-3">
+        <p className="text-ink leading-relaxed text-sm sm:text-base">
+          ด่าน <b>“{p.block.name}”</b> ตรงกับมาตรการ <b>{entry.card.name}</b> ที่ไอคอน{' '}
+          <span className="inline-flex gap-1 align-middle">{matched.map((i) => <IconChip key={i} i={i} />)}</span>
+        </p>
+        <p className="text-xs sm:text-sm text-ink/65 mt-1">
+          ทิ้งกุญแจที่ตรงกันเพื่อให้การปิดไม่มีผล —{' '}
+          {matched.map((i) => `${ICONS[i].emoji} ต้องใช้ ${KEYS[i].emoji}${i === 'P' && game.bItems.includes('comfort') ? ' (🛋️ ต้องใช้ ⭐ เท่านั้น)' : ''}`).join(' · ')} หรือ ⭐
+        </p>
+      </div>
+      <ActionFooter>
+        <div className="flex flex-wrap gap-2">
+          {keys.map((k) => (
+            <button
+              key={k.id}
+              type="button"
+              onClick={() => {
+                sfx.correct()
+                setGame((g) => g && counter(g, k.id))
+              }}
+              className="rounded-2xl border-2 border-violet-300 bg-violet-50 px-4 py-2 text-left hover:border-violet-500 transition-colors"
+            >
+              <span className="text-2xl mr-1">{KEYS[k.k].emoji}</span>
+              <span className="font-medium text-ink">ใช้ {KEYS[k.k].name}</span>
+            </button>
+          ))}
+          <Btn
+            tone="plain"
+            onClick={() => {
+              sfx.wrong()
+              setGame((g) => g && counter(g, null))
+            }}
+          >
+            ปล่อยให้ปิด (มาตรการหายไป)
+          </Btn>
+        </div>
+      </ActionFooter>
     </div>
   )
 }
@@ -1590,12 +1590,14 @@ function NegatePrompt({ game, setGame }: { game: State; setGame: SetGame }) {
         {r.emoji} {r.name}: หักคะแนนของคุณ {r.v} แต้ม
       </Heading>
       <p className="text-ink/75 leading-relaxed">ทิ้ง 📏 วัดผลให้เห็น 1 ใบจากมือ เพื่อยกเลิกได้ — แต่จะประกบมาตรการ (+1 แต้ม/ตา) ด้วยใบนี้ไม่ได้อีก</p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Btn onClick={() => setGame((g) => g && negate(g, true))}>📏 ทิ้งเพื่อยกเลิก</Btn>
-        <Btn tone="plain" onClick={() => setGame((g) => g && negate(g, false))}>
-          ยอมเสีย {r.v} แต้ม
-        </Btn>
-      </div>
+      <ActionFooter>
+        <div className="flex flex-wrap gap-2">
+          <Btn onClick={() => setGame((g) => g && negate(g, true))}>📏 ทิ้งเพื่อยกเลิก</Btn>
+          <Btn tone="plain" onClick={() => setGame((g) => g && negate(g, false))}>
+            ยอมเสีย {r.v} แต้ม
+          </Btn>
+        </div>
+      </ActionFooter>
     </div>
   )
 }
@@ -1613,11 +1615,11 @@ function FrozenPrompt({ game, setGame }: { game: State; setGame: SetGame }) {
           <GameCard key={c.id} card={c} selected={ids.includes(c.id)} onClick={() => toggle(c.id)} />
         ))}
       </div>
-      <div className="mt-3">
+      <ActionFooter>
         <Btn disabled={ids.length !== need} onClick={() => setGame((g) => g && frozenDiscard(g, ids))}>
           ทิ้ง {ids.length}/{need} ใบ
         </Btn>
-      </div>
+      </ActionFooter>
     </div>
   )
 }
